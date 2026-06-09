@@ -54,16 +54,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const mks = await API.get('/productos/marcas');
     const mksContainer = document.getElementById('filter-marcas');
     if (mksContainer && mks.ok) {
-      // Deduplicar por nombre
-      const marcasUnicas = [];
-      const nombresVistos = new Set();
-      mks.marcas.forEach(m => {
-        if (!nombresVistos.has(m.nombre)) {
-          nombresVistos.add(m.nombre);
-          marcasUnicas.push(m);
-        }
-      });
-      mksContainer.innerHTML = marcasUnicas.map(m => `
+      mksContainer.innerHTML = mks.marcas.map(m => `
         <div class="filter-option">
           <label>
             <input type="checkbox" name="marca" value="${m.id}"
@@ -227,11 +218,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const chips = [];
     if (state.busqueda)  chips.push({ label: state.busqueda,   key: 'busqueda' });
 
-    const catChecked = document.querySelector('[name="categoria"]:checked');
-    if (catChecked) chips.push({ label: catChecked.closest('label').textContent.trim(), key: 'categoria' });
+    document.querySelectorAll('[name="categoria"]:checked').forEach(c =>
+      chips.push({ label: c.closest('label').textContent.trim(), key: 'categoria_' + c.value })
+    );
 
-    const mksChecked = document.querySelectorAll('[name="marca"]:checked');
-    mksChecked.forEach(m => chips.push({ label: m.closest('label').textContent.trim(), key: 'marca_' + m.value }));
+    document.querySelectorAll('[name="marca"]:checked').forEach(m =>
+      chips.push({ label: m.closest('label').textContent.trim(), key: 'marca_' + m.value })
+    );
 
     if (state.solo_stock) chips.push({ label: 'Solo en stock', key: 'solo_stock' });
 
@@ -278,13 +271,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Aplicar filtros del panel ──────────────────────────────
   const applyFilters = () => {
-    // Categoría
-    const catChecked = document.querySelector('[name="categoria"]:checked');
-    state.categoria_id = catChecked ? catChecked.value : null;
+    // Categoría (el backend soporta un ID; se toma el primero marcado)
+    const catsChecked = document.querySelectorAll('[name="categoria"]:checked');
+    state.categoria_id = catsChecked.length > 0 ? catsChecked[0].value : null;
 
-    // Marca
-    const mksChecked = document.querySelector('[name="marca"]:checked');
-    state.marca_id = mksChecked ? mksChecked.value : null;
+    // Marca (el backend soporta un ID; se toma el primero marcado)
+    const mksChecked = document.querySelectorAll('[name="marca"]:checked');
+    state.marca_id = mksChecked.length > 0 ? mksChecked[0].value : null;
 
     // Precio
     const minEl = document.getElementById('price-min');
@@ -315,14 +308,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadProducts();
   };
   window.removeFilter = (key) => {
-    if (key === 'busqueda')    { state.busqueda = null; document.getElementById('search-input').value = ''; }
-    if (key === 'categoria')   { state.categoria_id = null; document.querySelectorAll('[name="categoria"]').forEach(c => c.checked = false); }
+    if (key === 'busqueda')    { state.busqueda = null; const si = document.getElementById('search-input'); if (si) si.value = ''; }
     if (key === 'solo_stock')  { state.solo_stock = false; document.getElementById('toggle-stock').checked = false; }
+    if (key.startsWith('categoria_')) {
+      const id = key.split('_')[1];
+      const el = document.querySelector(`[name="categoria"][value="${id}"]`);
+      if (el) el.checked = false;
+      const remaining = document.querySelectorAll('[name="categoria"]:checked');
+      state.categoria_id = remaining.length > 0 ? remaining[0].value : null;
+    }
     if (key.startsWith('marca_')) {
       const id = key.split('_')[1];
       const el = document.querySelector(`[name="marca"][value="${id}"]`);
       if (el) el.checked = false;
-      state.marca_id = null;
+      const remaining = document.querySelectorAll('[name="marca"]:checked');
+      state.marca_id = remaining.length > 0 ? remaining[0].value : null;
     }
     state.pagina = 1;
     loadProducts();
@@ -332,9 +332,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     state.busqueda = null; state.solo_stock = false;
     state.precio_min = 0; state.precio_max = 15000;
     state.pagina = 1;
-    document.querySelectorAll('.filter-option input').forEach(i => i.checked = false);
+    document.querySelectorAll('.filter-option input[type="checkbox"]').forEach(i => i.checked = false);
     const stockToggle = document.getElementById('toggle-stock');
     if (stockToggle) stockToggle.checked = false;
+    const si = document.getElementById('search-input');
+    if (si) si.value = '';
     loadProducts();
   };
 

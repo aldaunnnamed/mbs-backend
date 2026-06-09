@@ -69,7 +69,13 @@ const detalle = async (req, res) => {
 // GET /api/productos/categorias
 const categorias = async (req, res) => {
   try {
-    const result = await query('SELECT * FROM categorias WHERE activa = TRUE ORDER BY orden');
+    const result = await query(
+      `SELECT c.*
+       FROM categorias c
+       WHERE c.activa = TRUE
+         AND EXISTS (SELECT 1 FROM productos p WHERE p.categoria_id = c.id AND p.estado = 'activo')
+       ORDER BY c.orden`
+    );
     res.json({ ok: true, categorias: result.rows });
   } catch (err) {
     res.status(500).json({ ok: false, mensaje: 'Error al obtener categorias' });
@@ -79,7 +85,13 @@ const categorias = async (req, res) => {
 // GET /api/productos/marcas
 const marcas = async (req, res) => {
   try {
-    const result = await query('SELECT * FROM marcas WHERE activa = TRUE ORDER BY nombre');
+    const result = await query(
+      `SELECT DISTINCT ON (m.nombre) m.id, m.nombre, m.logo_url, m.activa
+       FROM marcas m
+       INNER JOIN productos p ON p.marca_id = m.id AND p.estado = 'activo'
+       WHERE m.activa = TRUE
+       ORDER BY m.nombre, m.id`
+    );
     res.json({ ok: true, marcas: result.rows });
   } catch (err) {
     res.status(500).json({ ok: false, mensaje: 'Error al obtener marcas' });
