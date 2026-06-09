@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Dashboard | MBS Admin</title>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="ap">
+<div class="ap-layout">
+
+  <!-- ── Sidebar ─────────────────────────────────────────────── -->
+  <aside class="ap-sidebar" id="ap-sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo__mark">M</div>
+      <div>
+        <div class="sb-logo__name">MBS Comunicaciones</div>
+        <div class="sb-logo__sub">Panel de Administración</div>
+      </div>
+    </div>
+    <div class="sb-user">
+      <div class="sb-user__av js-ini">MB</div>
+      <div>
+        <div class="sb-user__name js-name">MBS Admin</div>
+        <div class="sb-user__email js-email">admin@mbs.mx</div>
+      </div>
+    </div>
+    <ul class="sb-nav">
+      <li><a href="/admin/index.html" class="sb-link"><span class="sb-icon">📊</span><span class="sb-label">Inicio</span></a></li>
+      <li><a href="/admin/productos.html" class="sb-link"><span class="sb-icon">📦</span><span class="sb-label">Productos</span><span class="sb-badge" id="sb-n-productos">—</span></a></li>
+      <li><a href="/admin/pedidos.html" class="sb-link"><span class="sb-icon">🛒</span><span class="sb-label">Pedidos</span><span class="sb-badge" id="sb-n-pedidos">—</span></a></li>
+      <li><a href="/admin/clientes.html" class="sb-link"><span class="sb-icon">👥</span><span class="sb-label">Clientes</span></a></li>
+      <li><a href="/admin/inventario.html" class="sb-link"><span class="sb-icon">🏪</span><span class="sb-label">Inventario</span></a></li>
+      <li><a href="/admin/mensajes.html"      class="sb-link"><span class="sb-icon">✉️</span><span class="sb-label">Mensajes</span></a></li>
+      <li><a href="/admin/configuracion.html" class="sb-link"><span class="sb-icon">⚙️</span><span class="sb-label">Configuración</span></a></li>
+    </ul>
+    <hr class="sb-divider">
+    <div class="sb-footer">
+      <button class="sb-link" onclick="AdminAuth.logout()" style="width:100%">
+        <span class="sb-icon">🚪</span><span class="sb-label">Cerrar sesión</span>
+      </button>
+    </div>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+
+  <!-- ── Main ────────────────────────────────────────────────── -->
+  <main class="ap-main">
+    <header class="ap-header">
+      <button class="ap-header__toggle" id="sb-toggle">☰</button>
+      <div>
+        <div class="ap-header__title">Inicio</div>
+        <div class="ap-header__sub" id="header-sub">Bienvenido, MBS Admin</div>
+      </div>
+      <div class="ap-header__right">
+        <div class="ap-bell">🔔<span class="ap-bell__dot" id="bell-count">3</span></div>
+        <div class="ap-huser">
+          <div class="ap-huser__av js-ini">MB</div>
+          <div class="hide-xs">
+            <div class="ap-huser__name js-name">MBS Admin</div>
+            <div class="ap-huser__role">Administrador</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="ap-content">
+
+      <!-- KPIs -->
+      <div class="kpi-row" id="kpi-row">
+        <div class="kpi kpi--orange">
+          <div class="kpi__lbl">🛒 Pedidos nuevos</div>
+          <div class="kpi__val" id="k-pedidos">—</div>
+          <div class="kpi__sub kpi__sub--o" id="k-pedidos-sub">cargando...</div>
+        </div>
+        <div class="kpi kpi--blue">
+          <div class="kpi__lbl">👥 Clientes activos</div>
+          <div class="kpi__val" id="k-clientes">—</div>
+          <div class="kpi__sub kpi__sub--g" id="k-clientes-sub">este mes</div>
+        </div>
+        <div class="kpi kpi--red">
+          <div class="kpi__lbl">📦 Productos en stock</div>
+          <div class="kpi__val" id="k-productos">—</div>
+          <div class="kpi__sub kpi__sub--r" id="k-stock-sub">cargando...</div>
+        </div>
+      </div>
+
+      <!-- Gráfica + Pedidos recientes -->
+      <div class="g2 mb20">
+
+        <div class="card">
+          <div class="card__hd">
+            <span class="card__title">Ventas últimos 7 días</span>
+            <span class="bdg bdg--g fs11">Esta semana</span>
+          </div>
+          <div class="card__bd">
+            <div class="chart-wrap"><canvas id="ventas-chart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__hd">
+            <span class="card__title">Pedidos recientes</span>
+            <a href="/admin/pedidos.html" class="tx-o fs12 fw6">Ver todos →</a>
+          </div>
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr>
+                <th># Pedido</th><th>Cliente</th><th>Monto</th><th>Estado</th>
+              </tr></thead>
+              <tbody id="pedidos-tbody">
+                <tr><td colspan="4" class="tx-m" style="text-align:center;padding:20px">Cargando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Stock bajo + Top productos -->
+      <div class="g2">
+
+        <div class="card">
+          <div class="card__hd">
+            <span class="card__title">⚠ Stock bajo</span>
+            <span class="bdg bdg--r" id="stock-count">—</span>
+          </div>
+          <div class="card__bd">
+            <div class="sl" id="stock-list">
+              <div class="tx-m fs12" style="text-align:center;padding:16px">Cargando...</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__hd">
+            <span class="card__title">🏆 Top productos</span>
+          </div>
+          <div class="card__bd">
+            <div class="tl" id="top-list">
+              <div class="tx-m fs12" style="text-align:center;padding:16px">Sin datos disponibles</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /ap-content -->
+  </main>
+</div>
+
+<script src="/js/admin-core.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  // Date in header
+  const today = new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('header-sub').textContent = 'Bienvenido, MBS Admin · Hoy: ' + today;
+
+  // Dashboard data
+  const [dash, alertas] = await Promise.all([
+    AdminAPI.get('/admin/dashboard'),
+    AdminAPI.get('/admin/inventario/alertas'),
+  ]);
+
+  if (dash.ok) {
+    const k = dash.kpis || {};
+    document.getElementById('k-pedidos').textContent     = fmt.num(k.pedidos_nuevos || k.pedidos_hoy || 0);
+    document.getElementById('k-pedidos-sub').textContent = (k.sin_atender || 0) + ' sin atender';
+    document.getElementById('k-clientes').textContent    = fmt.num(k.total_clientes || 0);
+    document.getElementById('k-productos').textContent   = fmt.num(k.total_productos || 0);
+    document.getElementById('k-stock-sub').textContent   = (k.stock_bajo || 0) + ' con stock bajo';
+
+    // Sidebar badges
+    const sbPed = document.getElementById('sb-n-pedidos');
+    const sbPro = document.getElementById('sb-n-productos');
+    if (sbPed) sbPed.textContent = k.pedidos_nuevos || k.sin_atender || 0;
+    if (sbPro) sbPro.textContent = k.total_productos || 0;
+
+    // Recent orders
+    const rows = (dash.pedidos_recientes || []).map(p => `
+      <tr>
+        <td class="fw6 tx-o">${p.numero}</td>
+        <td>${p.cliente_nombre || '—'}</td>
+        <td>${fmt.money(p.total)}</td>
+        <td>${badge(p.estado)}</td>
+      </tr>`).join('');
+    document.getElementById('pedidos-tbody').innerHTML = rows || '<tr><td colspan="4" class="tx-m" style="text-align:center;padding:16px">Sin pedidos</td></tr>';
+
+    // Bar chart
+    const ventas = dash.ventas_semana || [];
+    if (ventas.length) {
+      const days = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+      const vals = ventas.map(v => parseFloat(v.total_venta || v.total || 0));
+      const lbls = ventas.map(v => {
+        if (v.dia_semana) {
+          const m = {lunes:'Lun',martes:'Mar',miercoles:'Mié',jueves:'Jue',viernes:'Vie',sabado:'Sáb',domingo:'Dom'};
+          return m[v.dia_semana.toLowerCase()] || v.dia_semana.slice(0,3);
+        }
+        if (v.fecha) return days[new Date(v.fecha).getDay()];
+        return '';
+      });
+      const canvas = document.getElementById('ventas-chart');
+      if (canvas) {
+        // Wait for layout
+        requestAnimationFrame(() => drawBarChart(canvas, vals, lbls));
+      }
+    } else {
+      // fallback demo data
+      const canvas = document.getElementById('ventas-chart');
+      if (canvas) requestAnimationFrame(() => drawBarChart(canvas,[6000,8000,5000,10000,7000,11000,8000],['Lun','Mar','Mié','Jue','Vie','Sáb','Dom']));
+    }
+  }
+
+  // Stock alerts
+  if (alertas.ok) {
+    const items = (alertas.alertas || []).slice(0, 5);
+    document.getElementById('stock-count').textContent = (alertas.alertas||[]).length + ' productos';
+    document.getElementById('stock-list').innerHTML = items.map(a => `
+      <div class="sl-item">
+        <div class="sl-info">
+          <div class="sl-name">${a.nombre || a.producto_nombre || '—'}</div>
+          <div class="sl-sku">${a.sku || ''}</div>
+        </div>
+        <span class="bdg ${a.alerta==='sin_stock'?'bdg--r':a.alerta==='critico'?'bdg--r':'bdg--o'}">${a.stock_actual} uds</span>
+        <a class="sl-act" href="/admin/inventario.html">Reponer →</a>
+      </div>`).join('') || '<div class="tx-m fs12" style="text-align:center;padding:12px">Sin alertas ✓</div>';
+
+    // Top productos desde API
+    const topRes = await AdminAPI.get('/admin/productos/top');
+    const topData = topRes.ok ? (topRes.productos || []) : [];
+    document.getElementById('top-list').innerHTML = topData.length
+      ? topData.map((t,i)=>`
+          <div class="tl-item">
+            <div class="tl-num">${i+1}</div>
+            <div class="tl-info">
+              <div class="tl-name">${t.nombre || '—'}</div>
+              <div class="tl-units">${fmt.num(t.unidades_vendidas)} unidades vendidas</div>
+            </div>
+            <div class="tl-total">${fmt.money(t.total_vendido)}</div>
+          </div>`).join('')
+      : '<div class="tx-m fs12" style="text-align:center;padding:16px">Sin ventas registradas aún</div>';
+  }
+
+  // Notifications badge
+  const notifs = await AdminAPI.get('/usuarios/notificaciones');
+  if (notifs.ok) {
+    const unread = (notifs.notificaciones||[]).filter(n=>!n.leida).length;
+    const dot = document.getElementById('bell-count');
+    if (dot) dot.textContent = unread || '';
+    if (dot && !unread) dot.style.display = 'none';
+  }
+});
+</script>
+</body>
+</html>

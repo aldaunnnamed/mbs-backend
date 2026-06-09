@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contacto — MBS Comunicaciones</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/navbar.css">
+  <style>
+    .contact-page { padding: 48px 0 80px; }
+    .contact-header { text-align: center; margin-bottom: 56px; }
+    .contact-header h1 { font-size: clamp(1.8rem, 3vw, 2.4rem); margin-bottom: 10px; }
+    .contact-header p  { color: var(--gray-600); font-size: 1rem; }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 48px;
+      align-items: start;
+    }
+
+    /* Info cards */
+    .contact-info { display: flex; flex-direction: column; gap: 16px; }
+    .contact-card {
+      background: var(--white);
+      border: 1px solid var(--gray-100);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      display: flex; gap: 16px; align-items: flex-start;
+      transition: var(--transition);
+    }
+    .contact-card:hover { box-shadow: var(--shadow-md); }
+    .contact-card__icon {
+      width: 44px; height: 44px;
+      background: var(--navy);
+      border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; flex-shrink: 0;
+    }
+    .contact-card__title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 1rem; font-weight: 700; color: var(--navy);
+      margin-bottom: 4px;
+    }
+    .contact-card__text { font-size: .9rem; color: var(--gray-600); line-height: 1.6; }
+    .contact-card__text a { color: var(--electric); }
+    .contact-card__text a:hover { text-decoration: underline; }
+
+    .contact-whatsapp {
+      display: flex; align-items: center; gap: 10px;
+      background: #25D366; color: var(--white);
+      padding: 14px 20px; border-radius: var(--radius-sm);
+      font-weight: 700; font-size: 1rem;
+      text-decoration: none; transition: var(--transition);
+      justify-content: center; margin-top: 8px;
+    }
+    .contact-whatsapp:hover { background: #1ebe5d; transform: translateY(-1px); }
+
+    /* Formulario */
+    .contact-form-card {
+      background: var(--white);
+      border: 1px solid var(--gray-100);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .contact-form-card__header {
+      background: var(--navy); padding: 20px 28px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 1.2rem; font-weight: 700; color: var(--white);
+    }
+    .contact-form-card__body { padding: 28px; }
+
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group:last-child { margin-bottom: 0; }
+    .form-label {
+      display: block; font-size: .85rem; font-weight: 600;
+      color: var(--navy); margin-bottom: 6px;
+    }
+    .form-label .req { color: var(--red); }
+    .form-input, .form-select, .form-textarea {
+      width: 100%; padding: 10px 14px;
+      border: 1px solid var(--gray-100); border-radius: var(--radius-sm);
+      font-size: .9rem; font-family: inherit; transition: var(--transition);
+      background: var(--white);
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none; border-color: var(--navy);
+      box-shadow: 0 0 0 3px rgba(11,30,61,.08);
+    }
+    .form-textarea { resize: vertical; min-height: 120px; }
+
+    .btn-send {
+      width: 100%; padding: 13px;
+      background: var(--orange); color: var(--white);
+      border: none; border-radius: var(--radius-sm);
+      font-size: 1rem; font-weight: 700; font-family: inherit;
+      cursor: pointer; transition: var(--transition);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-send:hover { background: var(--orange-lite); transform: translateY(-1px); }
+    .btn-send:disabled { opacity: .7; cursor: not-allowed; transform: none; }
+
+    .alert-success {
+      background: var(--green-lite); border: 1px solid rgba(46,125,50,.2);
+      border-radius: var(--radius-sm); padding: 14px 16px;
+      color: var(--green); font-size: .9rem; margin-bottom: 16px;
+      display: none; text-align: center;
+    }
+    .alert-success.visible { display: block; }
+
+    /* Mapa placeholder */
+    .map-section { margin-top: 64px; }
+    .map-section h2 {
+      font-size: 1.4rem; margin-bottom: 20px; text-align: center;
+    }
+    .map-placeholder {
+      background: var(--gray-50);
+      border: 1px solid var(--gray-100);
+      border-radius: var(--radius-md);
+      height: 280px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: var(--gray-400);
+    }
+    .map-placeholder p { margin-top: 8px; font-size: .9rem; }
+
+    /* Horario */
+    .hours-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 16px; margin-top: 48px;
+    }
+    .hours-card {
+      background: var(--navy); border-radius: var(--radius-md);
+      padding: 24px; text-align: center; color: var(--white);
+    }
+    .hours-card__day {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 1rem; font-weight: 700; margin-bottom: 8px;
+      color: var(--electric);
+    }
+    .hours-card__time { font-size: .95rem; color: rgba(255,255,255,.8); }
+    .hours-card__closed { color: rgba(255,255,255,.4); }
+
+    @media (max-width: 768px) {
+      .contact-grid { grid-template-columns: 1fr; }
+      .form-grid-2  { grid-template-columns: 1fr; }
+      .hours-grid   { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="container">
+    <div class="navbar__inner">
+      <a href="/" class="navbar__logo"><span class="navbar__logo-text">MBS</span></a>
+      <ul class="navbar__nav">
+        <li><a href="/pages/catalogo.html">Catálogo</a></li>
+        <li><a href="/pages/contacto.html" class="active">Contacto</a></li>
+      </ul>
+      <div class="navbar__search">
+        <span class="navbar__search__icon">🔍</span>
+        <input type="text" id="navbar-search" placeholder="Buscar producto, SKU...">
+      </div>
+      <div class="navbar__actions" id="navbar-actions"></div>
+    </div>
+  </div>
+</nav>
+
+<div class="breadcrumb" style="background:var(--gray-50);border-bottom:1px solid var(--gray-100);padding:12px 0;">
+  <div class="container" style="font-size:.85rem;color:var(--gray-600)">
+    <a href="/" style="color:var(--gray-600)">Inicio</a>
+    <span style="margin:0 6px">/</span>
+    <span>Contacto</span>
+  </div>
+</div>
+
+<div class="container">
+<div class="contact-page">
+
+  <div class="contact-header">
+    <h2>Contáctanos</h2>
+    <p>Estamos aquí para ayudarte. Escríbenos, llámanos o visítanos.</p>
+  </div>
+
+  <div class="contact-grid">
+
+    <!-- Información de contacto -->
+    <div class="contact-info">
+
+      <div class="contact-card">
+        <div class="contact-card__icon">📍</div>
+        <div>
+          <div class="contact-card__title">Dirección</div>
+          <div class="contact-card__text">
+            Hidalgo, México<br>
+            Lunes a Viernes · 9:00 AM – 7:00 PM
+          </div>
+        </div>
+      </div>
+
+      <div class="contact-card">
+        <div class="contact-card__icon">📞</div>
+        <div>
+          <div class="contact-card__title">Teléfono</div>
+          <div class="contact-card__text">
+            <a href="tel:+527713455929">+52 (771) 345-5929</a><br>
+            <span style="font-size:.8rem">Lun–Vie 9AM–7PM · Sáb 9AM–2PM</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="contact-card">
+        <div class="contact-card__icon">✉</div>
+        <div>
+          <div class="contact-card__title">Correo electrónico</div>
+          <div class="contact-card__text">
+            <a href="mailto:ventas@mbscomunicaciones.mx">ventas@mbscomunicaciones.mx</a><br>
+            <span style="font-size:.8rem">Respondemos en menos de 24 horas</span>
+          </div>
+        </div>
+      </div>
+
+      <a href="https://wa.me/527713455929?text=Hola, necesito información sobre sus productos"
+         class="contact-whatsapp" target="_blank">
+        💬 Escribir por WhatsApp
+      </a>
+
+    </div>
+
+    <!-- Formulario de contacto -->
+    <div class="contact-form-card">
+      <div class="contact-form-card__header">Envíanos un mensaje</div>
+      <div class="contact-form-card__body">
+
+        <div class="alert-success" id="alert-ok">
+          ✓ Mensaje enviado correctamente. Te responderemos pronto.
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Nombre <span class="req">*</span></label>
+            <input type="text" class="form-input" id="c-nombre" placeholder="Tu nombre">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Empresa</label>
+            <input type="text" class="form-input" id="c-empresa" placeholder="Nombre de tu empresa">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Correo <span class="req">*</span></label>
+            <input type="email" class="form-input" id="c-email" placeholder="tu@empresa.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Teléfono</label>
+            <input type="tel" class="form-input" id="c-tel" placeholder="+52 (771) 000-0000">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Asunto <span class="req">*</span></label>
+          <select class="form-select" id="c-asunto">
+            <option value="">Selecciona un asunto</option>
+            <option value="cotizacion">Solicitar cotización</option>
+            <option value="soporte">Soporte técnico</option>
+            <option value="pedido">Información sobre un pedido</option>
+            <option value="producto">Consulta sobre productos</option>
+            <option value="envio">Información de envío</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Mensaje <span class="req">*</span></label>
+          <textarea class="form-textarea" id="c-mensaje"
+            placeholder="Describe tu consulta con el mayor detalle posible..."></textarea>
+        </div>
+
+        <button class="btn-send" id="btn-send" onclick="enviarMensaje()">
+          📨 Enviar mensaje
+        </button>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Horarios -->
+  <div class="hours-grid">
+    <div class="hours-card">
+      <div class="hours-card__day">Lunes – Viernes</div>
+      <div class="hours-card__time">9:00 AM – 7:00 PM</div>
+    </div>
+    <div class="hours-card">
+      <div class="hours-card__day">Sábado</div>
+      <div class="hours-card__time">9:00 AM – 2:00 PM</div>
+    </div>
+    <div class="hours-card">
+      <div class="hours-card__day">Domingo</div>
+      <div class="hours-card__time hours-card__closed">Cerrado</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer__grid">
+      <div>
+        <div class="footer__brand-name">MBS</div>
+        <p class="footer__tagline">Insumos de fibra óptica para profesionales e integradores. Hidalgo, México.</p>
+        <div class="footer__social"><a href="#" title="LinkedIn">in</a><a href="#" title="Facebook">f</a><a href="#" title="WhatsApp">w</a></div>
+      </div>
+      <div>
+        <div class="footer__col-title">Catálogo</div>
+        <ul class="footer__links">
+          <li><a href="/pages/catalogo.html?categoria=1">Cables de fibra óptica</a></li>
+          <li><a href="/pages/catalogo.html?categoria=2">Conectores</a></li>
+          <li><a href="/pages/catalogo.html?categoria=3">Patch cords</a></li>
+          <li><a href="/pages/catalogo.html?categoria=4">Equipos activos</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer__col-title">Empresa</div>
+        <ul class="footer__links">
+          <li><a href="#">Sobre MBS</a></li>
+          <li><a href="#">Preguntas frecuentes</a></li>
+          <li><a href="#">Política de envíos</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer__col-title">Contacto</div>
+        <div class="footer__contact-item"><span>📍</span><span>Hidalgo, México</span></div>
+        <div class="footer__contact-item"><span>📞</span><span>+52 (771) 345-5929</span></div>
+        <div class="footer__contact-item"><span>✉</span><span>ventas@mbscomunicaciones.mx</span></div>
+        <a href="https://wa.me/527713455929" class="footer__whatsapp" target="_blank">💬 WhatsApp</a>
+      </div>
+    </div>
+  </div>
+  <div class="footer__bottom">
+    <div class="container" style="display:flex;justify-content:space-between;width:100%">
+      <span>© 2026 MBS Comunicaciones · Todos los derechos reservados</span>
+      <div class="footer__bottom-links">
+        <a href="#">Aviso de privacidad</a>
+        <a href="#">Términos y condiciones</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<div id="toast-container"></div>
+<a href="https://wa.me/527713455929" class="whatsapp-fab" target="_blank"
+  style="position:fixed;bottom:28px;right:28px;width:52px;height:52px;background:#25D366;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;box-shadow:0 4px 16px rgba(0,0,0,.2);cursor:pointer;z-index:500;text-decoration:none;transition:transform .2s ease">💬</a>
+
+<script src="/js/global.js"></script>
+<script>
+  document.getElementById('navbar-search')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const q = e.target.value.trim();
+      if (q) window.location.href = '/pages/catalogo.html?busqueda=' + encodeURIComponent(q);
+    }
+  });
+
+  window.enviarMensaje = async () => {
+    const nombre  = document.getElementById('c-nombre').value.trim();
+    const email   = document.getElementById('c-email').value.trim();
+    const asunto  = document.getElementById('c-asunto').value;
+    const mensaje = document.getElementById('c-mensaje').value.trim();
+    const btn     = document.getElementById('btn-send');
+
+    if (!nombre || !email || !asunto || !mensaje) {
+      Toast.show('Por favor completa todos los campos obligatorios', 'error');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+
+    const res = await fetch('/api/contacto', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre,
+        empresa: document.getElementById('c-empresa').value.trim() || null,
+        email,
+        telefono: document.getElementById('c-tel').value.trim() || null,
+        asunto,
+        mensaje
+      })
+    }).then(r => r.json()).catch(() => ({ ok: false, mensaje: 'Error de conexión' }));
+
+    btn.disabled = false;
+    btn.innerHTML = '📨 Enviar mensaje';
+
+    if (res.ok) {
+      document.getElementById('alert-ok').classList.add('visible');
+      ['c-nombre','c-empresa','c-email','c-tel','c-mensaje'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      document.getElementById('c-asunto').value = '';
+      Toast.show('Mensaje enviado correctamente', 'success');
+    } else {
+      Toast.show(res.mensaje || 'Error al enviar el mensaje', 'error');
+    }
+  };
+</script>
+
+</body>
+</html>

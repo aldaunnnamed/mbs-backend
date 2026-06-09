@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crear cuenta — MBS Comunicaciones</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/navbar.css">
+  <style>
+    .auth-page {
+      min-height: calc(100vh - 64px);
+      background: var(--gray-50);
+      display: flex; align-items: center; justify-content: center;
+      padding: 40px 16px;
+    }
+    .auth-card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      width: 100%; max-width: 480px;
+      overflow: hidden;
+    }
+    .auth-card__header {
+      background: var(--navy); padding: 28px 32px; text-align: center;
+    }
+    .auth-card__logo {
+      font-family: 'Rajdhani', sans-serif; font-size: 2rem;
+      font-weight: 700; color: var(--white); margin-bottom: 4px;
+    }
+    .auth-card__subtitle { font-size: .85rem; color: rgba(255,255,255,.55); }
+    .auth-card__body { padding: 28px 32px; }
+    .auth-card__title {
+      font-family: 'Rajdhani', sans-serif; font-size: 1.4rem;
+      color: var(--navy); margin-bottom: 20px; text-align: center;
+    }
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-group { margin-bottom: 14px; }
+    .form-label {
+      display: block; font-size: .85rem; font-weight: 600;
+      color: var(--navy); margin-bottom: 5px;
+    }
+    .form-label .req { color: var(--red); }
+    .form-input {
+      width: 100%; padding: 10px 13px;
+      border: 1px solid var(--gray-100); border-radius: var(--radius-sm);
+      font-size: .9rem; font-family: inherit; transition: var(--transition);
+    }
+    .form-input:focus {
+      outline: none; border-color: var(--navy);
+      box-shadow: 0 0 0 3px rgba(11,30,61,.08);
+    }
+    .form-input.error { border-color: var(--red); }
+    .tipo-tabs {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+      margin-bottom: 20px;
+    }
+    .tipo-tab {
+      padding: 10px; border-radius: var(--radius-sm);
+      border: 2px solid var(--gray-100);
+      text-align: center; cursor: pointer; transition: var(--transition);
+      font-size: .9rem; font-weight: 600; color: var(--gray-600);
+    }
+    .tipo-tab.active { border-color: var(--navy); background: var(--navy); color: var(--white); }
+    .pass-strength {
+      height: 4px; border-radius: 99px;
+      background: var(--gray-100); margin-top: 6px; overflow: hidden;
+    }
+    .pass-strength__bar {
+      height: 100%; border-radius: 99px; width: 0;
+      transition: width .3s ease, background .3s ease;
+    }
+    .pass-hint { font-size: .75rem; color: var(--gray-600); margin-top: 4px; }
+    .btn-auth {
+      width: 100%; padding: 13px;
+      background: var(--orange); color: var(--white);
+      border: none; border-radius: var(--radius-sm);
+      font-size: 1rem; font-weight: 700; font-family: inherit;
+      cursor: pointer; transition: var(--transition); margin-top: 4px;
+    }
+    .btn-auth:hover { background: var(--orange-lite); transform: translateY(-1px); }
+    .btn-auth:disabled { opacity: .7; cursor: not-allowed; transform: none; }
+    .auth-footer {
+      text-align: center; font-size: .85rem; color: var(--gray-600);
+      padding: 14px 32px 24px; border-top: 1px solid var(--gray-100);
+    }
+    .auth-footer a { color: var(--electric); font-weight: 600; }
+    .terms-text {
+      font-size: .78rem; color: var(--gray-600);
+      text-align: center; margin-top: 10px;
+    }
+    .terms-text a { color: var(--electric); }
+    .alert-error {
+      background: var(--red-lite); border: 1px solid rgba(198,40,40,.2);
+      border-radius: var(--radius-sm); padding: 12px 14px;
+      font-size: .85rem; color: var(--red); margin-bottom: 14px; display: none;
+    }
+    .alert-error.visible { display: block; }
+    .alert-success {
+      background: var(--green-lite); border: 1px solid rgba(46,125,50,.2);
+      border-radius: var(--radius-sm); padding: 12px 14px;
+      font-size: .85rem; color: var(--green); margin-bottom: 14px; display: none;
+    }
+    .alert-success.visible { display: block; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="container">
+    <div class="navbar__inner">
+      <a href="/" class="navbar__logo"><span class="navbar__logo-text">MBS</span></a>
+      <div style="flex:1"></div>
+      <a href="/pages/login.html"
+        style="color:rgba(255,255,255,.7);font-size:.9rem;margin-right:16px">
+        ¿Ya tienes cuenta? <strong style="color:var(--orange)">Inicia sesión</strong>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-card__header">
+      <div class="auth-card__logo">MBS</div>
+      <div class="auth-card__subtitle">Crea tu cuenta y empieza a comprar</div>
+    </div>
+
+    <div class="auth-card__body">
+      <h2 class="auth-card__title">Crear cuenta</h2>
+
+      <div class="alert-error"   id="alert-error"></div>
+      <div class="alert-success" id="alert-success"></div>
+
+      <!-- Tipo de cuenta -->
+      <div style="margin-bottom:16px">
+        <div class="form-label">Tipo de cuenta</div>
+        <div class="tipo-tabs">
+          <div class="tipo-tab active" onclick="selectTipo('particular', this)">
+            👤 Particular
+          </div>
+          <div class="tipo-tab" onclick="selectTipo('empresa', this)">
+            🏢 Empresa
+          </div>
+        </div>
+      </div>
+      <input type="hidden" id="tipo" value="particular">
+
+      <!-- Nombre y apellidos -->
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label" for="nombre">
+            Nombre <span class="req">*</span>
+          </label>
+          <input type="text" class="form-input" id="nombre"
+            placeholder="Carlos" autocomplete="given-name">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="apellidos">
+            Apellidos <span class="req">*</span>
+          </label>
+          <input type="text" class="form-input" id="apellidos"
+            placeholder="Mendez Rojas" autocomplete="family-name">
+        </div>
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label class="form-label" for="email">
+          Correo electrónico <span class="req">*</span>
+        </label>
+        <input type="email" class="form-input" id="email"
+          placeholder="tu@empresa.com" autocomplete="email">
+      </div>
+
+      <!-- Teléfono -->
+      <div class="form-group">
+        <label class="form-label" for="telefono">Teléfono</label>
+        <input type="tel" class="form-input" id="telefono"
+          placeholder="+52 (442) 000-0000" autocomplete="tel">
+      </div>
+
+      <!-- Contraseña -->
+      <div class="form-group">
+        <label class="form-label" for="password">
+          Contraseña <span class="req">*</span>
+        </label>
+        <input type="password" class="form-input" id="password"
+          placeholder="Mínimo 8 caracteres" autocomplete="new-password"
+          oninput="checkStrength(this.value)">
+        <div class="pass-strength">
+          <div class="pass-strength__bar" id="pass-bar"></div>
+        </div>
+        <div class="pass-hint" id="pass-hint">Mínimo 8 caracteres</div>
+      </div>
+
+      <!-- Confirmar contraseña -->
+      <div class="form-group">
+        <label class="form-label" for="password2">
+          Confirmar contraseña <span class="req">*</span>
+        </label>
+        <input type="password" class="form-input" id="password2"
+          placeholder="Repite la contraseña" autocomplete="new-password">
+      </div>
+
+      <button class="btn-auth" id="btn-registro" onclick="doRegistro()">
+        Crear cuenta
+      </button>
+
+      <div class="terms-text">
+        Al registrarte aceptas nuestros
+        <a href="#">Términos y condiciones</a> y
+        <a href="#">Política de privacidad</a>
+      </div>
+    </div>
+
+    <div class="auth-footer">
+      ¿Ya tienes cuenta?
+      <a href="/pages/login.html">Iniciar sesión</a>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="/js/global.js"></script>
+<script>
+  if (Session.isLoggedIn()) window.location.href = '/';
+
+  window.selectTipo = (tipo, btn) => {
+    document.getElementById('tipo').value = tipo;
+    document.querySelectorAll('.tipo-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+  };
+
+  window.checkStrength = (val) => {
+    const bar  = document.getElementById('pass-bar');
+    const hint = document.getElementById('pass-hint');
+    let strength = 0;
+    if (val.length >= 8)  strength++;
+    if (/[A-Z]/.test(val)) strength++;
+    if (/[0-9]/.test(val)) strength++;
+    if (/[^A-Za-z0-9]/.test(val)) strength++;
+
+    const configs = [
+      { w: '0%',   bg: 'var(--gray-100)', txt: 'Mínimo 8 caracteres' },
+      { w: '30%',  bg: 'var(--red)',       txt: 'Contraseña débil' },
+      { w: '60%',  bg: 'var(--amber)',     txt: 'Contraseña regular' },
+      { w: '80%',  bg: 'var(--electric)',  txt: 'Contraseña buena' },
+      { w: '100%', bg: 'var(--green)',     txt: 'Contraseña fuerte' },
+    ];
+    bar.style.width      = configs[strength].w;
+    bar.style.background = configs[strength].bg;
+    hint.textContent     = configs[strength].txt;
+    hint.style.color     = configs[strength].bg;
+  };
+
+  window.doRegistro = async () => {
+    const nombre    = document.getElementById('nombre').value.trim();
+    const apellidos = document.getElementById('apellidos').value.trim();
+    const email     = document.getElementById('email').value.trim();
+    const telefono  = document.getElementById('telefono').value.trim();
+    const password  = document.getElementById('password').value;
+    const password2 = document.getElementById('password2').value;
+    const tipo      = document.getElementById('tipo').value;
+    const btn       = document.getElementById('btn-registro');
+    const alertErr  = document.getElementById('alert-error');
+    const alertOk   = document.getElementById('alert-success');
+
+    alertErr.classList.remove('visible');
+    alertOk.classList.remove('visible');
+
+    // Validaciones
+    if (!nombre || !apellidos || !email || !password) {
+      alertErr.textContent = 'Por favor completa todos los campos obligatorios.';
+      alertErr.classList.add('visible');
+      return;
+    }
+    if (password.length < 8) {
+      alertErr.textContent = 'La contraseña debe tener mínimo 8 caracteres.';
+      alertErr.classList.add('visible');
+      return;
+    }
+    if (password !== password2) {
+      alertErr.textContent = 'Las contraseñas no coinciden.';
+      alertErr.classList.add('visible');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Creando cuenta...';
+
+    try {
+      const data = await API.post('/auth/registro', {
+        nombre, apellidos, email, password,
+        telefono: telefono || null, tipo
+      });
+
+      if (data.ok) {
+        Session.login(data.token, data.usuario);
+        alertOk.textContent = '¡Cuenta creada! Redirigiendo...';
+        alertOk.classList.add('visible');
+        setTimeout(() => window.location.href = '/', 1200);
+      } else {
+        alertErr.textContent = data.mensaje || 'Error al crear la cuenta.';
+        alertErr.classList.add('visible');
+        btn.disabled = false;
+        btn.textContent = 'Crear cuenta';
+      }
+    } catch (err) {
+      alertErr.textContent = 'Error de conexión. Intenta de nuevo.';
+      alertErr.classList.add('visible');
+      btn.disabled = false;
+      btn.textContent = 'Crear cuenta';
+    }
+  };
+</script>
+
+</body>
+</html>

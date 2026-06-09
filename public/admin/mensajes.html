@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Mensajes de contacto | MBS Admin</title>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="ap">
+<div class="ap-layout">
+
+  <aside class="ap-sidebar" id="ap-sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo__mark">M</div>
+      <div><div class="sb-logo__name">MBS Comunicaciones</div><div class="sb-logo__sub">Panel de Administración</div></div>
+    </div>
+    <div class="sb-user">
+      <div class="sb-user__av js-ini">MB</div>
+      <div><div class="sb-user__name js-name">MBS Admin</div><div class="sb-user__email js-email">admin@mbs.mx</div></div>
+    </div>
+    <ul class="sb-nav">
+      <li><a href="/admin/index.html"         class="sb-link"><span class="sb-icon">📊</span><span class="sb-label">Inicio</span></a></li>
+      <li><a href="/admin/productos.html"     class="sb-link"><span class="sb-icon">📦</span><span class="sb-label">Productos</span></a></li>
+      <li><a href="/admin/pedidos.html"       class="sb-link"><span class="sb-icon">🛒</span><span class="sb-label">Pedidos</span></a></li>
+      <li><a href="/admin/clientes.html"      class="sb-link"><span class="sb-icon">👥</span><span class="sb-label">Clientes</span></a></li>
+      <li><a href="/admin/inventario.html"    class="sb-link"><span class="sb-icon">🏪</span><span class="sb-label">Inventario</span></a></li>
+      <li><a href="/admin/mensajes.html"      class="sb-link sb-link--active"><span class="sb-icon">✉️</span><span class="sb-label">Mensajes</span></a></li>
+      <li><a href="/admin/configuracion.html" class="sb-link"><span class="sb-icon">⚙️</span><span class="sb-label">Configuración</span></a></li>
+    </ul>
+    <hr class="sb-divider">
+    <div class="sb-footer">
+      <button class="sb-link" onclick="AdminAuth.logout()" style="width:100%">
+        <span class="sb-icon">🚪</span><span class="sb-label">Cerrar sesión</span>
+      </button>
+    </div>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+
+  <main class="ap-main">
+    <header class="ap-header">
+      <button class="ap-header__toggle" id="sb-toggle">☰</button>
+      <div>
+        <div class="ap-header__title">Mensajes de contacto</div>
+        <div class="ap-header__sub" id="msg-sub">Cargando...</div>
+      </div>
+      <div class="ap-header__right">
+        <div class="ap-huser"><div class="ap-huser__av js-ini">MB</div></div>
+      </div>
+    </header>
+
+    <div class="ap-content">
+
+      <!-- Filtros -->
+      <div class="card mb16">
+        <div class="card__hd">
+          <span class="card__title">✉️ Mensajes recibidos</span>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-xs btn-p" id="btn-todos"    onclick="setFiltro(null,  this)">Todos</button>
+            <button class="btn btn-xs btn-b" id="btn-nuevos"   onclick="setFiltro(false, this)">No leídos</button>
+            <button class="btn btn-xs btn-gr" id="btn-leidos"  onclick="setFiltro(true,  this)">Leídos</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista -->
+      <div id="mensajes-list">
+        <div class="card"><div class="card__bd"><p class="tx-m" style="padding:20px;text-align:center">Cargando mensajes...</p></div></div>
+      </div>
+
+      <!-- Paginación -->
+      <div id="paginacion" style="display:flex;justify-content:center;gap:8px;margin-top:20px"></div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Modal detalle mensaje -->
+<div id="msg-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:none;align-items:center;justify-content:center;padding:16px"></div>
+
+<div id="toast-container"></div>
+<script src="/js/admin-core.js"></script>
+<script>
+let filtroLeido = null;
+let paginaActual = 1;
+const POR_PAGINA = 20;
+let mensajesCache = [];
+
+document.addEventListener('DOMContentLoaded', () => cargar());
+
+function setFiltro(val, btn) {
+  filtroLeido = val;
+  paginaActual = 1;
+  document.querySelectorAll('#btn-todos,#btn-nuevos,#btn-leidos').forEach(b => b.classList.remove('btn-p','btn-b','btn-gr'));
+  if (val === null)  btn.classList.add('btn-p');
+  if (val === false) btn.classList.add('btn-b');
+  if (val === true)  btn.classList.add('btn-gr');
+  cargar();
+}
+
+async function cargar() {
+  const list = document.getElementById('mensajes-list');
+  list.innerHTML = '<div class="card"><div class="card__bd"><div class="skeleton" style="height:80px;border-radius:8px;margin-bottom:10px"></div>'.repeat(5) + '</div></div>';
+
+  let url = '/admin/mensajes?pagina=' + paginaActual;
+  if (filtroLeido !== null) url += '&leido=' + filtroLeido;
+
+  const r = await AdminAPI.get(url);
+  const mensajes = r.mensajes || [];
+  mensajesCache = mensajes;
+  const total    = r.total    || 0;
+
+  document.getElementById('msg-sub').textContent =
+    total + ' mensaje' + (total !== 1 ? 's' : '') + ' en total';
+
+  if (!mensajes.length) {
+    list.innerHTML = `
+      <div class="card"><div class="card__bd">
+        <p class="tx-m" style="padding:40px;text-align:center">
+          ${filtroLeido === false ? 'No hay mensajes sin leer ✓' : 'No hay mensajes'}
+        </p>
+      </div></div>`;
+    document.getElementById('paginacion').innerHTML = '';
+    return;
+  }
+
+  list.innerHTML = mensajes.map(m => `
+    <div class="card mb10" style="${!m.leido ? 'border-left:3px solid var(--c-blue)' : ''}">
+      <div class="card__bd" style="padding:16px 20px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              ${!m.leido ? '<span class="bdg bdg--b" style="font-size:.7rem">NUEVO</span>' : ''}
+              <span class="fw6">${esc(m.nombre)}${m.empresa ? ' · ' + esc(m.empresa) : ''}</span>
+              <span class="tx-m fs11">${fmt.date(m.created_at)}</span>
+            </div>
+            <div style="font-size:.85rem;color:var(--c-tx-sub);margin-bottom:6px">
+              📧 <a href="mailto:${esc(m.email)}" style="color:var(--c-blue)">${esc(m.email)}</a>
+              ${m.telefono ? ' &nbsp;·&nbsp; 📞 ' + esc(m.telefono) : ''}
+            </div>
+            <div style="font-weight:600;color:var(--c-tx);margin-bottom:4px">${esc(m.asunto)}</div>
+            <div style="font-size:.85rem;color:var(--c-tx-sub);white-space:pre-line;max-height:60px;overflow:hidden">
+              ${esc(m.mensaje)}
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+            <button class="btn btn-b btn-xs" onclick="verMensaje(${m.id})">Ver completo</button>
+            <a href="mailto:${esc(m.email)}?subject=Re: ${esc(m.asunto)}" class="btn btn-p btn-xs" style="text-align:center">Responder</a>
+            ${!m.leido ? `<button class="btn btn-gr btn-xs" onclick="marcarLeido(${m.id}, this)">✓ Leído</button>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+
+  // Paginación
+  const totalPags = Math.ceil(total / POR_PAGINA);
+  const pag = document.getElementById('paginacion');
+  if (totalPags <= 1) { pag.innerHTML = ''; return; }
+  pag.innerHTML = Array.from({length: totalPags}, (_, i) => i + 1).map(p => `
+    <button class="btn btn-xs ${p === paginaActual ? 'btn-p' : 'btn-gr'}"
+      onclick="irAPagina(${p})">${p}</button>`).join('');
+}
+
+function irAPagina(p) {
+  paginaActual = p;
+  cargar();
+  window.scrollTo(0, 0);
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function marcarLeido(id, btn) {
+  const r = await AdminAPI.put('/admin/mensajes/' + id + '/leido', {});
+  if (r.ok) {
+    btn.remove();
+    const card = document.querySelector(`[onclick="verMensaje(${id})"]`)?.closest('.card');
+    if (card) card.style.borderLeft = '';
+    const badgeEl = card?.querySelector('.bdg--b');
+    if (badgeEl) badgeEl.remove();
+    Toast.show('Marcado como leído', 'success');
+  }
+}
+
+function verMensaje(id) {
+  const m = mensajesCache.find(x => x.id === id);
+  if (!m) { Toast.show('Mensaje no encontrado', 'error'); return; }
+
+  const nombre  = (m.nombre || '') + (m.empresa ? ' · ' + m.empresa : '');
+  const email   = m.email   || '';
+  const asunto  = m.asunto  || '';
+  const mensaje = m.mensaje || '';
+
+  const modal = document.getElementById('msg-modal');
+  modal.style.display = 'flex';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:28px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <span class="fw6 fs14">Mensaje de ${esc(nombre)}</span>
+        <span style="cursor:pointer;font-size:1.1rem" onclick="document.getElementById('msg-modal').style.display='none'">✕</span>
+      </div>
+      <div style="background:var(--c-bg-2);border-radius:8px;padding:16px;margin-bottom:16px;font-size:.88rem;line-height:1.7">
+        <div style="margin-bottom:6px"><strong>De:</strong> ${esc(nombre)} — <a href="mailto:${esc(email)}" style="color:var(--c-blue)">${esc(email)}</a></div>
+        <div style="margin-bottom:6px"><strong>Asunto:</strong> ${esc(asunto)}</div>
+      </div>
+      <div style="font-size:.92rem;line-height:1.8;white-space:pre-line;color:var(--c-tx);margin-bottom:20px">${esc(mensaje)}</div>
+      <div style="display:flex;gap:8px">
+        <a href="mailto:${esc(email)}?subject=Re: ${esc(asunto)}" class="btn btn-p btn-sm" style="flex:1;text-align:center">
+          📧 Responder por email
+        </a>
+        <button class="btn btn-gr btn-sm" onclick="document.getElementById('msg-modal').style.display='none'">
+          Cerrar
+        </button>
+      </div>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
+}
+</script>
+</body>
+</html>

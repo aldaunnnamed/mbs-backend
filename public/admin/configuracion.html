@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Configuración | MBS Admin</title>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="ap">
+<div class="ap-layout">
+
+  <aside class="ap-sidebar" id="ap-sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo__mark">M</div>
+      <div><div class="sb-logo__name">MBS Comunicaciones</div><div class="sb-logo__sub">Panel de Administración</div></div>
+    </div>
+    <div class="sb-user">
+      <div class="sb-user__av js-ini">MB</div>
+      <div><div class="sb-user__name js-name">MBS Admin</div><div class="sb-user__email js-email">admin@mbs.mx</div></div>
+    </div>
+    <ul class="sb-nav">
+      <li><a href="/admin/index.html" class="sb-link"><span class="sb-icon">📊</span><span class="sb-label">Inicio</span></a></li>
+      <li><a href="/admin/productos.html" class="sb-link"><span class="sb-icon">📦</span><span class="sb-label">Productos</span></a></li>
+      <li><a href="/admin/pedidos.html" class="sb-link"><span class="sb-icon">🛒</span><span class="sb-label">Pedidos</span></a></li>
+      <li><a href="/admin/clientes.html" class="sb-link"><span class="sb-icon">👥</span><span class="sb-label">Clientes</span></a></li>
+      <li><a href="/admin/inventario.html" class="sb-link"><span class="sb-icon">🏪</span><span class="sb-label">Inventario</span></a></li>
+      <li><a href="/admin/mensajes.html"      class="sb-link"><span class="sb-icon">✉️</span><span class="sb-label">Mensajes</span></a></li>
+      <li><a href="/admin/configuracion.html" class="sb-link"><span class="sb-icon">⚙️</span><span class="sb-label">Configuración</span></a></li>
+    </ul>
+    <hr class="sb-divider">
+    <div class="sb-footer">
+      <button class="sb-link" onclick="AdminAuth.logout()" style="width:100%">
+        <span class="sb-icon">🚪</span><span class="sb-label">Cerrar sesión</span>
+      </button>
+    </div>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+
+  <main class="ap-main">
+    <header class="ap-header">
+      <button class="ap-header__toggle" id="sb-toggle">☰</button>
+      <div>
+        <div class="ap-header__title">Configuración</div>
+        <div class="ap-header__sub">Ajustes generales del sitio y la tienda MBS Comunicaciones</div>
+      </div>
+      <div class="ap-header__right">
+        <div class="ap-huser"><div class="ap-huser__av js-ini">MB</div></div>
+      </div>
+    </header>
+
+    <div class="ap-content">
+      <div class="cfg-layout">
+
+        <!-- Left nav -->
+        <nav class="cfg-nav">
+          <button class="cfg-link on" onclick="setPanel(this,'general')">🏢 General</button>
+          <button class="cfg-link"    onclick="setPanel(this,'admins')">👤 Administradores</button>
+          <button class="cfg-link"    onclick="setPanel(this,'envios')">🚚 Envíos</button>
+          <button class="cfg-link"    onclick="setPanel(this,'pagos')">💳 Pagos</button>
+          <button class="cfg-link"    onclick="setPanel(this,'notif')">🔔 Notificaciones</button>
+          <button class="cfg-link"    onclick="setPanel(this,'seg')">🔒 Seguridad</button>
+        </nav>
+
+        <!-- Panels -->
+        <div>
+
+          <!-- GENERAL -->
+          <div class="cfg-panel on" id="cfg-general">
+            <div class="card">
+              <div class="card__hd"><span class="card__title">🏢 Configuración General</span></div>
+              <div class="card__bd">
+                <div class="form-gap">
+                  <div class="fg2">
+                    <div class="fg"><label class="flbl">Nombre del sitio <span>*</span></label><input class="fi" id="cfg-sitio-nombre" value="MBS Comunicaciones"></div>
+                    <div class="fg"><label class="flbl">Slogan</label><input class="fi" id="cfg-slogan" value="Insumos de fibra óptica para profesionales"></div>
+                  </div>
+                  <div class="fg2">
+                    <div class="fg"><label class="flbl">URL del sitio</label><input class="fi" id="cfg-url" value="https://mbscomunicaciones.mx"></div>
+                    <div class="fg"><label class="flbl">Email de contacto <span>*</span></label><input class="fi" id="cfg-email" value="ventas@mbscomunicaciones.mx"></div>
+                  </div>
+                  <div class="fg2">
+                    <div class="fg"><label class="flbl">Teléfono principal</label><input class="fi" id="cfg-tel" value="+52 (771) 345-5929"></div>
+                    <div class="fg"><label class="flbl">WhatsApp (CTA)</label><input class="fi" id="cfg-wa" value="5217713455929"></div>
+                  </div>
+                  <div class="fg"><label class="flbl">Dirección física</label><input class="fi" id="cfg-dir" value="Hidalgo, México"></div>
+                  <div class="fg2">
+                    <div class="fg"><label class="flbl">Moneda <span>*</span></label>
+                      <select class="fs" id="cfg-moneda"><option value="MXN">MXN Peso Mexicano ($)</option><option value="USD">USD Dólar</option></select>
+                    </div>
+                    <div class="fg"><label class="flbl">Zona horaria</label>
+                      <select class="fs" id="cfg-tz"><option>America/Mexico_City (UTC-6)</option></select>
+                    </div>
+                  </div>
+                  <div class="fg2">
+                    <div class="fg"><label class="flbl">IVA (%)</label><input class="fi" id="cfg-iva" type="number" value="16"></div>
+                    <div class="fg"><label class="flbl">Mostrar precios</label>
+                      <select class="fs" id="cfg-precios"><option>Con IVA incluido</option><option>Sin IVA</option></select>
+                    </div>
+                  </div>
+                  <div class="fg">
+                    <label class="flbl">Logo del sitio</label>
+                    <div class="logo-prev">
+                      <div class="logo-prev__img">MBS</div>
+                      <div>
+                        <div class="fw6 fs12">Logo actual</div>
+                        <div class="fs11 tx-m">481 × 196 px</div>
+                        <button class="btn btn-gr btn-xs mt8">🖼 Cambiar logo</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="fg2">
+                    <div class="fg"><label class="flbl">Facebook</label><input class="fi" id="cfg-facebook" placeholder="https://facebook.com/mbs..."></div>
+                    <div class="fg"><label class="flbl">Instagram</label><input class="fi" id="cfg-instagram" placeholder="https://instagram.com/mbs..."></div>
+                  </div>
+                  <div class="fg"><label class="flbl">LinkedIn</label><input class="fi" id="cfg-linkedin" placeholder="https://linkedin.com/company/mbs..."></div>
+                </div>
+              </div>
+              <div class="card__hd" style="border-top:1px solid var(--border);border-bottom:none">
+                <button class="btn btn-gr btn-sm">Cancelar</button>
+                <button class="btn btn-p btn-sm" onclick="guardarConfig()">Guardar cambios</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ADMINS -->
+          <div class="cfg-panel" id="cfg-admins">
+            <div class="card">
+              <div class="card__hd">
+                <span class="card__title">👤 Administradores</span>
+                <button class="btn btn-p btn-sm" onclick="abrirModalAdmin()">+ Agregar admin</button>
+              </div>
+              <div class="tbl-wrap">
+                <table class="tbl">
+                  <thead><tr><th>Usuario</th><th>Email</th><th>Rol</th><th>Último acceso</th><th>Estado</th></tr></thead>
+                  <tbody id="admins-tbody">
+                    <tr><td colspan="5" style="text-align:center;padding:20px" class="tx-m">Cargando...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ENVÍOS -->
+          <div class="cfg-panel" id="cfg-envios">
+            <div class="card">
+              <div class="card__hd">
+                <span class="card__title">🚚 Métodos de envío</span>
+                <button class="btn btn-p btn-sm" onclick="abrirModalEnvio(null)">+ Agregar</button>
+              </div>
+              <div class="tbl-wrap">
+                <table class="tbl">
+                  <thead><tr><th>Método</th><th>Descripción</th><th>Precio</th><th>Días</th><th>Estado</th><th>Acción</th></tr></thead>
+                  <tbody id="envios-tbody">
+                    <tr><td colspan="6" style="text-align:center;padding:20px" class="tx-m">Cargando...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- PAGOS -->
+          <div class="cfg-panel" id="cfg-pagos">
+            <div class="card">
+              <div class="card__hd"><span class="card__title">💳 Métodos de pago</span></div>
+              <div class="tbl-wrap">
+                <table class="tbl">
+                  <thead><tr><th>Método</th><th>Descripción</th><th>Estado</th><th>Acción</th></tr></thead>
+                  <tbody id="pagos-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- NOTIFICACIONES -->
+          <div class="cfg-panel" id="cfg-notif">
+            <div class="card">
+              <div class="card__hd">
+                <div>
+                  <div class="card__title">🔔 Notificaciones</div>
+                  <div class="fs11 tx-m mt8">Configura qué notificaciones se envían por email</div>
+                </div>
+              </div>
+              <div class="card__bd">
+                <div class="notif-grp">
+                  <div class="notif-grp__ttl">Al administrador</div>
+                  <div id="notif-admin"></div>
+                </div>
+                <div class="notif-grp">
+                  <div class="notif-grp__ttl">Al cliente (automáticas)</div>
+                  <div id="notif-cliente"></div>
+                </div>
+              </div>
+              <div class="card__hd" style="border-top:1px solid var(--border);border-bottom:none">
+                <button class="btn btn-p btn-sm" onclick="guardarNotif()">Guardar notificaciones</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- SEGURIDAD -->
+          <div class="cfg-panel" id="cfg-seg">
+            <div class="card">
+              <div class="card__hd"><span class="card__title">🔒 Seguridad</span></div>
+              <div class="card__bd">
+                <div class="tfa-ok">
+                  <div>
+                    <div class="tfa-ok__lbl">✓ 2FA Activado · Google Authenticator</div>
+                    <div class="tfa-ok__sub">El acceso al panel requiere código TOTP de 6 dígitos cada sesión.</div>
+                  </div>
+                  <button class="btn btn-r btn-sm">Desactivar</button>
+                </div>
+
+                <div class="section-hd mt16">
+                  <div><div class="section-hd__tt">Cambiar contraseña</div></div>
+                </div>
+                <div class="form-gap">
+                  <div class="fg"><label class="flbl">Contraseña actual</label><input class="fi" type="password" id="curr-pass" placeholder="••••••••"></div>
+                  <div class="fg"><label class="flbl">Nueva contraseña</label><input class="fi" type="password" id="new-pass" placeholder="••••••••"></div>
+                  <div class="fg"><label class="flbl">Confirmar nueva contraseña</label><input class="fi" type="password" id="confirm-pass" placeholder="••••••••"></div>
+                  <div class="fs11 tx-m">Requisitos: mínimo 8 caracteres, una mayúscula, un número</div>
+                </div>
+              </div>
+              <div class="card__hd" style="border-top:1px solid var(--border);border-bottom:none">
+                <button class="btn btn-gr btn-sm">Restablecer valores</button>
+                <button class="btn btn-p btn-sm" onclick="actualizarPass()">Actualizar contraseña</button>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /panels -->
+      </div><!-- /cfg-layout -->
+    </div>
+  </main>
+</div>
+
+<div id="toast-container"></div>
+<script src="/js/admin-core.js"></script>
+<script>
+let enviosData = [];
+let envioEditId = null;
+
+function setPanel(el, id) {
+  document.querySelectorAll('.cfg-link').forEach(b => b.classList.remove('on'));
+  document.querySelectorAll('.cfg-panel').forEach(p => p.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('cfg-' + id).classList.add('on');
+  if (id === 'envios') loadEnvios();
+  if (id === 'admins') loadAdmins();
+  if (id === 'pagos')  loadPagoMetodos();
+  if (id === 'notif')  loadNotif();
+}
+
+async function loadEnvios() {
+  const r = await AdminAPI.get('/admin/envios');
+  enviosData = r.metodos || [];
+  const tbody = document.getElementById('envios-tbody');
+  if (!enviosData.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px" class="tx-m">Sin métodos de envío</td></tr>';
+    return;
+  }
+  tbody.innerHTML = enviosData.map(e => {
+    const precioLabel = e.precio_tipo === 'gratis' ? 'Gratis'
+      : e.precio_tipo === 'cotizar' ? 'Cotizar'
+      : fmt.money(e.precio);
+    const dias = (e.dias_min && e.dias_max) ? `${e.dias_min}–${e.dias_max} días` : '—';
+    return `<tr>
+      <td class="fw6">${e.nombre}</td>
+      <td class="tx-m">${e.descripcion || '—'}</td>
+      <td>${precioLabel}</td>
+      <td class="tx-m">${dias}</td>
+      <td>${e.activo
+        ? '<span class="bdg bdg--g">Activo</span>'
+        : '<span class="bdg bdg--gr">Inactivo</span>'}</td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-b btn-xs" onclick="abrirModalEnvio(${e.id})">Editar</button>
+          <button class="btn btn-xs ${e.activo ? '' : 'btn-p'}"
+            style="${e.activo ? 'background:var(--c-red-bg);color:var(--c-red-tx)' : ''}"
+            onclick="toggleEnvio(${e.id})">
+            ${e.activo ? 'Desactivar' : 'Activar'}
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function toggleEnvio(id) {
+  const r = await AdminAPI.put('/admin/envios/' + id + '/activo', {});
+  if (r.ok) { Toast.show('Estado actualizado', 'success'); loadEnvios(); }
+  else Toast.show(r.mensaje || 'Error', 'error');
+}
+
+function abrirModalEnvio(id) {
+  envioEditId = id;
+  const e = id ? enviosData.find(x => x.id === id) : null;
+  const v = (f, def = '') => e ? (e[f] ?? def) : def;
+  const existente = document.getElementById('envio-modal');
+  if (existente) existente.remove();
+  const modal = document.createElement('div');
+  modal.id = 'envio-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:28px;max-width:460px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <span class="fw6 fs14">${id ? 'Editar método de envío' : 'Nuevo método de envío'}</span>
+        <span style="cursor:pointer;font-size:1.1rem" onclick="document.getElementById('envio-modal').remove()">✕</span>
+      </div>
+      <div class="form-gap">
+        <div class="fg"><label class="flbl">Nombre *</label><input class="fi" id="env-nombre" value="${v('nombre')}"></div>
+        <div class="fg"><label class="flbl">Descripción</label><input class="fi" id="env-desc" value="${v('descripcion')}"></div>
+        <div class="fg2">
+          <div class="fg"><label class="flbl">Tipo de precio</label>
+            <select class="fs" id="env-tipo" onchange="togglePrecioInput()">
+              <option value="fijo" ${v('precio_tipo','fijo')==='fijo'?'selected':''}>Fijo</option>
+              <option value="gratis" ${v('precio_tipo')==='gratis'?'selected':''}>Gratis</option>
+              <option value="cotizar" ${v('precio_tipo')==='cotizar'?'selected':''}>Cotizar</option>
+            </select>
+          </div>
+          <div class="fg" id="env-precio-grp"><label class="flbl">Precio ($)</label><input class="fi" id="env-precio" type="number" step="0.01" value="${v('precio', 0)}"></div>
+        </div>
+        <div class="fg2">
+          <div class="fg"><label class="flbl">Días mín.</label><input class="fi" id="env-dmin" type="number" value="${v('dias_min')}"></div>
+          <div class="fg"><label class="flbl">Días máx.</label><input class="fi" id="env-dmax" type="number" value="${v('dias_max')}"></div>
+        </div>
+        <div class="fg"><label class="flbl">Monto gratis desde ($)</label><input class="fi" id="env-mgratis" type="number" step="0.01" value="${v('monto_gratis')}" placeholder="Vacío = no aplica"></div>
+        <div class="fg"><label class="flbl">Orden de aparición</label><input class="fi" id="env-orden" type="number" value="${v('orden', 0)}"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-p btn-sm" style="flex:1" onclick="guardarEnvio()">Guardar</button>
+        <button class="btn btn-gr btn-sm" onclick="document.getElementById('envio-modal').remove()">Cancelar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  togglePrecioInput();
+}
+
+function togglePrecioInput() {
+  const tipo = document.getElementById('env-tipo')?.value;
+  const grp  = document.getElementById('env-precio-grp');
+  if (grp) grp.style.display = tipo === 'fijo' ? '' : 'none';
+}
+
+async function guardarEnvio() {
+  const body = {
+    nombre:       document.getElementById('env-nombre').value.trim(),
+    descripcion:  document.getElementById('env-desc').value.trim() || null,
+    precio_tipo:  document.getElementById('env-tipo').value,
+    precio:       document.getElementById('env-precio').value || 0,
+    dias_min:     document.getElementById('env-dmin').value || null,
+    dias_max:     document.getElementById('env-dmax').value || null,
+    monto_gratis: document.getElementById('env-mgratis').value || null,
+    orden:        document.getElementById('env-orden').value || 0,
+  };
+  if (!body.nombre) { Toast.show('El nombre es requerido', 'error'); return; }
+  const r = envioEditId
+    ? await AdminAPI.put('/admin/envios/' + envioEditId, body)
+    : await AdminAPI.post('/admin/envios', body);
+  if (r.ok) {
+    Toast.show(r.mensaje || 'Guardado', 'success');
+    document.getElementById('envio-modal').remove();
+    loadEnvios();
+  } else {
+    Toast.show(r.mensaje || 'Error', 'error');
+  }
+}
+
+function tog(id, checked) {
+  return `<label class="tog"><input type="checkbox" id="${id}" ${checked?'checked':''}><div class="tog__tr"><div class="tog__th"></div></div></label>`;
+}
+
+async function loadAdmins() {
+  const r = await AdminAPI.get('/admin/admins');
+  const admins = r.admins || [];
+  document.getElementById('admins-tbody').innerHTML = admins.length
+    ? admins.map(a => `<tr>
+        <td><div class="tbl__name">${a.nombre} ${a.apellidos}</div></td>
+        <td class="tx-m">${a.email}</td>
+        <td>${a.rol === 'superadmin' ? '<span class="bdg bdg--o">Superadmin</span>' : '<span class="bdg bdg--b">Admin</span>'}</td>
+        <td class="tx-m">${a.ultimo_login ? fmt.date(a.ultimo_login) : 'Nunca'}</td>
+        <td>${a.activo ? '<span class="bdg bdg--g">Activo</span>' : '<span class="bdg bdg--gr">Inactivo</span>'}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="5" style="text-align:center;padding:20px" class="tx-m">Sin administradores</td></tr>';
+}
+
+function abrirModalAdmin() {
+  const ex = document.getElementById('admin-modal');
+  if (ex) ex.remove();
+  const modal = document.createElement('div');
+  modal.id = 'admin-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:28px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <span class="fw6 fs14">Nuevo administrador</span>
+        <span style="cursor:pointer;font-size:1.1rem" onclick="document.getElementById('admin-modal').remove()">✕</span>
+      </div>
+      <div class="form-gap">
+        <div class="fg2">
+          <div class="fg"><label class="flbl">Nombre *</label><input class="fi" id="adm-nombre" placeholder="Nombre"></div>
+          <div class="fg"><label class="flbl">Apellidos *</label><input class="fi" id="adm-apellidos" placeholder="Apellidos"></div>
+        </div>
+        <div class="fg"><label class="flbl">Email *</label><input class="fi" id="adm-email" type="email" placeholder="correo@empresa.mx"></div>
+        <div class="fg"><label class="flbl">Contraseña *</label><input class="fi" id="adm-pass" type="password" placeholder="Mínimo 8 caracteres"></div>
+        <div class="fg"><label class="flbl">Rol</label>
+          <select class="fs" id="adm-rol">
+            <option value="admin">Admin</option>
+            <option value="superadmin">Superadmin</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-p btn-sm" style="flex:1" onclick="guardarAdmin()">Crear admin</button>
+        <button class="btn btn-gr btn-sm" onclick="document.getElementById('admin-modal').remove()">Cancelar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function guardarAdmin() {
+  const body = {
+    nombre:    document.getElementById('adm-nombre').value.trim(),
+    apellidos: document.getElementById('adm-apellidos').value.trim(),
+    email:     document.getElementById('adm-email').value.trim(),
+    password:  document.getElementById('adm-pass').value,
+    rol:       document.getElementById('adm-rol').value,
+  };
+  if (!body.nombre || !body.apellidos || !body.email || !body.password) {
+    Toast.show('Completa todos los campos requeridos', 'error'); return;
+  }
+  if (body.password.length < 8) { Toast.show('Contraseña mínimo 8 caracteres', 'error'); return; }
+  const r = await AdminAPI.post('/admin/admins', body);
+  Toast.show(r.mensaje || (r.ok ? 'Administrador creado' : 'Error'), r.ok ? 'success' : 'error');
+  if (r.ok) { document.getElementById('admin-modal').remove(); loadAdmins(); }
+}
+
+async function loadPagoMetodos() {
+  const r = await AdminAPI.get('/admin/pagos-metodos');
+  const metodos = r.metodos || [];
+  document.getElementById('pagos-tbody').innerHTML = metodos.length
+    ? metodos.map(m => `<tr>
+        <td class="fw6">${m.nombre}</td>
+        <td class="tx-m">${m.descripcion || '—'}</td>
+        <td>${m.activo ? '<span class="bdg bdg--g">Activo</span>' : '<span class="bdg bdg--gr">Inactivo</span>'}</td>
+        <td>
+          <button class="btn btn-xs ${m.activo ? '' : 'btn-p'}"
+            style="${m.activo ? 'background:var(--c-red-bg);color:var(--c-red-tx)' : ''}"
+            onclick="togglePagoMetodo(${m.id})">
+            ${m.activo ? 'Desactivar' : 'Activar'}
+          </button>
+        </td>
+      </tr>`).join('')
+    : '<tr><td colspan="4" style="text-align:center;padding:20px" class="tx-m">Sin métodos de pago</td></tr>';
+}
+
+async function togglePagoMetodo(id) {
+  const r = await AdminAPI.put('/admin/pagos-metodos/' + id + '/activo', {});
+  if (r.ok) { Toast.show('Estado actualizado', 'success'); loadPagoMetodos(); }
+  else Toast.show(r.mensaje || 'Error', 'error');
+}
+
+const NOTIF_ADM = [
+  { clave:'notif_admin_nuevo_pedido',    name:'Nuevo pedido recibido',    sub:'Email inmediato' },
+  { clave:'notif_admin_pedido_cancelado',name:'Pedido cancelado',         sub:'Notificación email' },
+  { clave:'notif_admin_stock_bajo',      name:'Stock bajo (umbral)',       sub:'Alerta diaria' },
+  { clave:'notif_admin_nueva_cotizacion',name:'Nueva cotización',         sub:'Email inmediato' },
+  { clave:'notif_admin_nuevo_cliente',   name:'Nuevo cliente registrado', sub:'Resumen semanal' },
+];
+const NOTIF_CLI = [
+  { clave:'notif_cli_confirmacion', name:'Confirmación de pedido',      sub:'Email con detalle y # de orden' },
+  { clave:'notif_cli_estado',       name:'Cambio de estado del pedido', sub:'Prep. / Enviado / Entregado' },
+  { clave:'notif_cli_guia',         name:'Número de guía disponible',   sub:'Con link de rastreo' },
+  { clave:'notif_cli_cotizacion',   name:'Respuesta a cotización',      sub:'Cuando admin responde' },
+];
+
+async function loadNotif() {
+  const r = await AdminAPI.get('/admin/configuracion');
+  const cfg = {};
+  (r.configuracion || []).forEach(c => { cfg[c.r_clave || c.clave] = c.r_valor || c.valor; });
+
+  const render = (list, container) => {
+    document.getElementById(container).innerHTML = list.map(n => {
+      const on = cfg[n.clave] !== undefined ? cfg[n.clave] !== '0' && cfg[n.clave] !== 'false' : true;
+      return `<div class="notif-row">
+        <div><div class="notif-name">${n.name}</div><div class="notif-sub">${n.sub}</div></div>
+        ${tog(n.clave, on)}
+      </div>`;
+    }).join('');
+  };
+  render(NOTIF_ADM, 'notif-admin');
+  render(NOTIF_CLI, 'notif-cliente');
+}
+
+async function guardarNotif() {
+  const all = [...NOTIF_ADM, ...NOTIF_CLI];
+  const configuraciones = all.map(n => {
+    const el = document.getElementById(n.clave);
+    return { clave: n.clave, valor: el ? (el.checked ? '1' : '0') : '1' };
+  });
+  const r = await AdminAPI.post('/admin/configuracion/notificaciones', { configuraciones });
+  Toast.show(r.mensaje || (r.ok ? 'Notificaciones guardadas' : 'Error'), r.ok ? 'success' : 'error');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // panels load on demand via setPanel; nothing needed at startup
+});
+
+async function guardarConfig() {
+  const campos = [
+    { clave: 'sitio_nombre',       id: 'cfg-sitio-nombre' },
+    { clave: 'sitio_slogan',       id: 'cfg-slogan'       },
+    { clave: 'sitio_url',          id: 'cfg-url'          },
+    { clave: 'contacto_email',     id: 'cfg-email'        },
+    { clave: 'contacto_telefono',  id: 'cfg-tel'          },
+    { clave: 'contacto_whatsapp',  id: 'cfg-wa'           },
+    { clave: 'contacto_direccion', id: 'cfg-dir'          },
+    { clave: 'iva_porcentaje',     id: 'cfg-iva'          },
+    { clave: 'social_facebook',    id: 'cfg-facebook'     },
+    { clave: 'social_instagram',   id: 'cfg-instagram'    },
+    { clave: 'social_linkedin',    id: 'cfg-linkedin'     },
+  ];
+  const errores = [];
+  for (const c of campos) {
+    const el = document.getElementById(c.id);
+    if (!el) continue;
+    const r = await AdminAPI.post('/admin/configuracion', { clave: c.clave, valor: el.value });
+    if (!r.ok) errores.push(c.clave);
+  }
+  if (errores.length) {
+    Toast.show('Error al guardar: ' + errores.join(', '), 'error');
+  } else {
+    Toast.show('Configuración guardada correctamente', 'success');
+  }
+}
+
+async function actualizarPass() {
+  const actual  = document.getElementById('curr-pass').value;
+  const nueva   = document.getElementById('new-pass').value;
+  const confirm = document.getElementById('confirm-pass').value;
+  if (!actual || !nueva) { Toast.show('Completa todos los campos', 'error'); return; }
+  if (nueva.length < 8)  { Toast.show('La contraseña debe tener mínimo 8 caracteres', 'error'); return; }
+  if (nueva !== confirm)  { Toast.show('Las contraseñas no coinciden', 'error'); return; }
+  const r = await AdminAPI.put('/auth/password', { password_actual: actual, password_nueva: nueva });
+  Toast.show(r.mensaje || (r.ok ? 'Contraseña actualizada' : 'Error'), r.ok ? 'success' : 'error');
+  if (r.ok) {
+    document.getElementById('curr-pass').value    = '';
+    document.getElementById('new-pass').value     = '';
+    document.getElementById('confirm-pass').value = '';
+  }
+}
+</script>
+</body>
+</html>

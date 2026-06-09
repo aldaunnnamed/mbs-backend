@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Inventario | MBS Admin</title>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="ap">
+<div class="ap-layout">
+
+  <aside class="ap-sidebar" id="ap-sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo__mark">M</div>
+      <div><div class="sb-logo__name">MBS Comunicaciones</div><div class="sb-logo__sub">Panel de Administración</div></div>
+    </div>
+    <div class="sb-user">
+      <div class="sb-user__av js-ini">MB</div>
+      <div><div class="sb-user__name js-name">MBS Admin</div><div class="sb-user__email js-email">admin@mbs.mx</div></div>
+    </div>
+    <ul class="sb-nav">
+      <li><a href="/admin/index.html" class="sb-link"><span class="sb-icon">📊</span><span class="sb-label">Inicio</span></a></li>
+      <li><a href="/admin/productos.html" class="sb-link"><span class="sb-icon">📦</span><span class="sb-label">Productos</span></a></li>
+      <li><a href="/admin/pedidos.html" class="sb-link"><span class="sb-icon">🛒</span><span class="sb-label">Pedidos</span></a></li>
+      <li><a href="/admin/clientes.html" class="sb-link"><span class="sb-icon">👥</span><span class="sb-label">Clientes</span></a></li>
+      <li><a href="/admin/inventario.html" class="sb-link"><span class="sb-icon">🏪</span><span class="sb-label">Inventario</span></a></li>
+      <li><a href="/admin/mensajes.html"      class="sb-link"><span class="sb-icon">✉️</span><span class="sb-label">Mensajes</span></a></li>
+      <li><a href="/admin/configuracion.html" class="sb-link"><span class="sb-icon">⚙️</span><span class="sb-label">Configuración</span></a></li>
+    </ul>
+    <hr class="sb-divider">
+    <div class="sb-footer">
+      <button class="sb-link" onclick="AdminAuth.logout()" style="width:100%">
+        <span class="sb-icon">🚪</span><span class="sb-label">Cerrar sesión</span>
+      </button>
+    </div>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+
+  <main class="ap-main">
+    <header class="ap-header">
+      <button class="ap-header__toggle" id="sb-toggle">☰</button>
+      <div>
+        <div class="ap-header__title">Inventario</div>
+        <div class="ap-header__sub" id="inv-sub">Control de stock</div>
+      </div>
+      <div class="ap-header__right">
+        <div class="ap-huser"><div class="ap-huser__av js-ini">MB</div></div>
+      </div>
+    </header>
+
+    <div class="ap-content">
+
+      <!-- KPIs -->
+      <div class="kpi-row mb20">
+        <div class="kpi kpi--blue">
+          <div class="kpi__lbl">📦 Total productos</div>
+          <div class="kpi__val" id="k-total">—</div>
+          <div class="kpi__sub kpi__sub--m">En catálogo</div>
+        </div>
+        <div class="kpi kpi--green">
+          <div class="kpi__lbl">✓ En stock</div>
+          <div class="kpi__val" id="k-ok">—</div>
+          <div class="kpi__sub kpi__sub--g">Disponibles</div>
+        </div>
+        <div class="kpi kpi--orange">
+          <div class="kpi__lbl">⚠ Stock bajo</div>
+          <div class="kpi__val" id="k-bajo">—</div>
+          <div class="kpi__sub kpi__sub--o">Requieren reposición</div>
+        </div>
+        <div class="kpi kpi--red">
+          <div class="kpi__lbl">✕ Sin stock</div>
+          <div class="kpi__val" id="k-cero">—</div>
+          <div class="kpi__sub kpi__sub--r">Agotados</div>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="search-box">
+          <span>🔍</span>
+          <input type="text" id="search-inv" placeholder="Buscar producto o SKU..." oninput="onSearch(this.value)">
+        </div>
+        <select class="ap-select" id="alerta-filter" onchange="onFilter()">
+          <option value="">Todas las alertas</option>
+          <option value="sin_stock">Sin stock</option>
+          <option value="critico">Crítico</option>
+          <option value="bajo">Stock bajo</option>
+          <option value="ok">OK</option>
+        </select>
+      </div>
+
+      <div class="card">
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr>
+              <th>Producto / SKU</th>
+              <th>Categoría</th>
+              <th>Stock actual</th>
+              <th>Stock mín.</th>
+              <th>Alerta</th>
+              <th>Acciones</th>
+            </tr></thead>
+            <tbody id="inv-tbody">
+              <tr><td colspan="6" style="text-align:center;padding:32px" class="tx-m">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal ajuste stock -->
+<div class="mo" id="mo-stock">
+  <div class="mo__box" style="max-width:400px">
+    <div class="mo__hd">
+      <span class="mo__title" id="mo-stock-title">Ajustar stock</span>
+      <span class="mo__close" onclick="Mo.close('mo-stock')">✕</span>
+    </div>
+    <div class="mo__bd">
+      <div class="fg mb12">
+        <label class="flbl">Producto</label>
+        <div id="mo-stock-nombre" class="fw6 fs12" style="padding:6px 0;color:var(--text)">—</div>
+      </div>
+      <div class="fg mb12">
+        <label class="flbl">Nuevo stock <span>*</span></label>
+        <input class="fi" id="nuevo-stock" type="number" min="0" placeholder="0">
+      </div>
+      <div class="fg">
+        <label class="flbl">Motivo <span>*</span></label>
+        <select class="fs" id="motivo-stock">
+          <option value="Recepción de mercancía">Recepción de mercancía</option>
+          <option value="Ajuste de inventario">Ajuste de inventario</option>
+          <option value="Devolución de cliente">Devolución de cliente</option>
+          <option value="Corrección de error">Corrección de error</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+    </div>
+    <div class="mo__ft">
+      <button class="btn btn-gr btn-sm" onclick="Mo.close('mo-stock')">Cancelar</button>
+      <button class="btn btn-p btn-sm" onclick="guardarStock()">Guardar ajuste</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="/js/admin-core.js"></script>
+<script>
+let allItems = [];
+let stockTarget = null;
+let searchTimer;
+
+function alertaClass(a) {
+  const m = { sin_stock:'bdg--r', critico:'bdg--r', bajo:'bdg--o', ok:'bdg--g' };
+  const l = { sin_stock:'Sin stock', critico:'Crítico', bajo:'Bajo', ok:'OK' };
+  return { cls: m[a]||'bdg--gr', lbl: l[a]||a };
+}
+
+function barClass(a) {
+  return a==='ok' ? 'sbar__fill--g' : a==='bajo' ? 'sbar__fill--o' : 'sbar__fill--r';
+}
+
+function barPct(stock, min) {
+  const m = min || 5;
+  if (stock === 0) return 0;
+  return Math.min(100, Math.round((stock / (m * 4)) * 100));
+}
+
+async function load() {
+  const [alertas, dashboard] = await Promise.all([
+    AdminAPI.get('/admin/inventario/alertas'),
+    AdminAPI.get('/admin/dashboard'),
+  ]);
+
+  const items = alertas.alertas || [];
+  allItems = items;
+
+  const k = (dashboard.ok && dashboard.kpis) || {};
+  document.getElementById('k-total').textContent  = fmt.num(k.total_productos || items.length);
+  document.getElementById('k-bajo').textContent   = items.filter(i=>i.alerta==='bajo'||i.alerta==='critico').length;
+  document.getElementById('k-cero').textContent   = items.filter(i=>i.alerta==='sin_stock').length;
+  document.getElementById('k-ok').textContent     = fmt.num((k.total_productos||0) - items.filter(i=>i.alerta!=='ok').length);
+
+  document.getElementById('inv-sub').textContent =
+    `Control de stock · ${items.filter(i=>i.alerta!=='ok').length} productos con alerta`;
+
+  renderTable(items);
+}
+
+function renderTable(items) {
+  document.getElementById('inv-tbody').innerHTML = items.length
+    ? items.map(a => {
+        const { cls, lbl } = alertaClass(a.alerta);
+        const pct = barPct(a.stock_actual, a.stock_minimo);
+        return `<tr>
+          <td>
+            <div class="tbl__name">${a.nombre || a.producto_nombre || '—'}</div>
+            <div class="tbl__sub">${a.sku || ''}</div>
+          </td>
+          <td class="tx-m">${a.categoria_nombre || a.categoria || '—'}</td>
+          <td>
+            <div class="flex-c gap8">
+              <span class="fw6">${a.stock_actual}</span>
+              <div class="sbar-wrap">
+                <div class="sbar"><div class="sbar__fill ${barClass(a.alerta)}" style="width:${pct}%"></div></div>
+              </div>
+            </div>
+          </td>
+          <td class="tx-m">${a.stock_minimo ?? '—'}</td>
+          <td><span class="bdg ${cls}">${lbl}</span></td>
+          <td>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-p btn-xs" onclick="abrirAjuste(${a.producto_id},'${(a.nombre||'').replace(/'/g,"\\'")}',${a.stock_actual})">Reponer stock</button>
+              <button class="btn btn-gr btn-xs" onclick="abrirAjuste(${a.producto_id},'${(a.nombre||'').replace(/'/g,"\\'")}',${a.stock_actual})">Ajustar</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="6" style="text-align:center;padding:32px" class="tx-m">Sin alertas de inventario ✓</td></tr>';
+}
+
+function abrirAjuste(id, nombre, stockActual) {
+  stockTarget = id;
+  document.getElementById('mo-stock-title').textContent = 'Ajustar stock';
+  document.getElementById('mo-stock-nombre').textContent = nombre;
+  document.getElementById('nuevo-stock').value = stockActual;
+  Mo.open('mo-stock');
+}
+
+async function guardarStock() {
+  const nuevo_stock = parseInt(document.getElementById('nuevo-stock').value);
+  const motivo      = document.getElementById('motivo-stock').value;
+  if (isNaN(nuevo_stock) || !motivo) { Toast.show('Completa todos los campos', 'error'); return; }
+  const r = await AdminAPI.put('/admin/inventario/' + stockTarget + '/stock', { nuevo_stock, motivo });
+  if (r.ok) {
+    Toast.show(r.mensaje || 'Stock actualizado', 'success');
+    Mo.close('mo-stock');
+    load();
+  } else {
+    Toast.show(r.mensaje || 'Error', 'error');
+  }
+}
+
+function onSearch(v) {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    const q = v.toLowerCase();
+    renderTable(allItems.filter(i =>
+      (i.nombre||i.producto_nombre||'').toLowerCase().includes(q) ||
+      (i.sku||'').toLowerCase().includes(q)
+    ));
+  }, 300);
+}
+
+function onFilter() {
+  const f = document.getElementById('alerta-filter').value;
+  renderTable(f ? allItems.filter(i => i.alerta === f) : allItems);
+}
+
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body>
+</html>

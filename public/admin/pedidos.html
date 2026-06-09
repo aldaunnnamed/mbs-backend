@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pedidos | MBS Admin</title>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="ap">
+<div class="ap-layout">
+
+  <aside class="ap-sidebar" id="ap-sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo__mark">M</div>
+      <div><div class="sb-logo__name">MBS Comunicaciones</div><div class="sb-logo__sub">Panel de Administración</div></div>
+    </div>
+    <div class="sb-user">
+      <div class="sb-user__av js-ini">MB</div>
+      <div><div class="sb-user__name js-name">MBS Admin</div><div class="sb-user__email js-email">admin@mbs.mx</div></div>
+    </div>
+    <ul class="sb-nav">
+      <li><a href="/admin/index.html" class="sb-link"><span class="sb-icon">📊</span><span class="sb-label">Inicio</span></a></li>
+      <li><a href="/admin/productos.html" class="sb-link"><span class="sb-icon">📦</span><span class="sb-label">Productos</span></a></li>
+      <li><a href="/admin/pedidos.html" class="sb-link"><span class="sb-icon">🛒</span><span class="sb-label">Pedidos</span></a></li>
+      <li><a href="/admin/clientes.html" class="sb-link"><span class="sb-icon">👥</span><span class="sb-label">Clientes</span></a></li>
+      <li><a href="/admin/inventario.html" class="sb-link"><span class="sb-icon">🏪</span><span class="sb-label">Inventario</span></a></li>
+      <li><a href="/admin/mensajes.html"      class="sb-link"><span class="sb-icon">✉️</span><span class="sb-label">Mensajes</span></a></li>
+      <li><a href="/admin/configuracion.html" class="sb-link"><span class="sb-icon">⚙️</span><span class="sb-label">Configuración</span></a></li>
+    </ul>
+    <hr class="sb-divider">
+    <div class="sb-footer">
+      <button class="sb-link" onclick="AdminAuth.logout()" style="width:100%">
+        <span class="sb-icon">🚪</span><span class="sb-label">Cerrar sesión</span>
+      </button>
+    </div>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+
+  <main class="ap-main">
+    <header class="ap-header">
+      <button class="ap-header__toggle" id="sb-toggle">☰</button>
+      <div>
+        <div class="ap-header__title">Gestión de Pedidos</div>
+        <div class="ap-header__sub" id="ped-sub">Cargando...</div>
+      </div>
+      <div class="ap-header__right">
+        <div class="ap-huser"><div class="ap-huser__av js-ini">MB</div></div>
+      </div>
+    </header>
+
+    <div class="ap-content">
+
+      <!-- KPIs -->
+      <div class="kpi-row mb20">
+        <div class="kpi kpi--orange">
+          <div class="kpi__lbl">🛒 Pedidos hoy</div>
+          <div class="kpi__val" id="k-hoy">—</div>
+          <div class="kpi__sub kpi__sub--o" id="k-sin-atender">— sin atender</div>
+        </div>
+        <div class="kpi kpi--orange">
+          <div class="kpi__lbl">⚙ En preparación</div>
+          <div class="kpi__val" id="k-prep">—</div>
+          <div class="kpi__sub kpi__sub--m">Procesando</div>
+        </div>
+        <div class="kpi kpi--blue">
+          <div class="kpi__lbl">🚚 En camino</div>
+          <div class="kpi__val" id="k-camino">—</div>
+          <div class="kpi__sub kpi__sub--m">Enviados</div>
+        </div>
+        <div class="kpi kpi--green">
+          <div class="kpi__lbl">✓ Entregados hoy</div>
+          <div class="kpi__val" id="k-entregados">—</div>
+          <div class="kpi__sub kpi__sub--g">Completados</div>
+        </div>
+      </div>
+
+      <!-- List view -->
+      <div id="list-view">
+        <!-- Tabs -->
+        <div class="tabs">
+          <button class="tab on"   data-estado="" onclick="setTab(this,'')">Todos (<span id="cnt-todos">0</span>)</button>
+          <button class="tab tab--r" data-estado="nuevo" onclick="setTab(this,'nuevo')">Sin atender (<span id="cnt-nuevo">0</span>)</button>
+          <button class="tab"      data-estado="en_preparacion" onclick="setTab(this,'en_preparacion')">En prep. (<span id="cnt-prep">0</span>)</button>
+          <button class="tab"      data-estado="enviado" onclick="setTab(this,'enviado')">En camino (<span id="cnt-env">0</span>)</button>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+          <div class="search-box">
+            <span>🔍</span>
+            <input type="text" id="search-ped" placeholder="Buscar # pedido o cliente..." oninput="onSearch(this.value)">
+          </div>
+          <button class="btn btn-gr btn-sm">⬇ Exportar</button>
+        </div>
+
+        <!-- Table -->
+        <div class="card">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr>
+                <th># Pedido</th><th>Cliente</th><th>Fecha</th><th>Productos</th><th>Total</th><th>Estado</th><th>Acciones</th>
+              </tr></thead>
+              <tbody id="ped-tbody">
+                <tr><td colspan="7" style="text-align:center;padding:32px" class="tx-m">Cargando pedidos...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pager">
+            <span class="pager__info" id="pager-info">—</span>
+            <div class="pager__btns" id="pager-btns"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detail view (hidden by default) -->
+      <div id="det-view" style="display:none">
+        <div class="mb16">
+          <button class="btn btn-gr btn-sm" onclick="showList()">← Volver a pedidos</button>
+        </div>
+        <div class="det-layout">
+          <!-- Left: detail -->
+          <div class="card">
+            <div class="card__hd">
+              <div class="flex-c gap8">
+                <span class="card__title" id="det-numero">—</span>
+                <span id="det-estado-badge"></span>
+              </div>
+              <button class="btn btn-gr btn-sm" onclick="window.print()">🖨 Imprimir</button>
+            </div>
+            <div class="card__bd">
+              <div class="det-sec">
+                <div class="det-sec__ttl">Cliente</div>
+                <div class="det-row"><span class="det-row__lbl">Nombre:</span><span class="det-row__val" id="det-cliente">—</span></div>
+                <div class="det-row"><span class="det-row__lbl">Email:</span><span class="det-row__val" id="det-email">—</span></div>
+                <div class="det-row"><span class="det-row__lbl">Dirección:</span><span class="det-row__val" id="det-dir">—</span></div>
+              </div>
+              <div class="det-sec">
+                <div class="det-sec__ttl">Productos ordenados</div>
+                <table class="tbl" id="det-items-tbl">
+                  <thead><tr><th>Producto</th><th>SKU</th><th>Cant.</th><th>Precio</th></tr></thead>
+                  <tbody id="det-items"></tbody>
+                </table>
+              </div>
+              <div class="det-sec">
+                <div class="det-sec__ttl">Resumen de costos</div>
+                <table class="cost-tbl">
+                  <tr><td>Subtotal:</td><td id="det-subtotal">—</td></tr>
+                  <tr id="det-cupon-row" style="display:none"><td class="cost-disc" id="det-cupon-lbl">Cupón:</td><td class="cost-disc" id="det-cupon">—</td></tr>
+                  <tr><td>Envío:</td><td id="det-envio">—</td></tr>
+                  <tr><td>IVA (16%):</td><td id="det-iva">—</td></tr>
+                  <tr class="total-row"><td>TOTAL:</td><td id="det-total">—</td></tr>
+                </table>
+              </div>
+              <div class="det-sec">
+                <div class="det-sec__ttl">Pago</div>
+                <div class="flex-c gap8">
+                  <span id="det-pago-metodo" class="fw6">—</span>
+                  <span class="bdg bdg--g">✓ Pagado</span>
+                </div>
+              </div>
+            </div>
+            <div class="card__hd" style="border-top:1px solid var(--border);border-bottom:none">
+              <button class="btn btn-r btn-sm" onclick="cancelarPedido()">Cancelar pedido</button>
+            </div>
+          </div>
+
+          <!-- Right: actions -->
+          <div>
+            <div class="act-card">
+              <div class="act-card__ttl">⚙ Actualizar estado</div>
+              <select class="fs w100 mb8" id="det-nuevo-estado">
+                <option value="nuevo">● Nuevo</option>
+                <option value="en_preparacion">⚙ En preparación</option>
+                <option value="enviado">🚚 Enviado</option>
+                <option value="entregado">✓ Entregado</option>
+                <option value="cancelado">✕ Cancelado</option>
+              </select>
+              <button class="btn btn-p btn-sm w100" onclick="actualizarEstado()">Actualizar estado</button>
+            </div>
+            <div class="act-card">
+              <div class="act-card__ttl">🚚 Datos de envío</div>
+              <div class="fg mb8"><label class="flbl">Paquetería</label>
+                <select class="fs" id="det-paqueteria">
+                  <option>FedEx Express</option><option>FedEx Overnight</option><option>Estafeta</option><option>DHL</option>
+                </select>
+              </div>
+              <div class="fg mb8"><label class="flbl">Número de guía</label><input class="fi" id="det-guia" placeholder="Ej. 7489201934"></div>
+              <button class="btn btn-ol btn-sm w100" onclick="confirmarEnvio()">Confirmar envío</button>
+            </div>
+            <div class="act-card">
+              <div class="act-card__ttl">📝 Notas internas</div>
+              <textarea class="fta w100" id="det-notas" placeholder="Agregar nota interna..."></textarea>
+              <button class="btn btn-gr btn-sm mt8" onclick="guardarNotas()">Guardar nota</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<div id="toast-container"></div>
+<script src="/js/admin-core.js"></script>
+<script>
+let state = { estado: '', page: 1, busqueda: '' };
+let allPedidos = [];
+let currentPedidoId = null;
+let searchTimer;
+
+async function loadKpis() {
+  const r = await AdminAPI.get('/admin/dashboard');
+  if (!r.ok) return;
+  const k = r.kpis || {};
+  document.getElementById('k-hoy').textContent       = fmt.num(k.pedidos_hoy || k.pedidos_nuevos || 0);
+  document.getElementById('k-sin-atender').textContent = (k.sin_atender||0) + ' sin atender';
+  document.getElementById('k-prep').textContent      = fmt.num(k.en_preparacion || 0);
+  document.getElementById('k-camino').textContent    = fmt.num(k.enviados || 0);
+  document.getElementById('k-entregados').textContent = fmt.num(k.entregados_hoy || 0);
+  const total = k.pedidos_hoy || k.pedidos_nuevos || 0;
+  document.getElementById('ped-sub').textContent =
+    `${total} pedidos activos · ${k.sin_atender||0} requieren atención`;
+}
+
+async function loadPedidos() {
+  let url = `/admin/pedidos?pagina=${state.page}&por_pagina=10`;
+  if (state.estado) url += '&estado=' + state.estado;
+  const r = await AdminAPI.get(url);
+  allPedidos = r.pedidos || [];
+  renderPedidos(allPedidos);
+  updateCounts(r.pedidos || []);
+}
+
+function updateCounts(peds) {
+  const all = peds;
+  document.getElementById('cnt-todos').textContent  = all.length;
+  document.getElementById('cnt-nuevo').textContent  = all.filter(p=>p.estado==='nuevo').length;
+  document.getElementById('cnt-prep').textContent   = all.filter(p=>p.estado==='en_preparacion').length;
+  document.getElementById('cnt-env').textContent    = all.filter(p=>p.estado==='enviado').length;
+}
+
+function renderPedidos(peds) {
+  document.getElementById('ped-tbody').innerHTML = peds.length
+    ? peds.map(p => `
+      <tr>
+        <td class="fw6 tx-o">${p.numero || '—'}</td>
+        <td>${p.cliente_nombre || p.usuario_nombre || '—'}</td>
+        <td class="tx-m">${fmt.short(p.created_at)}</td>
+        <td class="tx-m">${p.total_items || '—'} items</td>
+        <td class="fw6">${fmt.money(p.total)}</td>
+        <td>${badge(p.estado)}</td>
+        <td>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-b btn-xs" onclick="verDetalle(${p.id})">Ver</button>
+            <button class="btn btn-gr btn-xs" onclick="abrirModal(${p.id},'${p.estado}')">Actualizar</button>
+          </div>
+        </td>
+      </tr>`).join('')
+    : '<tr><td colspan="7" style="text-align:center;padding:32px" class="tx-m">Sin pedidos</td></tr>';
+
+  document.getElementById('pager-info').textContent = peds.length + ' pedido(s)';
+}
+
+async function verDetalle(id) {
+  currentPedidoId = id;
+  const r = await AdminAPI.get('/admin/pedidos/' + id);
+  if (!r.ok) { Toast.show('No se pudo cargar el pedido', 'error'); return; }
+
+  const p = r.pedido || r.datos || {};
+  document.getElementById('det-numero').textContent = p.numero || '—';
+  document.getElementById('det-estado-badge').innerHTML = badge(p.estado);
+  document.getElementById('det-cliente').textContent = (p.cliente_nombre || p.nombre_cliente || '—');
+  document.getElementById('det-email').textContent   = p.email_cliente || p.email || '—';
+  document.getElementById('det-dir').textContent     = p.direccion_entrega || p.direccion || '—';
+  document.getElementById('det-subtotal').textContent= fmt.money(p.subtotal || p.total);
+  document.getElementById('det-envio').textContent   = fmt.money(p.costo_envio || 0);
+  document.getElementById('det-iva').textContent     = fmt.money((parseFloat(p.subtotal||p.total)||0)*0.16);
+  document.getElementById('det-total').textContent   = fmt.money(p.total);
+  document.getElementById('det-pago-metodo').textContent = p.metodo_pago_nombre || 'Transferencia SPEI';
+  document.getElementById('det-nuevo-estado').value  = p.estado || 'nuevo';
+
+  if (p.cupon_codigo) {
+    document.getElementById('det-cupon-row').style.display = '';
+    document.getElementById('det-cupon-lbl').textContent = 'Cupón ' + p.cupon_codigo + ':';
+    document.getElementById('det-cupon').textContent = '−' + fmt.money(p.descuento || 0);
+  }
+
+  // Items
+  const items = r.items || p.items || [];
+  document.getElementById('det-items').innerHTML = items.map(i => `
+    <tr>
+      <td>${i.nombre_producto || i.producto_nombre || '—'}</td>
+      <td class="tx-m fs11">${i.sku || '—'}</td>
+      <td>×${i.cantidad}</td>
+      <td>${fmt.money(i.precio_unitario * i.cantidad)}</td>
+    </tr>`).join('') || '<tr><td colspan="4" class="tx-m">Sin detalle</td></tr>';
+
+  document.getElementById('list-view').style.display = 'none';
+  document.getElementById('det-view').style.display = '';
+  window.scrollTo(0,0);
+}
+
+function showList() {
+  document.getElementById('det-view').style.display = 'none';
+  document.getElementById('list-view').style.display = '';
+}
+
+async function actualizarEstado() {
+  const estado = document.getElementById('det-nuevo-estado').value;
+  const notas  = document.getElementById('det-notas').value;
+  const r = await AdminAPI.put('/admin/pedidos/' + currentPedidoId + '/estado', { estado, notas });
+  if (r.ok) { Toast.show('Estado actualizado', 'success'); document.getElementById('det-estado-badge').innerHTML = badge(estado); }
+  else Toast.show(r.mensaje || 'Error', 'error');
+}
+
+async function confirmarEnvio() {
+  const paqueteria  = document.getElementById('det-paqueteria').value;
+  const numero_guia = document.getElementById('det-guia').value;
+  const r = await AdminAPI.put('/admin/pedidos/' + currentPedidoId + '/estado', { estado:'enviado', paqueteria, numero_guia });
+  if (r.ok) { Toast.show('Envío confirmado', 'success'); document.getElementById('det-estado-badge').innerHTML = badge('enviado'); }
+  else Toast.show(r.mensaje || 'Error', 'error');
+}
+
+async function guardarNotas() {
+  const notas = document.getElementById('det-notas').value;
+  const estado = document.getElementById('det-nuevo-estado').value;
+  const r = await AdminAPI.put('/admin/pedidos/' + currentPedidoId + '/estado', { estado, notas });
+  if (r.ok) Toast.show('Nota guardada', 'success');
+}
+
+async function cancelarPedido() {
+  if (!confirm('¿Cancelar este pedido?')) return;
+  const r = await AdminAPI.post('/pedidos/' + currentPedidoId + '/cancelar', { motivo: 'Cancelado por administrador' });
+  if (r.ok) { Toast.show('Pedido cancelado', 'success'); showList(); loadPedidos(); }
+  else Toast.show(r.mensaje || 'Error', 'error');
+}
+
+function abrirModal(id, estado) { verDetalle(id); }
+
+function setTab(el, estado) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  state.estado = estado; state.page = 1;
+  loadPedidos();
+}
+
+function onSearch(v) {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    const q = v.toLowerCase();
+    const filtered = allPedidos.filter(p =>
+      (p.numero||'').toLowerCase().includes(q) ||
+      (p.cliente_nombre||'').toLowerCase().includes(q)
+    );
+    renderPedidos(filtered);
+  }, 300);
+}
+
+document.addEventListener('DOMContentLoaded', () => { loadKpis(); loadPedidos(); });
+</script>
+</body>
+</html>

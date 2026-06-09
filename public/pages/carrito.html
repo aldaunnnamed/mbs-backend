@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi carrito — MBS Comunicaciones</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/navbar.css">
+  <link rel="stylesheet" href="/css/pages.css">
+  <link rel="stylesheet" href="/css/catalogo.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="container">
+    <div class="navbar__inner">
+      <a href="/" class="navbar__logo"><span class="navbar__logo-text">MBS</span></a>
+      <ul class="navbar__nav">
+        <li><a href="/pages/catalogo.html">Catálogo</a></li>
+        <li><a href="/pages/contacto.html">Contacto</a></li>
+      </ul>
+      <div class="navbar__search">
+        <span class="navbar__search__icon">🔍</span>
+        <input type="text" id="navbar-search" placeholder="Buscar producto, SKU...">
+      </div>
+      <div class="navbar__actions" id="navbar-actions"></div>
+    </div>
+  </div>
+</nav>
+
+<div class="breadcrumb">
+  <div class="container">
+    <a href="/">Inicio</a> <span>/</span> <span>Mi carrito</span>
+  </div>
+</div>
+
+<div class="container">
+<div class="cart-page">
+
+  <div class="cart-header">
+    <h1>Mi carrito <span class="catalog-count" id="cart-count">0 productos</span></h1>
+  </div>
+
+  <!-- Stepper -->
+  <div class="stepper">
+    <div class="step active">
+      <div class="step__circle">1</div>
+      <span>Carrito</span>
+    </div>
+    <div class="step__line"></div>
+    <div class="step">
+      <div class="step__circle">2</div>
+      <span>Datos de envío</span>
+    </div>
+    <div class="step__line"></div>
+    <div class="step">
+      <div class="step__circle">3</div>
+      <span>Pago</span>
+    </div>
+  </div>
+
+  <!-- Carrito vacío -->
+  <div class="cart-empty" id="cart-empty">
+    <div class="cart-empty__icon">🛒</div>
+    <h2>Tu carrito está vacío</h2>
+    <p>Explora nuestro catálogo y agrega los productos que necesitas</p>
+    <a href="/pages/catalogo.html" class="btn btn-primary">Ir al catálogo</a>
+  </div>
+
+  <!-- Layout con items -->
+  <div class="cart-layout" id="cart-layout" style="display:none">
+
+    <!-- Items -->
+    <div>
+      <div class="cart-table">
+        <div class="cart-table__header">
+          <span>Producto</span>
+          <span>Precio unit.</span>
+          <span>Cantidad</span>
+          <span>Subtotal</span>
+          <span>Acción</span>
+        </div>
+        <div id="cart-items-container"></div>
+        <div class="cart-table__footer">
+          <label>
+            <input type="checkbox" id="select-all" checked>
+            Seleccionar todo
+          </label>
+          <div style="display:flex;gap:12px">
+            <button class="btn-ghost btn" onclick="removeSelected()" style="color:var(--red);font-size:.85rem">
+              🗑 Eliminar seleccionados
+            </button>
+            <button class="btn-ghost btn" onclick="moveToFavorites()" style="font-size:.85rem">
+              ♡ Mover a favoritos
+            </button>
+            <span id="selected-count" style="font-size:.85rem;color:var(--gray-600)"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resumen -->
+    <div>
+      <div class="order-summary">
+        <div class="order-summary__header">Resumen de orden</div>
+        <div class="order-summary__body">
+
+          <!-- Items mini lista -->
+          <div id="summary-items" style="margin-bottom:16px"></div>
+
+          <div class="summary-line">
+            <span id="subtotal-label">Subtotal (0 productos)</span>
+            <span id="subtotal-amount">$0.00</span>
+          </div>
+          <div class="summary-line" id="envio-line">
+            <span>Envío estimado</span>
+            <span id="envio-select" style="cursor:pointer;color:var(--electric);font-size:.82rem">
+              Seleccionar ▾
+            </span>
+          </div>
+          <div class="summary-line">
+            <span>IVA (16%)</span>
+            <span id="iva-amount">$0.00</span>
+          </div>
+          <hr class="summary-divider">
+          <div class="summary-total">
+            <span class="summary-total__label">TOTAL</span>
+            <span class="summary-total__amount" id="total-amount">$0.00</span>
+          </div>
+          <div class="summary-iva">Precios incluyen IVA</div>
+          <div class="summary-savings hidden" id="savings-banner">
+            <div class="summary-savings">🎉 <span id="savings-amount"></span></div>
+          </div>
+
+          <a href="/pages/checkout.html" class="btn btn-primary btn-full" style="margin-bottom:12px">
+            Proceder al checkout →
+          </a>
+
+          <div class="summary-payment-icons">
+            <span class="summary-payment-icon">Mercado Pago</span>
+            <span class="summary-payment-icon">PayPal</span>
+            <span class="summary-payment-icon">Referencia</span>
+          </div>
+          <div class="summary-trust">
+            <p>🛡 Compra protegida · Devolución en 30 días</p>
+          </div>
+        </div>
+        <div class="summary-footer">
+          <a href="/pages/catalogo.html">← Seguir comprando</a>
+          <a href="#" onclick="saveCartForLater()">💾 Guardar carrito para después</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- También te puede interesar -->
+  <div class="upsell-section" id="upsell-section" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <h3>También te puede interesar</h3>
+      <a href="/pages/catalogo.html" class="btn-ghost btn">Ver catálogo →</a>
+    </div>
+    <div class="upsell-grid" id="upsell-grid"></div>
+  </div>
+
+</div>
+</div>
+
+<div id="toast-container"></div>
+<a href="https://wa.me/527713455929" class="whatsapp-fab" target="_blank">💬</a>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer__grid">
+      <div>
+        <div class="footer__brand-name">MBS</div>
+        <p class="footer__tagline">Insumos de fibra óptica para profesionales e integradores. Hidalgo, México.</p>
+        <div class="footer__social"><a href="#" title="LinkedIn">in</a><a href="#" title="Facebook">f</a><a href="#" title="WhatsApp">w</a></div>
+      </div>
+      <div>
+        <div class="footer__col-title">Catálogo</div>
+        <ul class="footer__links">
+          <li><a href="/pages/catalogo.html?categoria=1">Cables de fibra óptica</a></li>
+          <li><a href="/pages/catalogo.html?categoria=2">Conectores</a></li>
+          <li><a href="/pages/catalogo.html?categoria=3">Patch cords</a></li>
+          <li><a href="/pages/catalogo.html?categoria=4">Equipos activos</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer__col-title">Empresa</div>
+        <ul class="footer__links">
+          <li><a href="#">Sobre MBS</a></li>
+          <li><a href="#">Preguntas frecuentes</a></li>
+          <li><a href="#">Política de envíos</a></li>
+          <li><a href="#">Garantía y devoluciones</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer__col-title">Contacto</div>
+        <div class="footer__contact-item"><span>📍</span><span>Hidalgo, México</span></div>
+        <div class="footer__contact-item"><span>📞</span><span>+52 (771) 345-5929</span></div>
+        <div class="footer__contact-item"><span>✉</span><span>ventas@mbscomunicaciones.mx</span></div>
+        <a href="https://wa.me/527713455929" class="footer__whatsapp" target="_blank">💬 WhatsApp</a>
+      </div>
+    </div>
+  </div>
+  <div class="footer__bottom">
+    <div class="container" style="display:flex;justify-content:space-between;width:100%">
+      <span>© 2026 MBS Comunicaciones · Todos los derechos reservados</span>
+      <div class="footer__bottom-links"><a href="#">Aviso de privacidad</a><a href="#">Términos</a></div>
+    </div>
+  </div>
+</footer>
+
+<script src="/js/global.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  let items = [];
+  const ENVIO_PRECIO = 120;
+
+  const render = async () => {
+    const data = await API.get('/carrito');
+    items = data.items || [];
+
+    const layout = document.getElementById('cart-layout');
+    const empty  = document.getElementById('cart-empty');
+    const count  = document.getElementById('cart-count');
+
+    if (!items.length) {
+      layout.style.display = 'none';
+      empty.classList.add('visible');
+      count.textContent = '0 productos';
+      document.getElementById('upsell-section').style.display = 'none';
+      loadUpsell();
+      return;
+    }
+
+    empty.classList.remove('visible');
+    layout.style.display = 'grid';
+    document.getElementById('upsell-section').style.display = 'block';
+    count.textContent = items.length + ' producto' + (items.length !== 1 ? 's' : '');
+
+    renderItems();
+    calcTotals();
+    loadUpsell();
+  };
+
+  const renderItems = () => {
+    const container = document.getElementById('cart-items-container');
+    container.innerHTML = items.map(item => {
+      const nombre   = item.r_nombre     || item.nombre;
+      const sku      = item.r_sku        || item.sku;
+      const precio   = item.r_precio_unit || item.precio_unitario;
+      const cantidad = item.r_cantidad   || item.cantidad;
+      const subtotal = item.r_subtotal   || item.subtotal;
+      const variante = item.r_variante   || item.variante;
+      const img      = item.r_imagen     || item.imagen;
+      const id       = item.r_item_id    || item.item_id || item.id;
+      const badge    = item.r_badge      || item.badge;
+      const badgeLabel = { nuevo:'NUEVO', oferta:'OFERTA', top_venta:'TOP VENTA', liquidacion:'LIQUIDACIÓN' };
+
+      return `
+      <div class="cart-item" data-id="${id}">
+        <div class="cart-item__product">
+          <div class="cart-item__img">
+            ${img ? `<img src="${img}" alt="${nombre}">` : '<span style="font-size:1.5rem">📦</span>'}
+          </div>
+          <div>
+            ${badge ? `<span class="badge badge-orange" style="margin-bottom:4px">${badgeLabel[badge]||badge}</span>` : ''}
+            <div class="cart-item__name">${nombre}</div>
+            <div class="cart-item__sku">SKU: ${sku}</div>
+            ${variante ? `<div class="cart-item__variant">Longitud: ${variante}</div>` : ''}
+            <span class="stock-badge in-stock">En stock</span>
+          </div>
+        </div>
+        <div>
+          <div class="cart-item__price">${formatPrice(precio)}</div>
+        </div>
+        <div class="cart-item__qty">
+          <button class="qty-btn" onclick="updateQty(${id}, ${cantidad-1})">−</button>
+          <input type="number" class="qty-input" value="${cantidad}" min="1"
+            onchange="updateQty(${id}, this.value)">
+          <button class="qty-btn" onclick="updateQty(${id}, ${cantidad+1})">+</button>
+        </div>
+        <div class="cart-item__subtotal">${formatPrice(subtotal)}</div>
+        <div class="cart-item__actions">
+          <button class="cart-item__action-btn fav" title="Guardar en favoritos"
+            onclick="toggleFavItem(${item.r_producto_id || item.producto_id}, this)">♡</button>
+          <button class="cart-item__action-btn remove" title="Eliminar"
+            onclick="removeItem(${id})">✕</button>
+        </div>
+      </div>`;
+    }).join('');
+  };
+
+  const calcTotals = () => {
+    const subtotal = items.reduce((s, i) => s + parseFloat(i.r_subtotal || i.subtotal || 0), 0);
+    const envio    = subtotal >= 2000 ? 0 : ENVIO_PRECIO;
+    const iva      = (subtotal + envio) * 0.16;
+    const total    = subtotal + envio + iva;
+
+    document.getElementById('subtotal-label').textContent  = `Subtotal (${items.length} producto${items.length!==1?'s':''})`;
+    document.getElementById('subtotal-amount').textContent = formatPrice(subtotal);
+    document.getElementById('iva-amount').textContent      = formatPrice(iva);
+    document.getElementById('total-amount').textContent    = formatPrice(total);
+
+    const envioEl = document.getElementById('envio-select');
+    envioEl.textContent = envio === 0 ? 'GRATIS' : `Estándar (3-5 días) · ${formatPrice(envio)}`;
+
+    // Summary items
+    document.getElementById('summary-items').innerHTML = items.map(i => `
+      <div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:8px;color:rgba(255,255,255,.7)">
+        <span>${i.r_nombre||i.nombre} ×${i.r_cantidad||i.cantidad}</span>
+        <span>${formatPrice(i.r_subtotal||i.subtotal)}</span>
+      </div>`).join('');
+  };
+
+  const loadUpsell = async () => {
+    const grid = document.getElementById('upsell-grid');
+    const data = await API.get('/productos?por_pagina=4&solo_stock=true&orden=relevancia');
+    if (!data.ok || !data.productos.length) return;
+    grid.innerHTML = data.productos.map(p => {
+      const nombre = p.r_nombre || p.nombre;
+      const precio = p.r_precio_venta || p.precio_venta;
+      const slug   = p.r_slug || p.slug;
+      const id     = p.r_id || p.id;
+      const img    = p.imagen_principal;
+      const badge  = p.badge;
+      const badgeLabel = { nuevo:'NUEVO', oferta:'OFERTA', top_venta:'TOP VENTA', liquidacion:'LIQUIDACIÓN' };
+      const badgeMap   = { nuevo:'badge-orange', oferta:'badge-amber', top_venta:'badge-navy', liquidacion:'badge-red' };
+      return `
+      <div class="product-card">
+        <a href="/pages/producto.html?slug=${slug}">
+          <div class="product-card__img">
+            ${badge ? `<span class="badge ${badgeMap[badge]} product-card__badge">${badgeLabel[badge]}</span>` : ''}
+            ${img ? `<img src="${img}" alt="${nombre}" loading="lazy">` : '<div class="product-card__img-placeholder"><span style="font-size:2rem">📦</span></div>'}
+          </div>
+        </a>
+        <div class="product-card__body">
+          <div class="product-card__cat">${p.r_categoria||p.categoria||''}</div>
+          <a href="/pages/producto.html?slug=${slug}"><div class="product-card__name">${nombre}</div></a>
+          <div class="product-card__sku">SKU: ${p.r_sku||p.sku}</div>
+          <div class="product-card__price">${formatPrice(precio)}</div>
+          <button class="btn btn-primary btn-full" onclick="Cart.add(${id},null,1)">+ Añadir</button>
+        </div>
+      </div>`;
+    }).join('');
+  };
+
+  window.removeItem = async (id) => {
+    await API.del('/carrito/' + id);
+    Toast.show('Producto eliminado del carrito', 'info');
+    await render();
+    Cart.updateBadge();
+  };
+
+  window.updateQty = async (id, qty) => {
+    qty = parseInt(qty);
+    if (qty < 1) { window.removeItem(id); return; }
+    await API.put('/carrito/' + id, { cantidad: qty });
+    await render();
+    Cart.updateBadge();
+  };
+
+  window.removeSelected = async () => {
+    for (const item of items) {
+      const id = item.r_item_id || item.item_id || item.id;
+      await API.del('/carrito/' + id);
+    }
+    await render();
+    Cart.updateBadge();
+    Toast.show('Items eliminados', 'info');
+  };
+
+  window.toggleFavItem = async (productoId, btn) => {
+    if (!Session.isLoggedIn()) {
+      Toast.show('Inicia sesión para guardar favoritos', 'info');
+      return;
+    }
+    if (!productoId) return;
+    const res = await API.post('/usuarios/favoritos/' + productoId, {});
+    if (res.ok) {
+      btn.textContent = res.accion === 'agregado' ? '♥' : '♡';
+      btn.style.color = res.accion === 'agregado' ? 'var(--red)' : '';
+      Toast.show(res.mensaje, 'success');
+    }
+  };
+
+  window.moveToFavorites = async () => {
+    if (!Session.isLoggedIn()) {
+      Toast.show('Inicia sesión para guardar favoritos', 'info');
+      return;
+    }
+    if (!items.length) return;
+    let ok = 0;
+    for (const item of items) {
+      const pid = item.r_producto_id || item.producto_id;
+      if (!pid) continue;
+      const res = await API.post('/usuarios/favoritos/' + pid, {});
+      if (res.ok) ok++;
+    }
+    Toast.show(ok + ' producto' + (ok !== 1 ? 's' : '') + ' guardado' + (ok !== 1 ? 's' : '') + ' en favoritos', 'success');
+  };
+
+  window.saveCartForLater = () => {
+    if (Session.isLoggedIn()) {
+      Toast.show('Tu carrito se guarda automáticamente en tu cuenta. Puedes acceder desde cualquier dispositivo.', 'success');
+    } else {
+      const modal = document.createElement('div');
+      modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+      modal.innerHTML = `
+        <div style="background:#fff;border-radius:12px;padding:32px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+          <div style="font-size:2rem;margin-bottom:12px">💾</div>
+          <h3 style="color:var(--navy);margin-bottom:8px">Guarda tu carrito</h3>
+          <p style="color:var(--gray-600);font-size:.9rem;margin-bottom:20px">
+            Crea una cuenta gratuita para guardar tu carrito y acceder desde cualquier dispositivo.
+          </p>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <a href="/pages/registro.html?redirect=/pages/carrito.html" class="btn btn-primary">Crear cuenta gratis</a>
+            <a href="/pages/login.html?redirect=/pages/carrito.html" class="btn btn-outline">Ya tengo cuenta</a>
+            <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;cursor:pointer;color:var(--gray-600);font-size:.85rem;padding:4px">Cancelar</button>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+    }
+  };
+
+  await render();
+});
+</script>
+
+</body>
+</html>

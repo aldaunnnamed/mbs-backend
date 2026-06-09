@@ -1,0 +1,276 @@
+}<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="MBS Comunicaciones — Insumos de fibra óptica para profesionales e integradores. Cables, conectores, herramientas y equipos activos.">
+  <title>MBS Comunicaciones — Insumos de Fibra Óptica</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/navbar.css">
+  <link rel="stylesheet" href="/css/home.css">
+</head>
+<body>
+
+
+  
+<!-- NAVBAR MBS -->
+<nav class="navbar">
+  <div class="container">
+    <div class="navbar__inner">
+
+      <!-- Logo -->
+      <a href="/" class="navbar__logo">
+        <span class="navbar__logo-text">MBS</span>
+      </a>
+
+      <!-- Nav links -->
+      <ul class="navbar__nav">
+        <li><a href="/pages/catalogo.html">Catálogo</a></li>
+        <li><a href="/pages/contacto.html">Contacto</a></li>
+      </ul>
+
+      <!-- Buscador -->
+      <div class="navbar__search">
+        <span class="navbar__search__icon">🔍</span>
+        <input type="text" id="navbar-search"
+          placeholder="Buscar producto, SKU, categoría..."
+          autocomplete="off">
+      </div>
+
+      <!-- Acciones (login/usuario/carrito — cargadas por JS) -->
+      <div class="navbar__actions" id="navbar-actions"></div>
+
+    </div>
+  </div>
+</nav>
+
+<!-- ── HERO ───────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="container">
+    <div class="hero__content">
+      <div class="hero__eyebrow">
+        <span class="hero__eyebrow-dot"></span>
+        +500 productos en stock
+      </div>
+      <h1 class="hero__title">
+        Insumos de<br>
+        Fibra Óptica<br>
+        <em>para Profesionales</em>
+      </h1>
+      <p class="hero__subtitle">
+        Cables, conectores, herramientas y equipos activos.<br>
+        Envío rápido · Garantía de calidad · Soporte técnico.
+      </p>
+      <div class="hero__cta">
+        <a href="/pages/catalogo.html" class="btn btn-primary">
+          Ver catálogo
+        </a>
+        <input type="text" id="hero-search"
+          placeholder="Buscar producto o SKU..."
+          style="padding:12px 20px;border-radius:6px;border:1px solid rgba(255,255,255,.2);
+                 background:rgba(255,255,255,.08);color:#fff;font-size:.95rem;width:260px;"
+          class="hide-mobile">
+      </div>
+      <div class="hero__scroll-hint">
+        <div class="hero__scroll-arrow">↓</div>
+        <span>Explora el catálogo</span>
+      </div>
+    </div>
+  </div>
+  <div class="hero__image">
+    <div class="hero__image-placeholder">
+      <span style="font-size:3rem">🔌</span>
+      <p>Imagen hero</p>
+      <p style="font-size:.7rem;margin-top:4px;opacity:.5">1200 × 520 px</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── TRUST BAR ──────────────────────────────────────────── -->
+<div class="trust-bar">
+  <div class="container">
+    <div class="trust-bar__inner">
+      <div class="trust-item">
+        <div class="trust-item__icon">📦</div>
+        <div>
+          <div class="trust-item__title">Envío a toda la república</div>
+          <div class="trust-item__sub">Paquetería express disponible</div>
+        </div>
+      </div>
+      <div class="trust-item">
+        <div class="trust-item__icon">✓</div>
+        <div>
+          <div class="trust-item__title">Garantía en productos</div>
+          <div class="trust-item__sub">Calidad certificada</div>
+        </div>
+      </div>
+      <div class="trust-item">
+        <div class="trust-item__icon">◉</div>
+        <div>
+          <div class="trust-item__title">Soporte técnico</div>
+          <div class="trust-item__sub">Asesoría especializada</div>
+        </div>
+      </div>
+      <div class="trust-item">
+        <div class="trust-item__icon">🔒</div>
+        <div>
+          <div class="trust-item__title">Pago seguro</div>
+          <div class="trust-item__sub">SSL · Transferencia · Tarjeta</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── CATEGORÍAS ─────────────────────────────────────────── -->
+<section class="categories-section">
+  <div class="container">
+    <div class="section-header">
+      <h2>Explora por categoría</h2>
+      <p>Encuentra exactamente lo que necesitas</p>
+    </div>
+    <div class="categories-grid" id="categories-grid">
+      <!-- Cargado por JS -->
+      <div class="skeleton" style="height:160px;border-radius:12px"></div>
+      <div class="skeleton" style="height:160px;border-radius:12px"></div>
+      <div class="skeleton" style="height:160px;border-radius:12px"></div>
+      <div class="skeleton" style="height:160px;border-radius:12px"></div>
+      <div class="skeleton" style="height:160px;border-radius:12px"></div>
+      <div class="skeleton" style="height:160px;border-radius:12px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PRODUCTOS MÁS VENDIDOS ─────────────────────────────── -->
+<section class="products-section">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-header__row">
+        <div>
+          <h2>Productos más vendidos</h2>
+          <p class="text-muted">Los favoritos de nuestros clientes</p>
+        </div>
+        <a href="/pages/catalogo.html" class="btn-ghost btn">
+          Ver todo el catálogo →
+        </a>
+      </div>
+    </div>
+    <div class="products-grid" id="products-grid">
+      <!-- Cargado por JS con skeletons -->
+    </div>
+  </div>
+</section>
+
+<!-- ── BANNER CTA ─────────────────────────────────────────── -->
+<section class="cta-banner">
+  <div class="container">
+    <h2>¿Compras por volumen?</h2>
+    <p>
+      Solicita una cotización personalizada y obtén precios especiales
+      para tu empresa o proyecto.
+    </p>
+    <div class="cta-banner__btns">
+      <a href="/pages/contacto.html" class="btn btn-primary">
+        Contactar ahora
+      </a>
+      <a href="/pages/catalogo.html" class="btn" style="background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);">
+        Ver catálogo
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER MBS -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer__grid">
+
+      <!-- Columna 1: Marca -->
+      <div>
+        <div class="footer__brand-name">MBS</div>
+        <p class="footer__tagline">
+          Insumos de fibra óptica para profesionales e integradores.
+          Hidalgo, México.
+        </p>
+        <div class="footer__social">
+          <a href="#" title="LinkedIn">in</a>
+          <a href="#" title="Facebook">f</a>
+          <a href="#" title="WhatsApp">w</a>
+        </div>
+      </div>
+
+      <!-- Columna 2: Catálogo -->
+      <div>
+        <div class="footer__col-title">Catálogo</div>
+        <ul class="footer__links">
+          <li><a href="/pages/catalogo.html?categoria=1">Cables de fibra óptica</a></li>
+          <li><a href="/pages/catalogo.html?categoria=2">Conectores y adaptadores</a></li>
+          <li><a href="/pages/catalogo.html?categoria=3">Patch cords</a></li>
+          <li><a href="/pages/catalogo.html?categoria=4">Equipos activos</a></li>
+          <li><a href="/pages/catalogo.html?categoria=5">Herramientas</a></li>
+          <li><a href="/pages/catalogo.html?categoria=6">Accesorios</a></li>
+        </ul>
+      </div>
+
+      <!-- Columna 3: Empresa -->
+      <div>
+        <div class="footer__col-title">Empresa</div>
+        <ul class="footer__links">
+          <li><a href="#">Sobre MBS</a></li>
+          <li><a href="#">Preguntas frecuentes</a></li>
+          <li><a href="#">Política de envíos</a></li>
+          <li><a href="#">Garantía y devoluciones</a></li>
+        </ul>
+      </div>
+
+      <!-- Columna 4: Contacto -->
+      <div>
+        <div class="footer__col-title">Contacto</div>
+        <div class="footer__contact-item">
+          <span>📍</span><span>Hidalgo, México</span>
+        </div>
+        <div class="footer__contact-item">
+          <span>📞</span><span>+52 (771) 345-5929</span>
+        </div>
+        <div class="footer__contact-item">
+          <span>✉</span><span>ventas@mbscomunicaciones.mx</span>
+        </div>
+        <a href="https://wa.me/527713455929" class="footer__whatsapp" target="_blank">
+          💬 WhatsApp
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Bottom bar -->
+  <div class="footer__bottom">
+    <div class="container" style="display:flex;justify-content:space-between;align-items:center;width:100%">
+      <span>© 2026 MBS Comunicaciones · Todos los derechos reservados</span>
+      <div class="footer__bottom-links">
+        <a href="#">Aviso de privacidad</a>
+        <a href="#">Términos y condiciones</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<div id="toast-container"></div>
+
+
+<!-- Scripts -->
+<script src="/js/global.js"></script>
+<script src="/js/home.js"></script>
+
+<!-- Búsqueda en navbar -->
+<script>
+  document.getElementById('navbar-search')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const q = e.target.value.trim();
+      if (q) window.location.href = '/pages/catalogo.html?busqueda=' + encodeURIComponent(q);
+    }
+  });
+</script>
+
+</body>
+</html>

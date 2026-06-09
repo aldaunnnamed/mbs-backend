@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catálogo de productos — MBS Comunicaciones</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/navbar.css">
+  <link rel="stylesheet" href="/css/catalogo.css">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="container">
+    <div class="navbar__inner">
+      <a href="/" class="navbar__logo"><span class="navbar__logo-text">MBS</span></a>
+      <ul class="navbar__nav">
+        <li><a href="/pages/catalogo.html" class="active">Catálogo</a></li>
+        <li><a href="/pages/contacto.html">Contacto</a></li>
+      </ul>
+      <div class="navbar__search">
+        <span class="navbar__search__icon">🔍</span>
+        <input type="text" id="navbar-search" placeholder="Buscar producto, SKU, categoría..." autocomplete="off">
+      </div>
+      <div class="navbar__actions" id="navbar-actions"></div>
+    </div>
+  </div>
+</nav>
+
+<!-- BREADCRUMB -->
+<div class="breadcrumb">
+  <div class="container">
+    <a href="/">Inicio</a>
+    <span>/</span>
+    <span>Catálogo</span>
+  </div>
+</div>
+
+<!-- CONTENIDO PRINCIPAL -->
+<div class="container">
+  <div class="catalog-layout">
+
+    <!-- ── PANEL DE FILTROS ───────────────────────────────── -->
+    <aside class="filters-panel" id="filters-panel">
+      <div class="filters-panel__header">
+        <div class="filters-panel__title">Filtros</div>
+        <div style="display:flex;gap:12px;align-items:center">
+          <span class="filters-clear" id="btn-clear-filters">Limpiar</span>
+          <button id="btn-close-filters" class="hide-desktop"
+            style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray-600)">✕</button>
+        </div>
+      </div>
+
+      <!-- Categoría -->
+      <div class="filter-group">
+        <div class="filter-group__title">
+          Categoría
+          <span class="filter-group__toggle">▾</span>
+        </div>
+        <div id="filter-categorias">
+          <!-- Cargado por JS -->
+          <div class="skeleton mb-8" style="height:20px;width:80%"></div>
+          <div class="skeleton mb-8" style="height:20px;width:70%"></div>
+          <div class="skeleton mb-8" style="height:20px;width:75%"></div>
+        </div>
+      </div>
+
+      <!-- Precio -->
+      <div class="filter-group">
+        <div class="filter-group__title">
+          Precio
+          <span class="filter-group__toggle">▾</span>
+        </div>
+        <div class="price-range">
+          <input type="range" id="price-slider" min="0" max="15000" value="15000"
+            oninput="document.getElementById('price-max').value=this.value">
+          <div class="price-range__labels">
+            <input type="number" id="price-min" value="0" placeholder="Min">
+            <input type="number" id="price-max" value="15000" placeholder="Max">
+          </div>
+        </div>
+      </div>
+
+      <!-- Marca -->
+      <div class="filter-group">
+        <div class="filter-group__title">
+          Marca
+          <span class="filter-group__toggle">▾</span>
+        </div>
+        <div id="filter-marcas">
+          <div class="skeleton mb-8" style="height:20px;width:60%"></div>
+          <div class="skeleton mb-8" style="height:20px;width:65%"></div>
+        </div>
+      </div>
+
+      <!-- Disponibilidad -->
+      <div class="filter-group">
+        <div class="filter-group__title">Disponibilidad</div>
+        <div class="filter-toggle">
+          <label for="toggle-stock">Solo en stock</label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-stock">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="filter-toggle">
+          <label for="toggle-preventa">Con preventa</label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-preventa">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <button class="btn-apply-filters" id="btn-apply-filters">
+        Aplicar filtros
+      </button>
+
+      <!-- Filtros activos -->
+      <div class="active-filters" id="active-filters" style="display:none">
+        <div class="active-filters__label">Filtros activos:</div>
+        <div class="active-filters__chips" id="active-filters-chips"></div>
+      </div>
+    </aside>
+
+    <!-- ── SECCIÓN DERECHA ─────────────────────────────────── -->
+    <div>
+      <!-- Header del catálogo -->
+      <div class="catalog-header">
+        <h1>
+          Catálogo de productos
+          <span class="catalog-count" id="catalog-count">cargando…</span>
+        </h1>
+        <div class="catalog-controls">
+          <!-- Botón filtros mobile -->
+          <button class="hide-desktop catalog-view-btn" id="btn-mobile-filters"
+            title="Filtros">⊞</button>
+
+          <!-- Vista grid/list -->
+          <button class="catalog-view-btn active" data-view="grid" title="Vista grid">▦</button>
+          <button class="catalog-view-btn" data-view="list" title="Vista lista">☰</button>
+
+          <!-- Ordenar -->
+          <select class="catalog-sort" id="sort-select">
+            <option value="relevancia">Orden Alfabético A-Z</option>
+            <option value="precio_asc">Precio: menor a mayor</option>
+            <option value="precio_desc">Precio: mayor a menor</option>
+            <option value="nuevo">Más recientes</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Grid de productos -->
+      <div class="products-catalog-grid" id="products-grid">
+        <!-- Skeletons iniciales -->
+      </div>
+
+      <!-- Estado vacío -->
+      <div class="empty-state" id="empty-state">
+        <div class="empty-state__icon">◎</div>
+        <h3>No encontramos resultados</h3>
+        <p>Intenta con otros filtros o busca un término diferente</p>
+        <button class="btn btn-primary" onclick="clearAllFilters()">Limpiar filtros</button>
+      </div>
+
+      <!-- Paginación -->
+      <div id="pagination"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer__grid">
+      <div>
+        <div class="footer__brand-name">MBS</div>
+        <p class="footer__tagline">Insumos de fibra óptica para profesionales e integradores. Hidalgo, México.</p>
+        <div class="footer__social">
+          <a href="#" title="LinkedIn">in</a><a href="#" title="Facebook">f</a><a href="#" title="WhatsApp">w</a>
+        </div>
+      </div>
+      <div>
+        <div class="footer__col-title">Catálogo</div>
+        <ul class="footer__links">
+          <li><a href="/pages/catalogo.html?categoria=1">Cables de fibra óptica</a></li>
+          <li><a href="/pages/catalogo.html?categoria=2">Conectores</a></li>
+          <li><a href="/pages/catalogo.html?categoria=3">Patch cords</a></li>
+          <li><a href="/pages/catalogo.html?categoria=4">Equipos activos</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer__col-title">Empresa</div>
+        <ul class="footer__links">
+          <li><a href="#">Sobre MBS</a></li>
+          <li><a href="#">Contacto</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer__col-title">Contacto</div>
+        <div class="footer__contact-item"><span>📍</span><span>Hidalgo, México</span></div>
+        <div class="footer__contact-item"><span>📞</span><span>+52 (771) 345-5929</span></div>
+        <a href="https://wa.me/527713455929" class="footer__whatsapp" target="_blank">💬 WhatsApp</a>
+      </div>
+    </div>
+  </div>
+  <div class="footer__bottom">
+    <div class="container" style="display:flex;justify-content:space-between;width:100%">
+      <span>© 2026 MBS Comunicaciones · Todos los derechos reservados</span>
+      <div class="footer__bottom-links">
+        <a href="#">Aviso de privacidad</a>
+        <a href="#">Términos y condiciones</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<div id="toast-container"></div>
+
+<!-- WhatsApp FAB -->
+<a href="https://wa.me/527713455929" class="whatsapp-fab" target="_blank" title="WhatsApp">💬</a>
+
+<script src="/js/global.js"></script>
+<script src="/js/catalogo.js"></script>
+<script>
+  document.getElementById('navbar-search')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const q = e.target.value.trim();
+      if (q) window.location.href = '/pages/catalogo.html?busqueda=' + encodeURIComponent(q);
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Producto — MBS Comunicaciones</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/navbar.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="container">
+    <div class="navbar__inner">
+      <a href="/" class="navbar__logo"><span class="navbar__logo-text">MBS</span></a>
+      <ul class="navbar__nav">
+        <li><a href="/pages/catalogo.html">Catálogo</a></li>
+        <li><a href="/pages/contacto.html">Contacto</a></li>
+      </ul>
+      <div class="navbar__search">
+        <span class="navbar__search__icon">🔍</span>
+        <input type="text" id="navbar-search" placeholder="Buscar producto, SKU, categoría...">
+      </div>
+      <div class="navbar__actions" id="navbar-actions"></div>
+    </div>
+  </div>
+</nav>
+
+<div class="breadcrumb">
+  <div class="container" id="breadcrumb-trail">
+    <a href="/">Inicio</a> <span>/</span>
+    <a href="/pages/catalogo.html">Catálogo</a> <span>/</span>
+    <span id="breadcrumb-product">Cargando...</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="product-detail" id="product-content">
+    <!-- Skeleton de carga -->
+    <div class="product-detail__grid">
+      <div>
+        <div class="skeleton" style="aspect-ratio:1;border-radius:12px;margin-bottom:12px"></div>
+        <div style="display:flex;gap:8px">
+          <div class="skeleton" style="width:72px;height:72px;border-radius:6px"></div>
+          <div class="skeleton" style="width:72px;height:72px;border-radius:6px"></div>
+          <div class="skeleton" style="width:72px;height:72px;border-radius:6px"></div>
+          <div class="skeleton" style="width:72px;height:72px;border-radius:6px"></div>
+        </div>
+      </div>
+      <div>
+        <div class="skeleton mb-16" style="height:16px;width:40%"></div>
+        <div class="skeleton mb-8"  style="height:32px;width:90%"></div>
+        <div class="skeleton mb-16" style="height:24px;width:60%"></div>
+        <div class="skeleton mb-16" style="height:48px;width:50%"></div>
+        <div class="skeleton mb-8"  style="height:44px;border-radius:6px"></div>
+        <div class="skeleton"       style="height:44px;border-radius:6px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<a href="https://wa.me/527713455929" class="whatsapp-fab" target="_blank">💬</a>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer__grid">
+      <div>
+        <div class="footer__brand-name">MBS</div>
+        <p class="footer__tagline">Insumos de fibra óptica para profesionales e integradores. Hidalgo, México.</p>
+        <div class="footer__social"><a href="#" title="LinkedIn">in</a><a href="#" title="Facebook">f</a><a href="#" title="WhatsApp">w</a></div>
+      </div>
+      <div>
+        <div class="footer__col-title">Catálogo</div>
+        <ul class="footer__links">
+          <li><a href="/pages/catalogo.html?categoria=1">Cables de fibra óptica</a></li>
+          <li><a href="/pages/catalogo.html?categoria=2">Conectores</a></li>
+          <li><a href="/pages/catalogo.html?categoria=3">Patch cords</a></li>
+          <li><a href="/pages/catalogo.html?categoria=4">Equipos activos</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer__col-title">Empresa</div>
+        <ul class="footer__links">
+          <li><a href="#">Sobre MBS</a></li>
+          <li><a href="#">Contacto</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer__col-title">Contacto</div>
+        <div class="footer__contact-item"><span>📍</span><span>Hidalgo, México</span></div>
+        <div class="footer__contact-item"><span>📞</span><span>+52 (771) 345-5929</span></div>
+        <div class="footer__contact-item"><span>✉</span><span>ventas@mbscomunicaciones.mx</span></div>
+        <a href="https://wa.me/527713455929" class="footer__whatsapp" target="_blank">💬 WhatsApp</a>
+      </div>
+    </div>
+  </div>
+  <div class="footer__bottom">
+    <div class="container" style="display:flex;justify-content:space-between;width:100%">
+      <span>© 2026 MBS Comunicaciones · Todos los derechos reservados</span>
+      <div class="footer__bottom-links">
+        <a href="#">Aviso de privacidad</a>
+        <a href="#">Términos y condiciones</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="/js/global.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const slug = new URLSearchParams(window.location.search).get('slug');
+  if (!slug) { window.location.href = '/pages/catalogo.html'; return; }
+
+  let selectedVariant = null;
+  let qty = 1;
+
+  const data = await API.get('/productos/' + slug);
+  if (!data.ok) { window.location.href = '/pages/catalogo.html'; return; }
+
+  const p = data.producto;
+  const imgs = data.imagenes || [];
+  const specs = data.specs || [];
+  const variantes = data.variantes || [];
+
+  // Breadcrumb
+  document.getElementById('breadcrumb-product').textContent = p.r_nombre || p.nombre;
+  document.title = (p.r_nombre || p.nombre) + ' — MBS Comunicaciones';
+
+  const nombre = p.r_nombre || p.nombre;
+  const precio = p.r_precio_venta || p.precio_venta;
+  const cat    = p.r_categoria_nombre || p.categoria_nombre || '';
+  const marca  = p.r_marca_nombre || p.marca_nombre || '';
+  const stock  = p.r_stock_actual ?? p.stock_actual;
+  const calif  = p.r_calificacion_promedio || 0;
+  const nres   = p.r_total_resenas || 0;
+
+  const stars = (n) => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
+  const mainImg = imgs[0]?.url || null;
+  const imgHtml = mainImg
+    ? `<img id="main-img" src="${mainImg}" alt="${nombre}">`
+    : `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--gray-400)"><span style="font-size:4rem">📦</span><p style="margin-top:8px;font-size:.85rem">Imagen próximamente</p></div>`;
+
+  const thumbsHtml = imgs.map((img, i) => `
+    <div class="product-gallery__thumb ${i===0?'active':''}" onclick="switchImg('${img.url}', this)">
+      <img src="${img.url}" alt="Vista ${i+1}">
+    </div>`).join('') || Array(4).fill(0).map((_,i) => `
+    <div class="product-gallery__thumb">
+      <span style="font-size:1.2rem;color:var(--gray-400)">📦</span>
+    </div>`).join('');
+
+  const variantsHtml = variantes.length
+    ? `<div class="variants-label">Longitud disponible</div>
+       <div class="variants-grid">
+         ${variantes.map((v,i) => `
+           <button class="variant-btn ${i===0?'active':''}"
+             data-id="${v.id}" onclick="selectVariant(this)">
+             ${v.etiqueta}
+           </button>`).join('')}
+       </div>`
+    : '';
+
+  const specsRows = specs.map(s =>
+    `<tr><td>${s.clave}</td><td>${s.valor}</td></tr>`).join('');
+
+  document.getElementById('product-content').innerHTML = `
+    <div class="product-detail__grid">
+      <!-- Galería -->
+      <div>
+        <div class="product-gallery__main">
+          ${imgHtml}
+          <div class="product-gallery__zoom" title="Ampliar">⊕</div>
+        </div>
+        <div class="product-gallery__thumbs">${thumbsHtml}</div>
+      </div>
+
+      <!-- Info -->
+      <div>
+        <div class="product-info__tags">
+          ${cat ? `<span class="badge badge-electric" style="font-size:.72rem">${cat.toUpperCase()}</span>` : ''}
+          ${marca ? `<span class="badge" style="background:var(--gray-100);color:var(--gray-600);font-size:.72rem">${marca}</span>` : ''}
+          ${p.r_badge || p.badge ? `<span class="badge badge-orange">${(p.r_badge || p.badge).toUpperCase()}</span>` : ''}
+        </div>
+        <h1 class="product-info__title">${nombre}</h1>
+        <div class="product-info__meta">
+          <span>SKU: ${p.r_sku || p.sku}</span>
+          <span class="product-info__stars">${stars(calif)}</span>
+          <span>${calif} <a class="product-info__reviews">(${nres} reseñas)</a></span>
+        </div>
+        <div class="product-info__price" data-mxn="${precio}">${Currency.format(precio)}</div>
+        <div class="product-info__stock">
+          ${stock > 0
+            ? `<span class="product-info__stock-in">● En stock ${stock}</span>
+               <span style="color:var(--gray-600);font-size:.85rem">📦 Envío a toda la república</span>`
+            : `<span class="product-info__stock-out">● Sin stock</span>`}
+        </div>
+
+        ${variantsHtml}
+
+        <div class="qty-label">Cantidad</div>
+        <div class="qty-control">
+          <button class="qty-btn" onclick="changeQty(-1)">−</button>
+          <input type="number" class="qty-input" id="qty-input" value="1" min="1" max="${stock}">
+          <button class="qty-btn" onclick="changeQty(1)">+</button>
+          <span class="qty-hint">Compra mín. 1 · Precio por unidad</span>
+        </div>
+
+        <div class="product-actions">
+          <button class="btn btn-primary" id="btn-add-cart" ${stock===0?'disabled':''}>
+            🛒 Añadir al carrito
+          </button>
+          <button class="btn btn-outline" id="btn-fav" title="Favorito">♡</button>
+        </div>
+        <div class="product-actions__secondary">
+          <a href="https://wa.me/527713455929?text=Hola, me interesa: ${encodeURIComponent(nombre)}"
+             class="btn-whatsapp" target="_blank">
+            💬 Preguntar por WhatsApp
+          </a>
+        </div>
+
+        <div class="shipping-info">
+          <p><strong>📦 Envío express disponible</strong> · Entrega 2-3 días hábiles</p>
+          <p>Pedidos antes de 2 PM salen el mismo día · Rastreo en tiempo real</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="product-tabs">
+      <div class="tabs-nav">
+        <button class="tab-btn active" onclick="switchTab('descripcion', this)">Descripción</button>
+        <button class="tab-btn" onclick="switchTab('especificaciones', this)">Especificaciones técnicas</button>
+        <button class="tab-btn" onclick="switchTab('resenas', this)">Reseñas (${nres})</button>
+      </div>
+
+      <div class="tab-panel active" id="tab-descripcion">
+        <div class="tab-panel__grid">
+          <div>
+            <h3 style="margin-bottom:12px;color:var(--navy)">Descripción del producto</h3>
+            <p style="color:var(--gray-600);line-height:1.7;margin-bottom:16px">
+              ${p.r_descripcion_larga || p.descripcion_larga || p.r_descripcion_corta || p.descripcion_corta || 'Sin descripción disponible.'}
+            </p>
+          </div>
+          ${specs.length ? `
+          <div>
+            <h3 style="margin-bottom:12px;color:var(--navy)">Especificaciones rápidas</h3>
+            <table class="specs-table">
+              ${specsRows}
+            </table>
+          </div>` : ''}
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-especificaciones">
+        ${specs.length
+          ? `<table class="specs-table" style="max-width:600px">
+               <tbody>${specsRows}</tbody>
+             </table>`
+          : '<p class="text-muted">Sin especificaciones disponibles.</p>'}
+      </div>
+
+      <div class="tab-panel" id="tab-resenas">
+        <div id="reviews-content">
+          ${nres > 0
+            ? `<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+                 <span style="font-size:2.5rem;font-weight:700;color:var(--navy)">${calif.toFixed(1)}</span>
+                 <div>
+                   <div style="font-size:1.2rem;color:#f59e0b">${stars(calif)}</div>
+                   <div style="font-size:.82rem;color:var(--gray-600)">${nres} reseña${nres!==1?'s':''}</div>
+                 </div>
+               </div>
+               <div id="reviews-list"><p class="text-muted" style="font-size:.88rem">Cargando reseñas...</p></div>`
+            : `<div style="text-align:center;padding:40px 20px">
+                 <div style="font-size:2.5rem;margin-bottom:12px">⭐</div>
+                 <p style="color:var(--gray-600);margin-bottom:8px">Aún no hay reseñas para este producto.</p>
+                 <p style="font-size:.85rem;color:var(--gray-500)">¿Ya lo compraste? Cuéntanos tu experiencia por
+                   <a href="https://wa.me/527713455929" style="color:var(--electric)">WhatsApp</a>.
+                 </p>
+               </div>`}
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Seleccionar primera variante si hay
+  if (variantes.length) selectedVariant = variantes[0].id;
+
+  // Eventos
+  document.getElementById('btn-add-cart')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btn-add-cart');
+    btn.disabled = true; btn.textContent = 'Agregando...';
+    const pid = p.r_id || p.id;
+    await Cart.add(parseInt(pid), selectedVariant ? parseInt(selectedVariant) : null, qty);
+    btn.disabled = false; btn.innerHTML = '🛒 Añadir al carrito';
+  });
+
+  document.getElementById('btn-fav')?.addEventListener('click', async () => {
+    if (!Session.isLoggedIn()) { Toast.show('Inicia sesión para guardar favoritos', 'info'); return; }
+    const pid = p.r_id || p.id;
+    const res = await API.post('/usuarios/favoritos/' + pid, {});
+    if (res.ok) {
+      document.getElementById('btn-fav').textContent = res.accion === 'agregado' ? '♥' : '♡';
+      Toast.show(res.mensaje, 'success');
+    }
+  });
+
+  // Productos relacionados — por misma categoría, excluyendo el actual
+  const catId = p.r_categoria_id || p.categoria_id;
+  const prodId = p.r_id || p.id;
+  if (catId) {
+    const relData = await API.get('/productos?categoria_id=' + catId + '&por_pagina=5');
+    const relProds = (relData.productos || []).filter(rp => (rp.r_id || rp.id) !== prodId).slice(0, 4);
+    if (relProds.length) {
+      const badgeLabel = { nuevo:'NUEVO', oferta:'OFERTA', top_venta:'TOP VENTA', liquidacion:'LIQUIDACIÓN' };
+      const badgeMap   = { nuevo:'badge-orange', oferta:'badge-amber', top_venta:'badge-navy', liquidacion:'badge-red' };
+      const relHtml = relProds.map(rp => {
+        const rNombre = rp.r_nombre || rp.nombre;
+        const rPrecio = rp.r_precio_venta || rp.precio_venta;
+        const rSlug   = rp.r_slug || rp.slug;
+        const rId     = rp.r_id || rp.id;
+        const rImg    = rp.imagen_principal;
+        const rBadge  = rp.badge;
+        return `<div class="product-card">
+          <a href="/pages/producto.html?slug=${rSlug}">
+            <div class="product-card__img">
+              ${rBadge ? `<span class="badge ${badgeMap[rBadge]} product-card__badge">${badgeLabel[rBadge]}</span>` : ''}
+              ${rImg ? `<img src="${rImg}" alt="${rNombre}" loading="lazy">` : '<div class="product-card__img-placeholder"><span style="font-size:2rem">📦</span></div>'}
+            </div>
+          </a>
+          <div class="product-card__body">
+            <div class="product-card__cat">${rp.r_categoria||rp.categoria||''}</div>
+            <a href="/pages/producto.html?slug=${rSlug}"><div class="product-card__name">${rNombre}</div></a>
+            <div class="product-card__sku">SKU: ${rp.r_sku||rp.sku}</div>
+            <div class="product-card__price">${Currency.format(rPrecio)}</div>
+            <button class="btn btn-primary btn-full" onclick="Cart.add(${rId},null,1)">+ Añadir</button>
+          </div>
+        </div>`;
+      }).join('');
+      const relSection = document.createElement('div');
+      relSection.style.cssText = 'margin-top:48px';
+      relSection.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <h3 style="color:var(--navy);font-size:1.2rem">Productos relacionados</h3>
+          <a href="/pages/catalogo.html?categoria_id=${catId}" class="btn-ghost btn" style="font-size:.85rem">Ver categoría →</a>
+        </div>
+        <div class="products-grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">${relHtml}</div>`;
+      document.querySelector('.container').appendChild(relSection);
+    }
+  }
+});
+
+window.switchImg = (url, el) => {
+  document.getElementById('main-img')?.setAttribute('src', url);
+  document.querySelectorAll('.product-gallery__thumb').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+};
+window.selectVariant = (btn) => {
+  document.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedVariant = btn.dataset.id;
+};
+window.changeQty = (delta) => {
+  const inp = document.getElementById('qty-input');
+  let val = parseInt(inp.value) + delta;
+  if (val < 1) val = 1;
+  inp.value = val;
+  qty = val;
+};
+window.switchTab = (tab, btn) => {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab)?.classList.add('active');
+  btn.classList.add('active');
+};
+
+let selectedVariant = null, qty = 1;
+
+// Actualizar precio principal cuando cambie la moneda
+document.addEventListener('currencyChange', () => {
+  const priceEl = document.querySelector('.product-info__price[data-mxn]');
+  if (priceEl) priceEl.textContent = Currency.format(priceEl.dataset.mxn);
+});
+</script>

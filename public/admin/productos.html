@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Productos | MBS Admin</title>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="ap">
+<div class="ap-layout">
+
+  <aside class="ap-sidebar" id="ap-sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo__mark">M</div>
+      <div><div class="sb-logo__name">MBS Comunicaciones</div><div class="sb-logo__sub">Panel de Administración</div></div>
+    </div>
+    <div class="sb-user">
+      <div class="sb-user__av js-ini">MB</div>
+      <div><div class="sb-user__name js-name">MBS Admin</div><div class="sb-user__email js-email">admin@mbs.mx</div></div>
+    </div>
+    <ul class="sb-nav">
+      <li><a href="/admin/index.html" class="sb-link"><span class="sb-icon">📊</span><span class="sb-label">Inicio</span></a></li>
+      <li><a href="/admin/productos.html" class="sb-link"><span class="sb-icon">📦</span><span class="sb-label">Productos</span></a></li>
+      <li><a href="/admin/pedidos.html" class="sb-link"><span class="sb-icon">🛒</span><span class="sb-label">Pedidos</span></a></li>
+      <li><a href="/admin/clientes.html" class="sb-link"><span class="sb-icon">👥</span><span class="sb-label">Clientes</span></a></li>
+      <li><a href="/admin/inventario.html" class="sb-link"><span class="sb-icon">🏪</span><span class="sb-label">Inventario</span></a></li>
+      <li><a href="/admin/mensajes.html"      class="sb-link"><span class="sb-icon">✉️</span><span class="sb-label">Mensajes</span></a></li>
+      <li><a href="/admin/configuracion.html" class="sb-link"><span class="sb-icon">⚙️</span><span class="sb-label">Configuración</span></a></li>
+    </ul>
+    <hr class="sb-divider">
+    <div class="sb-footer">
+      <button class="sb-link" onclick="AdminAuth.logout()" style="width:100%">
+        <span class="sb-icon">🚪</span><span class="sb-label">Cerrar sesión</span>
+      </button>
+    </div>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+
+  <main class="ap-main">
+    <header class="ap-header">
+      <button class="ap-header__toggle" id="sb-toggle">☰</button>
+      <div>
+        <div class="ap-header__title">Gestión de Productos</div>
+      </div>
+      <div class="ap-header__right">
+        <label class="btn btn-gr btn-sm" style="cursor:pointer">
+          ⬆ Importar CSV
+          <input type="file" accept=".csv" style="display:none" onchange="importarCSV(this)">
+        </label>
+        <button class="btn btn-gr btn-sm" onclick="exportarCSV()">⬇ Exportar</button>
+        <button class="btn btn-p btn-sm" onclick="openModal()">+ Nuevo producto</button>
+        <div class="ap-huser">
+          <div class="ap-huser__av js-ini">MB</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="ap-content">
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="search-box">
+          <span>🔍</span>
+          <input type="text" id="search-input" placeholder="Buscar producto o SKU..." oninput="onSearch(this.value)">
+        </div>
+        <select class="ap-select" id="cat-filter" onchange="onFilter()">
+          <option value="">Categoría ▾</option>
+        </select>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab on" data-tab="todos"     onclick="setTab(this,'todos')">Todos (<span id="cnt-todos">0</span>)</button>
+        <button class="tab"    data-tab="activos"   onclick="setTab(this,'activos')">Activos (<span id="cnt-activos">0</span>)</button>
+        <button class="tab"    data-tab="inactivos" onclick="setTab(this,'inactivos')">Inactivos (<span id="cnt-inactivos">0</span>)</button>
+        <button class="tab tab--r" data-tab="stock_bajo" onclick="setTab(this,'stock_bajo')">Stock bajo (<span id="cnt-stock">0</span>)</button>
+      </div>
+
+      <!-- Table card -->
+      <div class="card">
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr>
+              <th>Producto / SKU</th>
+              <th>Categoría</th>
+              <th>Precio</th>
+              <th>Stock</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr></thead>
+            <tbody id="prod-tbody">
+              <tr><td colspan="6" style="text-align:center;padding:32px" class="tx-m">Cargando productos...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <span class="pager__info" id="pager-info">—</span>
+          <div class="pager__btns" id="pager-btns"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ── Modal Producto ──────────────────────────────────────────── -->
+<div class="mo" id="mo-producto">
+  <div class="mo__box mo__box--lg">
+    <div class="mo__hd">
+      <span class="mo__title" id="mo-title">Nuevo producto</span>
+      <span class="mo__close" onclick="Mo.close('mo-producto')">✕</span>
+    </div>
+
+    <!-- Modal tabs -->
+    <div style="padding:0 22px;border-bottom:1px solid var(--border)">
+      <div class="tabs" style="margin:0">
+        <button class="tab on" onclick="setMoTab(this,'info')">Info general</button>
+        <button class="tab"    onclick="setMoTab(this,'imagenes')">Imágenes</button>
+        <button class="tab"    onclick="setMoTab(this,'inventario')">Inventario</button>
+      </div>
+    </div>
+
+    <div class="mo__bd">
+      <!-- Tab: info -->
+      <div id="mo-tab-info">
+        <div class="form-gap">
+          <div class="fg"><label class="flbl">Nombre del producto <span>*</span></label><input class="fi" id="f-nombre" placeholder="Ej. Cable FO SM SC/UPC 3mm Drop"></div>
+          <div class="fg2">
+            <div class="fg"><label class="flbl">SKU <span>*</span></label><input class="fi" id="f-sku" placeholder="FO-SM-SC-001"></div>
+            <div class="fg"><label class="flbl">Categoría <span>*</span></label>
+              <select class="fs" id="f-categoria"><option value="">Seleccionar...</option></select>
+            </div>
+          </div>
+          <div class="fg3">
+            <div class="fg"><label class="flbl">Precio de venta <span>*</span></label><input class="fi" id="f-precio" type="number" step="0.01" placeholder="349.00"></div>
+            <div class="fg"><label class="flbl">Precio anterior</label><input class="fi" id="f-precio-antes" type="number" step="0.01" placeholder="450.00"></div>
+            <div class="fg"><label class="flbl">Marca</label>
+              <select class="fs" id="f-marca"><option value="">Sin marca</option></select>
+            </div>
+          </div>
+          <div class="fg"><label class="flbl">Descripción corta</label><textarea class="fta" id="f-desc-corta" placeholder="Breve descripción visible en catálogo..."></textarea></div>
+          <div class="fg"><label class="flbl">Descripción larga</label><textarea class="fta" id="f-desc-larga" style="min-height:80px" placeholder="Descripción completa del producto..."></textarea></div>
+          <div class="fg2">
+            <div class="fg"><label class="flbl">Estado</label>
+              <select class="fs" id="f-estado">
+                <option value="activo">Activo</option>
+                <option value="inactivo">Inactivo</option>
+              </select>
+            </div>
+            <div class="fg"><label class="flbl">Badge / Etiqueta</label>
+              <select class="fs" id="f-badge">
+                <option value="">Sin etiqueta</option>
+                <option value="NUEVO">NUEVO</option>
+                <option value="OFERTA">OFERTA</option>
+                <option value="TOP VENTA">TOP VENTA</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Tab: imágenes -->
+      <div id="mo-tab-imagenes" style="display:none">
+        <div id="imgs-aviso" class="tx-m fs12" style="margin-bottom:12px">Guarda el producto primero para poder subir imágenes.</div>
+        <div id="imgs-grid" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px"></div>
+        <label id="imgs-upload-btn" style="display:none;cursor:pointer">
+          <div style="border:2px dashed var(--border);border-radius:var(--r);padding:20px;text-align:center;color:var(--muted)">
+            <div style="font-size:28px">🖼</div>
+            <div class="mt4 fw6 fs12">Seleccionar imagen</div>
+            <div class="mt4 fs11">JPG, PNG, WebP · máx. 2MB</div>
+          </div>
+          <input type="file" accept=".jpg,.jpeg,.png,.webp" style="display:none" onchange="subirImagen(this)">
+        </label>
+      </div>
+      <!-- Tab: inventario -->
+      <div id="mo-tab-inventario" style="display:none">
+        <div class="fg2">
+          <div class="fg"><label class="flbl">Stock actual <span>*</span></label><input class="fi" id="f-stock" type="number" placeholder="0"></div>
+          <div class="fg"><label class="flbl">Stock mínimo (alerta)</label><input class="fi" id="f-stock-min" type="number" placeholder="5"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mo__ft mo__ft--split">
+      <button class="btn btn-r btn-sm" id="mo-baja-btn" onclick="darBaja()" style="display:none">Dar de baja</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-gr btn-sm" onclick="Mo.close('mo-producto')">Cancelar</button>
+        <button class="btn btn-p btn-sm" onclick="guardarProducto()">Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="/js/admin-core.js"></script>
+<script>
+let state = { tab: 'todos', page: 1, busqueda: '', categoria: '', productos: [], total: 0 };
+let editId = null;
+let searchTimer;
+
+async function loadCats() {
+  const r = await AdminAPI.get('/productos/categorias');
+  const sel = document.getElementById('cat-filter');
+  const fsel = document.getElementById('f-categoria');
+  (r.categorias||[]).forEach(c => {
+    [sel, fsel].forEach(s => s.insertAdjacentHTML('beforeend', `<option value="${c.id}">${c.nombre}</option>`));
+  });
+  const rm = await AdminAPI.get('/productos/marcas');
+  const msel = document.getElementById('f-marca');
+  (rm.marcas||[]).forEach(m => msel.insertAdjacentHTML('beforeend', `<option value="${m.id}">${m.nombre}</option>`));
+}
+
+async function loadProducts() {
+  let url = `/productos?pagina=${state.page}&por_pagina=10`;
+  if (state.busqueda) url += '&busqueda=' + encodeURIComponent(state.busqueda);
+  if (state.categoria) url += '&categoria_id=' + state.categoria;
+  if (state.tab === 'stock_bajo') url += '&solo_stock=false';
+
+  const r = await AdminAPI.get(url);
+  let prods = r.productos || [];
+  state.total = r.total || prods.length;
+
+  // Client-side tab filter
+  if (state.tab === 'activos')   prods = prods.filter(p => p.estado === 'activo' && p.stock_actual > (p.stock_minimo||5));
+  if (state.tab === 'inactivos') prods = prods.filter(p => p.estado === 'inactivo');
+  if (state.tab === 'stock_bajo') prods = prods.filter(p => p.stock_actual <= (p.stock_minimo||5) && p.stock_actual > 0);
+
+  state.productos = prods;
+
+  // Update counts (approximate)
+  document.getElementById('cnt-todos').textContent     = r.total || 0;
+  document.getElementById('cnt-activos').textContent   = (r.productos||[]).filter(p=>p.estado==='activo').length;
+  document.getElementById('cnt-inactivos').textContent = (r.productos||[]).filter(p=>p.estado==='inactivo').length;
+  document.getElementById('cnt-stock').textContent     = (r.productos||[]).filter(p=>p.stock_actual<=(p.stock_minimo||5)).length;
+
+  renderTable(prods, r.total || 0);
+}
+
+function stockBadge(p) {
+  if (p.stock_actual === 0) return '<span class="bdg bdg--r">Sin stock</span>';
+  if (p.stock_actual <= (p.r_stock_minimo || p.stock_minimo || 5)) return '<span class="bdg bdg--o">Stock bajo</span>';
+  return '<span class="bdg bdg--g">Activo</span>';
+}
+
+function renderTable(prods, total) {
+  const per = 10, page = state.page;
+  document.getElementById('pager-info').textContent =
+    `Mostrando ${((page-1)*per)+1}–${Math.min(page*per, total)} de ${total}`;
+
+  document.getElementById('prod-tbody').innerHTML = prods.length
+    ? prods.map(p => `
+      <tr>
+        <td>
+          <div class="tbl__product">
+            <div class="tbl__img">img</div>
+            <div>
+              <div class="tbl__name">${p.nombre || p.r_nombre || '—'}</div>
+              <div class="tbl__sub">${p.sku || p.r_sku || ''}</div>
+            </div>
+          </div>
+        </td>
+        <td class="tx-m">${p.categoria_nombre || p.r_categoria || '—'}</td>
+        <td class="fw6">${fmt.money(p.precio_venta || p.r_precio || 0)}</td>
+        <td>${p.stock_actual ?? p.r_stock ?? '—'}</td>
+        <td>${stockBadge(p)}</td>
+        <td>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-b btn-xs" onclick="editProducto(${p.id || p.r_producto_id})">Editar</button>
+            <button class="btn btn-gr btn-xs">Ver</button>
+            <button class="btn btn-xs" style="background:var(--c-red-bg);color:var(--c-red-tx)" onclick="darBajaId(${p.id || p.r_producto_id})">Baja</button>
+          </div>
+        </td>
+      </tr>`).join('')
+    : '<tr><td colspan="6" style="text-align:center;padding:32px" class="tx-m">Sin productos</td></tr>';
+
+  // Pager
+  const pages = Math.ceil(total / per);
+  const btns = document.getElementById('pager-btns');
+  btns.innerHTML = '';
+  const add = (lbl, pg, dis) => {
+    const b = document.createElement('button');
+    b.className = 'pg' + (pg === state.page ? ' on' : '');
+    b.textContent = lbl; b.disabled = dis;
+    b.onclick = () => { state.page = pg; loadProducts(); };
+    btns.appendChild(b);
+  };
+  add('‹', Math.max(1, state.page-1), state.page===1);
+  for (let i=1; i<=Math.min(pages,5); i++) add(i, i, false);
+  if (pages > 5) { btns.insertAdjacentHTML('beforeend','<span class="pg" style="cursor:default;border:none">...</span>'); add(pages, pages, false); }
+  add('›', Math.min(pages, state.page+1), state.page===pages);
+}
+
+function setTab(el, tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  el.classList.add('on');
+  state.tab = tab; state.page = 1;
+  loadProducts();
+}
+
+function onSearch(v) {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { state.busqueda = v; state.page = 1; loadProducts(); }, 350);
+}
+
+function onFilter() {
+  state.categoria = document.getElementById('cat-filter').value;
+  state.page = 1; loadProducts();
+}
+
+function openModal(id = null) {
+  editId = id;
+  document.getElementById('mo-title').textContent = id ? 'Editar producto' : 'Nuevo producto';
+  document.getElementById('mo-baja-btn').style.display = id ? 'inline-flex' : 'none';
+  if (!id) clearForm();
+  Mo.open('mo-producto');
+  setMoTab(document.querySelector('[onclick*="info"]'), 'info');
+}
+
+function clearForm() {
+  ['f-nombre','f-sku','f-precio','f-precio-antes','f-desc-corta','f-desc-larga','f-stock','f-stock-min'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('f-categoria').value = '';
+  document.getElementById('f-marca').value = '';
+  document.getElementById('f-estado').value = 'activo';
+  document.getElementById('f-badge').value = '';
+}
+
+async function editProducto(id) {
+  editId = id;
+  document.getElementById('mo-title').textContent = 'Editar producto';
+  document.getElementById('mo-baja-btn').style.display = 'inline-flex';
+  // Find in local state
+  const p = state.productos.find(x => (x.id || x.r_producto_id) == id);
+  if (p) {
+    document.getElementById('f-nombre').value      = p.nombre || p.r_nombre || '';
+    document.getElementById('f-sku').value         = p.sku || p.r_sku || '';
+    document.getElementById('f-precio').value      = p.precio_venta || p.r_precio || '';
+    document.getElementById('f-precio-antes').value= p.precio_antes || '';
+    document.getElementById('f-desc-corta').value  = p.descripcion_corta || '';
+    document.getElementById('f-categoria').value   = p.categoria_id || '';
+    document.getElementById('f-marca').value       = p.marca_id || '';
+    document.getElementById('f-estado').value      = p.estado || 'activo';
+    document.getElementById('f-badge').value       = p.badge || '';
+    document.getElementById('f-stock').value       = p.stock_actual ?? '';
+    document.getElementById('f-stock-min').value   = p.stock_minimo || '';
+  }
+  Mo.open('mo-producto');
+}
+
+async function guardarProducto() {
+  const body = {
+    nombre:           document.getElementById('f-nombre').value,
+    sku:              document.getElementById('f-sku').value,
+    precio_venta:     document.getElementById('f-precio').value,
+    precio_antes:     document.getElementById('f-precio-antes').value || null,
+    descripcion_corta:document.getElementById('f-desc-corta').value,
+    descripcion_larga:document.getElementById('f-desc-larga').value,
+    categoria_id:     document.getElementById('f-categoria').value,
+    marca_id:         document.getElementById('f-marca').value || null,
+    estado:           document.getElementById('f-estado').value,
+    badge:            document.getElementById('f-badge').value || null,
+    stock_actual:     document.getElementById('f-stock').value || 0,
+    stock_minimo:     document.getElementById('f-stock-min').value || 5,
+  };
+  if (!body.nombre || !body.sku || !body.precio_venta || !body.categoria_id) {
+    Toast.show('Completa los campos obligatorios', 'error'); return;
+  }
+  const r = editId
+    ? await AdminAPI.put('/admin/productos/' + editId, body)
+    : await AdminAPI.post('/admin/productos', body);
+  if (r.ok) {
+    Toast.show(r.mensaje || 'Guardado correctamente', 'success');
+    Mo.close('mo-producto');
+    loadProducts();
+  } else {
+    Toast.show(r.mensaje || 'Error al guardar', 'error');
+  }
+}
+
+async function darBajaId(id) {
+  if (!confirm('¿Dar de baja este producto?')) return;
+  const r = await AdminAPI.put('/admin/productos/' + id, { estado: 'inactivo' });
+  if (r.ok) { Toast.show('Producto dado de baja', 'success'); loadProducts(); }
+  else Toast.show(r.mensaje || 'Error', 'error');
+}
+
+function darBaja() { if (editId) darBajaId(editId); }
+
+function setMoTab(el, tab) {
+  document.querySelectorAll('.mo__box .tab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  ['info','imagenes','inventario'].forEach(t => {
+    document.getElementById('mo-tab-'+t).style.display = t===tab ? '' : 'none';
+  });
+  if (tab === 'imagenes') cargarImagenes(editId);
+}
+
+// ── Export / Import ──────────────────────────────────────────
+function exportarCSV() {
+  const token = localStorage.getItem('mbs_token');
+  const a = document.createElement('a');
+  a.href = '/api/admin/productos/export';
+  // Necesitamos enviar el token; usamos fetch + Blob
+  fetch('/api/admin/productos/export', {
+    headers: { 'Authorization': 'Bearer ' + (token || '') }
+  })
+  .then(r => r.blob())
+  .then(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'productos-mbs.csv';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  })
+  .catch(() => Toast.show('Error al exportar', 'error'));
+}
+
+async function importarCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('archivo', file);
+  try {
+    const token = localStorage.getItem('mbs_token');
+    const r = await fetch('/api/admin/productos/import', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + (token || '') },
+      body: formData
+    });
+    const data = await r.json();
+    Toast.show(data.mensaje || (data.ok ? 'Importado' : 'Error'), data.ok ? 'success' : 'error');
+    if (data.ok) loadProducts();
+  } catch { Toast.show('Error al importar', 'error'); }
+  input.value = '';
+}
+
+// ── Imágenes ─────────────────────────────────────────────────
+async function cargarImagenes(id) {
+  const grid = document.getElementById('imgs-grid');
+  const aviso = document.getElementById('imgs-aviso');
+  const btn   = document.getElementById('imgs-upload-btn');
+  if (!id) { aviso.style.display = ''; btn.style.display = 'none'; return; }
+  aviso.style.display = 'none'; btn.style.display = '';
+  const r = await fetch('/api/productos/' + id, {
+    headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('mbs_token') || '') }
+  }).then(r => r.json()).catch(() => ({}));
+  const imgs = r.imagenes || [];
+  grid.innerHTML = imgs.map(img => `
+    <div style="position:relative;width:90px;height:90px">
+      <img src="${img.url}" style="width:90px;height:90px;object-fit:cover;border-radius:6px;border:2px solid ${img.es_principal?'var(--c-orange)':'var(--border)'}">
+      <button onclick="eliminarImagen(${img.id})" title="Eliminar"
+        style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:10px;line-height:1">✕</button>
+      ${img.es_principal ? '<div style="position:absolute;bottom:2px;left:2px;background:var(--c-orange);color:#fff;font-size:9px;padding:1px 4px;border-radius:3px">Principal</div>' : ''}
+    </div>`).join('');
+}
+
+async function subirImagen(input) {
+  const file = input.files[0];
+  if (!file || !editId) return;
+  const formData = new FormData();
+  formData.append('imagen', file);
+  const esPrin = !document.getElementById('imgs-grid').innerHTML.trim();
+  if (esPrin) formData.append('es_principal', 'true');
+  try {
+    const token = localStorage.getItem('mbs_token');
+    const r = await fetch('/api/admin/productos/' + editId + '/imagenes', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + (token || '') },
+      body: formData
+    });
+    const data = await r.json();
+    Toast.show(data.mensaje || (data.ok ? 'Imagen subida' : 'Error'), data.ok ? 'success' : 'error');
+    if (data.ok) cargarImagenes(editId);
+  } catch { Toast.show('Error al subir imagen', 'error'); }
+  input.value = '';
+}
+
+async function eliminarImagen(imgId) {
+  if (!confirm('¿Eliminar esta imagen?')) return;
+  const r = await AdminAPI.del('/admin/productos/' + editId + '/imagenes/' + imgId);
+  if (r.ok) { Toast.show('Imagen eliminada', 'success'); cargarImagenes(editId); }
+  else Toast.show(r.mensaje || 'Error', 'error');
+}
+
+document.addEventListener('DOMContentLoaded', () => { loadCats(); loadProducts(); });
+</script>
+</body>
+</html>

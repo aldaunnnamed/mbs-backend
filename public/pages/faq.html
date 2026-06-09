@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preguntas frecuentes — MBS Comunicaciones</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/navbar.css">
+  <style>
+    .static-hero { background:var(--navy);color:#fff;padding:56px 0;text-align:center;margin-bottom:56px; }
+    .static-hero h1 { font-size:clamp(1.8rem,3vw,2.4rem);margin-bottom:10px; }
+    .static-hero p { color:rgba(255,255,255,.7); }
+    .faq-list { max-width: 780px; margin: 0 auto 80px; }
+    .faq-item { border: 1px solid var(--gray-100); border-radius: var(--radius-md); margin-bottom: 12px; overflow: hidden; }
+    .faq-q { padding: 18px 20px; font-weight: 600; color: var(--navy); cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: var(--white); user-select: none; }
+    .faq-q:hover { background: var(--gray-50); }
+    .faq-q .arrow { transition: transform .2s; font-size: .85rem; }
+    .faq-item.open .faq-q .arrow { transform: rotate(180deg); }
+    .faq-a { display: none; padding: 0 20px 18px; color: var(--gray-600); line-height: 1.7; font-size: .93rem; }
+    .faq-item.open .faq-a { display: block; }
+    .faq-section-title { font-size: 1.1rem; font-weight: 700; color: var(--navy); margin: 32px 0 12px; padding-left: 12px; border-left: 4px solid var(--orange); }
+  </style>
+</head>
+<body>
+<nav class="navbar">
+  <div class="container"><div class="navbar__inner">
+    <a href="/" class="navbar__logo"><span class="navbar__logo-text">MBS</span></a>
+    <ul class="navbar__nav"><li><a href="/pages/catalogo.html">Catálogo</a></li><li><a href="/pages/contacto.html">Contacto</a></li></ul>
+    <div class="navbar__actions" id="navbar-actions"></div>
+  </div></div>
+</nav>
+
+<div class="static-hero">
+  <div class="container">
+    <h1>Preguntas frecuentes</h1>
+    <p>Respuestas a las dudas más comunes de nuestros clientes</p>
+  </div>
+</div>
+
+<div class="container">
+<div class="faq-list">
+
+  <div class="faq-section-title">Pedidos y compras</div>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">¿Cómo puedo hacer un pedido? <span class="arrow">▼</span></div>
+    <div class="faq-a">Puedes hacer tu pedido directamente desde nuestra tienda en línea. Agrega los productos al carrito, selecciona tu método de envío y pago, y confirma tu pedido. También puedes contactarnos por WhatsApp para pedidos especiales o cotizaciones.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">¿Necesito crear una cuenta para comprar? <span class="arrow">▼</span></div>
+    <div class="faq-a">Sí, es necesario crear una cuenta gratuita para completar tu compra. Esto nos permite enviarte confirmaciones de pedido, actualizaciones de envío y guardar tu historial de compras.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">¿Puedo solicitar factura? <span class="arrow">▼</span></div>
+    <div class="faq-a">Sí. Durante el proceso de checkout puedes ingresar tu RFC para solicitar factura. También puedes solicitarla después de tu compra contactando a ventas@mbscomunicaciones.mx con tu número de pedido.</div>
+  </div>
+
+  <div class="faq-section-title">Envíos</div>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">¿A qué estados de la república hacen envíos? <span class="arrow">▼</span></div>
+    <div class="faq-a">Realizamos envíos a toda la república mexicana a través de paqueterías certificadas. Los tiempos de entrega varían entre 2 y 7 días hábiles dependiendo del destino.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">¿Cuánto cuesta el envío? <span class="arrow">▼</span></div>
+    <div class="faq-a">El costo de envío se calcula en el checkout según el método seleccionado y el destino. Pedidos mayores a $2,000 MXN tienen envío estándar gratuito.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">¿Cuánto tarda en llegar mi pedido? <span class="arrow">▼</span></div>
+    <div class="faq-a">Los pedidos realizados antes de las 2:00 PM salen el mismo día hábil. El tiempo estimado de entrega es de 2 a 5 días hábiles para el interior de la república, y de 1 a 3 días para el área metropolitana de Hidalgo.</div>
+  </div>
+
+  <div class="faq-section-title">Pagos</div>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">¿Qué métodos de pago aceptan? <span class="arrow">▼</span></div>
+    <div class="faq-a">Aceptamos tarjeta de crédito/débito (Visa, Mastercard), transferencia SPEI, PayPal y pago contra entrega (en zonas disponibles). También ofrecemos meses sin intereses con tarjetas participantes.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">¿Es seguro pagar en su sitio? <span class="arrow">▼</span></div>
+    <div class="faq-a">Sí. Toda la información de pago está encriptada con SSL. No almacenamos datos de tarjetas de crédito en nuestros servidores.</div>
+  </div>
+
+  <div class="faq-section-title">Productos y garantías</div>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">¿Los productos tienen garantía? <span class="arrow">▼</span></div>
+    <div class="faq-a">Todos nuestros productos cuentan con garantía del fabricante. Consulta nuestra <a href="/pages/garantia.html" style="color:var(--electric)">política de garantía</a> para más detalles sobre plazos y procedimientos.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">¿Qué hago si recibo un producto dañado? <span class="arrow">▼</span></div>
+    <div class="faq-a">Contáctanos dentro de las 48 horas siguientes a la recepción por WhatsApp o email con fotos del producto y del empaque. Gestionaremos el reemplazo o reembolso a la brevedad posible.</div>
+  </div>
+
+  <div style="text-align:center;margin-top:40px;padding:32px;background:var(--gray-50);border-radius:var(--radius-md)">
+    <p style="color:var(--gray-600);margin-bottom:16px">¿No encontraste lo que buscabas?</p>
+    <a href="https://wa.me/527713455929" class="btn btn-primary" target="_blank">💬 Pregúntanos por WhatsApp</a>
+  </div>
+</div>
+</div>
+
+<footer class="footer">
+  <div class="container"><div class="footer__grid">
+    <div><div class="footer__brand-name">MBS</div><p class="footer__tagline">Insumos de fibra óptica para profesionales.</p><div class="footer__social"><a href="#" title="LinkedIn">in</a><a href="#" title="Facebook">f</a><a href="#" title="WhatsApp">w</a></div></div>
+    <div><div class="footer__col-title">Empresa</div><ul class="footer__links"><li><a href="#">Sobre MBS</a></li><li><a href="#">Preguntas frecuentes</a></li><li><a href="#">Política de envíos</a></li><li><a href="#">Garantía y devoluciones</a></li></ul></div>
+    <div><div class="footer__col-title">Contacto</div><div class="footer__contact-item"><span>📞</span><span>+52 (771) 345-5929</span></div><a href="https://wa.me/527713455929" class="footer__whatsapp" target="_blank">💬 WhatsApp</a></div>
+  </div></div>
+  <div class="footer__bottom"><div class="container" style="display:flex;justify-content:space-between;width:100%"><span>© 2026 MBS Comunicaciones</span><div class="footer__bottom-links"><a href="#">Aviso de privacidad</a><a href="#">Términos y condiciones</a></div></div></div>
+</footer>
+<div id="toast-container"></div>
+<script src="/js/global.js"></script>
+</body>
+</html>

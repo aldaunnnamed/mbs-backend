@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi cuenta — MBS Comunicaciones</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/navbar.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="container">
+    <div class="navbar__inner">
+      <a href="/" class="navbar__logo"><span class="navbar__logo-text">MBS</span></a>
+      <ul class="navbar__nav">
+        <li><a href="/pages/catalogo.html">Catálogo</a></li>
+        <li><a href="/pages/contacto.html">Contacto</a></li>
+      </ul>
+      <div class="navbar__search">
+        <span class="navbar__search__icon">🔍</span>
+        <input type="text" id="navbar-search" placeholder="Buscar producto, SKU...">
+      </div>
+      <div class="navbar__actions" id="navbar-actions"></div>
+    </div>
+  </div>
+</nav>
+
+<div class="breadcrumb">
+  <div class="container">
+    <a href="/">Inicio</a> <span>/</span> <span>Mi cuenta</span>
+  </div>
+</div>
+
+<div class="account-page">
+  <div class="container">
+    <div class="account-layout" id="account-layout">
+
+      <!-- ── SIDEBAR ──────────────────────────────────────── -->
+      <aside class="account-sidebar">
+        <div class="account-profile" id="account-profile">
+          <div class="account-avatar" id="account-avatar">CM</div>
+          <div class="account-name" id="account-name">Cargando...</div>
+          <div class="account-email" id="account-email"></div>
+          <div class="account-verified">✓ Cliente verificado</div>
+        </div>
+        <nav class="account-nav">
+          <div class="account-nav-item active" onclick="showPanel('pedidos', this)">
+            <span class="account-nav-item__icon">📦</span>
+            <div><div style="font-weight:600">Mis pedidos</div><div style="font-size:.75rem;opacity:.6">Historial completo</div></div>
+          </div>
+          <div class="account-nav-item" onclick="showPanel('favoritos', this)">
+            <span class="account-nav-item__icon">♡</span>
+            <div><div style="font-weight:600">Mis favoritos</div><div style="font-size:.75rem;opacity:.6">Productos guardados</div></div>
+          </div>
+          <div class="account-nav-item" onclick="showPanel('direcciones', this)">
+            <span class="account-nav-item__icon">📍</span>
+            <div><div style="font-weight:600">Mis direcciones</div><div style="font-size:.75rem;opacity:.6" id="dirs-count">0 guardadas</div></div>
+          </div>
+          <div class="account-nav-item" onclick="showPanel('datos', this)">
+            <span class="account-nav-item__icon">👤</span>
+            <div><div style="font-weight:600">Datos personales</div><div style="font-size:.75rem;opacity:.6">Perfil y preferencias</div></div>
+          </div>
+          <div class="account-nav-item" onclick="showPanel('seguridad', this)">
+            <span class="account-nav-item__icon">🔒</span>
+            <div><div style="font-weight:600">Seguridad</div><div style="font-size:.75rem;opacity:.6">Contraseña y acceso</div></div>
+          </div>
+          <div class="account-nav-item" onclick="showPanel('notificaciones', this)">
+            <span class="account-nav-item__icon">🔔</span>
+            <div><div style="font-weight:600">Notificaciones</div><div style="font-size:.75rem;opacity:.6">Email y alertas</div></div>
+          </div>
+          <hr>
+          <div class="account-nav-item danger" onclick="Session.logout()">
+            <span class="account-nav-item__icon">⬡</span>
+            <span>Cerrar sesión</span>
+          </div>
+        </nav>
+      </aside>
+
+      <!-- ── PANEL PRINCIPAL ──────────────────────────────── -->
+      <main>
+
+        <!-- Mis pedidos -->
+        <div class="account-panel active" id="panel-pedidos">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+            <h2 style="font-size:1.4rem">Mis pedidos</h2>
+            <input type="text" class="orders-search" placeholder="Buscar por # o producto" id="orders-search">
+          </div>
+          <div class="orders-tabs">
+            <button class="orders-tab active" onclick="filterOrders(null, this)">Todos</button>
+            <button class="orders-tab" onclick="filterOrders('en_preparacion', this)">En proceso</button>
+            <button class="orders-tab" onclick="filterOrders('enviado', this)">Enviados</button>
+            <button class="orders-tab" onclick="filterOrders('entregado', this)">Entregados</button>
+            <button class="orders-tab" onclick="filterOrders('cancelado', this)">Cancelados</button>
+          </div>
+          <div id="orders-list">
+            <div class="skeleton" style="height:140px;border-radius:12px;margin-bottom:12px"></div>
+            <div class="skeleton" style="height:140px;border-radius:12px;margin-bottom:12px"></div>
+          </div>
+        </div>
+
+        <!-- Detalle de pedido -->
+        <div class="account-panel" id="panel-detalle-pedido">
+          <button onclick="showPanel('pedidos')" class="btn-ghost btn" style="margin-bottom:20px;color:var(--navy)">
+            ← Volver a mis pedidos
+          </button>
+          <div id="detalle-pedido-content"></div>
+        </div>
+
+        <!-- Mis favoritos -->
+        <div class="account-panel" id="panel-favoritos">
+          <h2 style="font-size:1.4rem;margin-bottom:20px">Mis favoritos</h2>
+          <div class="products-catalog-grid" id="favoritos-grid" style="display:grid"></div>
+        </div>
+
+        <!-- Mis direcciones -->
+        <div class="account-panel" id="panel-direcciones">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+            <h2 style="font-size:1.4rem">Mis direcciones</h2>
+            <button class="btn btn-primary btn-sm" onclick="showAddAddressForm()">+ Agregar dirección</button>
+          </div>
+          <div id="direcciones-list"></div>
+        </div>
+
+        <!-- Datos personales -->
+        <div class="account-panel" id="panel-datos">
+          <div class="personal-data-form">
+            <div class="personal-data-form__header">Datos personales</div>
+            <div class="personal-data-form__body">
+              <div class="personal-avatar-row">
+                <div class="personal-avatar" id="personal-avatar" style="cursor:pointer;position:relative;overflow:hidden" onclick="document.getElementById('foto-input').click()" title="Cambiar foto">
+                  <span id="personal-avatar-text">CM</span>
+                  <img id="personal-avatar-img" src="" alt="foto" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:50%">
+                </div>
+                <div>
+                  <div style="font-weight:600;color:var(--navy)" id="personal-name">Carlos Mendez</div>
+                  <div class="personal-avatar__change" onclick="document.getElementById('foto-input').click()" style="cursor:pointer">Cambiar foto</div>
+                  <input type="file" id="foto-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="subirFoto(this)">
+                </div>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">Nombre <span class="req">*</span></label>
+                  <input type="text" class="form-input" id="p-nombre">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Apellidos <span class="req">*</span></label>
+                  <input type="text" class="form-input" id="p-apellidos">
+                </div>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">Correo electrónico</label>
+                  <input type="email" class="form-input" id="p-email" disabled style="background:var(--gray-50)">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Teléfono</label>
+                  <input type="tel" class="form-input" id="p-telefono">
+                </div>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">RFC <span style="color:var(--gray-400)">(para facturación)</span></label>
+                  <input type="text" class="form-input" id="p-rfc" maxlength="13">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Razón social <span style="color:var(--gray-400)">(para facturación)</span></label>
+                  <input type="text" class="form-input" id="p-razon">
+                </div>
+              </div>
+              <div class="form-section-title">Seguridad</div>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">Contraseña actual</label>
+                  <input type="password" class="form-input" id="p-pass-actual" placeholder="••••••••">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Nueva contraseña</label>
+                  <input type="password" class="form-input" id="p-pass-nueva" placeholder="Mínimo 8 caracteres">
+                  <button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="cambiarPassword()">
+                    Cambiar contraseña
+                  </button>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="btn btn-primary" onclick="guardarDatos()">Guardar cambios</button>
+                <button class="btn btn-outline" onclick="cancelarDatos()">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seguridad -->
+        <div class="account-panel" id="panel-seguridad">
+          <h2 style="font-size:1.4rem;margin-bottom:20px">Seguridad</h2>
+          <div class="personal-data-form">
+            <div class="personal-data-form__header">Contraseña y acceso</div>
+            <div class="personal-data-form__body">
+              <div class="form-group">
+                <label class="form-label">Contraseña actual</label>
+                <input type="password" class="form-input" id="seg-pass-actual" placeholder="••••••••">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nueva contraseña</label>
+                <input type="password" class="form-input" id="seg-pass-nueva" placeholder="Mínimo 8 caracteres">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Confirmar nueva contraseña</label>
+                <input type="password" class="form-input" id="seg-pass-confirm" placeholder="Repite la contraseña">
+              </div>
+              <div class="form-actions">
+                <button class="btn btn-primary" onclick="cambiarPasswordSeguridad()">Cambiar contraseña</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notificaciones -->
+        <div class="account-panel" id="panel-notificaciones">
+          <h2 style="font-size:1.4rem;margin-bottom:20px">Notificaciones</h2>
+          <div id="notificaciones-list">
+            <p class="text-muted">Cargando notificaciones...</p>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<a href="https://wa.me/527713455929" class="whatsapp-fab" target="_blank">💬</a>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer__grid">
+      <div>
+        <div class="footer__brand-name">MBS</div>
+        <p class="footer__tagline">Insumos de fibra óptica para profesionales e integradores. Hidalgo, México.</p>
+        <div class="footer__social"><a href="#" title="LinkedIn">in</a><a href="#" title="Facebook">f</a><a href="#" title="WhatsApp">w</a></div>
+      </div>
+      <div>
+        <div class="footer__col-title">Catálogo</div>
+        <ul class="footer__links">
+          <li><a href="/pages/catalogo.html?categoria=1">Cables de fibra óptica</a></li>
+          <li><a href="/pages/catalogo.html?categoria=2">Conectores</a></li>
+          <li><a href="/pages/catalogo.html?categoria=3">Patch cords</a></li>
+          <li><a href="/pages/catalogo.html?categoria=4">Equipos activos</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer__col-title">Mi cuenta</div>
+        <ul class="footer__links">
+          <li><a href="#" onclick="showPanel('pedidos')">Mis pedidos</a></li>
+          <li><a href="#" onclick="showPanel('favoritos')">Mis favoritos</a></li>
+          <li><a href="#" onclick="showPanel('datos')">Datos personales</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer__col-title">Contacto</div>
+        <div class="footer__contact-item"><span>📍</span><span>Hidalgo, México</span></div>
+        <div class="footer__contact-item"><span>📞</span><span>+52 (771) 345-5929</span></div>
+        <div class="footer__contact-item"><span>✉</span><span>ventas@mbscomunicaciones.mx</span></div>
+        <a href="https://wa.me/527713455929" class="footer__whatsapp" target="_blank">💬 WhatsApp</a>
+      </div>
+    </div>
+  </div>
+  <div class="footer__bottom">
+    <div class="container" style="display:flex;justify-content:space-between;width:100%">
+      <span>© 2026 MBS Comunicaciones · Todos los derechos reservados</span>
+      <div class="footer__bottom-links"><a href="#">Aviso de privacidad</a><a href="#">Términos</a></div>
+    </div>
+  </div>
+</footer>
+
+<script src="/js/global.js"></script>
+<script>
+let currentOrderFilter = null;
+let userData = null;
+let dirData = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!Session.isLoggedIn()) {
+    window.location.href = '/pages/login.html';
+    return;
+  }
+
+  // Cargar perfil
+  const perfil = await API.get('/auth/perfil');
+  if (perfil.ok) {
+    userData = perfil.datos;
+    const nombre    = userData.r_nombre    || userData.nombre;
+    const apellidos = userData.r_apellidos || userData.apellidos;
+    const email     = userData.r_email     || userData.email;
+    const initials  = (nombre[0] + (apellidos?.[0]||'')).toUpperCase();
+
+    const avatarUrl = userData.r_avatar_url || userData.avatar_url;
+    if (avatarUrl) {
+      const img = document.getElementById('personal-avatar-img');
+      const txt = document.getElementById('personal-avatar-text');
+      if (img && txt) { img.src = avatarUrl; img.style.display = 'block'; txt.style.display = 'none'; }
+      const accAv = document.getElementById('account-avatar');
+      if (accAv) { accAv.style.backgroundImage = `url(${avatarUrl})`; accAv.style.backgroundSize = 'cover'; accAv.textContent = ''; }
+    } else {
+      document.getElementById('account-avatar').textContent = initials;
+    }
+    document.getElementById('account-name').textContent   = nombre + ' ' + apellidos;
+    document.getElementById('account-email').textContent  = email;
+    document.getElementById('personal-avatar-text').textContent = initials;
+    document.getElementById('personal-name').textContent   = nombre + ' ' + apellidos;
+
+    document.getElementById('p-nombre').value    = nombre;
+    document.getElementById('p-apellidos').value = apellidos;
+    document.getElementById('p-email').value     = email;
+    document.getElementById('p-telefono').value  = userData.r_telefono || userData.telefono || '';
+    document.getElementById('p-rfc').value       = userData.r_rfc || userData.rfc || '';
+    document.getElementById('p-razon').value     = userData.r_razon_social || userData.razon_social || '';
+  }
+
+  // Cargar panel por URL hash
+  const hash = window.location.hash.replace('#', '') || 'pedidos';
+  showPanel(hash);
+});
+
+window.showPanel = (panel, navItem = null) => {
+  document.querySelectorAll('.account-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.account-nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + panel)?.classList.add('active');
+  if (navItem) navItem.classList.add('active');
+  window.location.hash = panel;
+
+  // Cargar datos según panel
+  if (panel === 'pedidos')       loadOrders();
+  if (panel === 'favoritos')     loadFavorites();
+  if (panel === 'direcciones')   loadAddresses();
+  if (panel === 'notificaciones') loadNotifications();
+};
+
+window.filterOrders = (estado, btn) => {
+  document.querySelectorAll('.orders-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentOrderFilter = estado;
+  loadOrders();
+};
+
+const loadOrders = async () => {
+  const list = document.getElementById('orders-list');
+  list.innerHTML = '<div class="skeleton" style="height:140px;border-radius:12px;margin-bottom:12px"></div>'.repeat(3);
+  const data = await API.get('/pedidos' + (currentOrderFilter ? '?estado=' + currentOrderFilter : ''));
+  if (!data.ok || !data.pedidos.length) {
+    list.innerHTML = '<div style="text-align:center;padding:48px;color:var(--gray-600)"><p style="font-size:2rem;margin-bottom:12px">📦</p><p>No hay pedidos</p></div>';
+    return;
+  }
+  const statusMap  = { nuevo:'nuevo', en_preparacion:'en-preparacion', enviado:'enviado', en_camino:'en-camino', entregado:'entregado', cancelado:'cancelado' };
+  const statusLabel = { nuevo:'Nuevo', en_preparacion:'En preparación', enviado:'Enviado', en_camino:'En camino', entregado:'Entregado', cancelado:'Cancelado' };
+  const statusIcon  = { en_preparacion:'⚙', enviado:'📤', en_camino:'🚚', entregado:'✓', cancelado:'✕', nuevo:'🆕' };
+
+  list.innerHTML = data.pedidos.map(p => {
+    const estado = p.r_estado || p.estado;
+    const numero = p.r_numero || p.numero;
+    const total  = p.r_total  || p.total;
+    const fecha  = new Date(p.r_created_at || p.created_at).toLocaleDateString('es-MX', {day:'numeric',month:'short',year:'numeric'});
+    return `
+    <div class="order-card">
+      <div class="order-card__header">
+        <div>
+          <div class="order-card__number">PEDIDO ${numero}</div>
+          <div class="order-card__date">FECHA · ${fecha}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="order-card__total">$${parseFloat(total).toLocaleString('es-MX',{minimumFractionDigits:2})}</div>
+          <span class="order-status ${statusMap[estado]||'nuevo'}">
+            ${statusIcon[estado]||''} ${statusLabel[estado]||estado}
+          </span>
+        </div>
+      </div>
+      <div class="order-card__items">
+        <div class="order-item-preview">
+          <div class="order-item-preview__img">
+            <span style="font-size:1.2rem;display:flex;align-items:center;justify-content:center;height:100%">📦</span>
+          </div>
+          <div>
+            <div class="order-item-preview__name">Pedido #${numero}</div>
+            <div class="order-item-preview__sku">${fecha}</div>
+          </div>
+        </div>
+      </div>
+      <div class="order-card__footer">
+        <span class="order-card__shipping">
+          ${p.r_numero_guia||p.numero_guia ? '🚚 Guía: ' + (p.r_numero_guia||p.numero_guia) : '📦 Preparando tu pedido'}
+        </span>
+        <div class="order-card__actions">
+          <button class="btn btn-outline btn-sm" onclick="verDetallePedido(${p.r_id||p.id})">Ver detalle</button>
+          ${estado === 'entregado'
+            ? '<button class="btn btn-primary btn-sm">Volver a comprar</button>'
+            : estado === 'en_camino'
+            ? '<button class="btn btn-primary btn-sm">Rastrear envío</button>'
+            : estado === 'en_preparacion'
+            ? '<button class="btn btn-sm" style="background:var(--red-lite);color:var(--red)">Cancelar pedido</button>'
+            : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+};
+
+window.verDetallePedido = async (id) => {
+  const data = await API.get('/pedidos/' + id);
+  if (!data.ok) { Toast.show('Error al cargar el pedido', 'error'); return; }
+
+  document.querySelectorAll('.account-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-detalle-pedido').classList.add('active');
+
+  const rows = data.pedido || [];
+  if (!rows.length) return;
+  const first = rows[0];
+  const numero = first.pedido_numero || '';
+  const estado = first.r_estado || first.estado || '';
+  const total  = first.r_total  || first.total  || 0;
+
+  const statusSteps = ['nuevo','en_preparacion','enviado','en_camino','entregado'];
+  const idx = Math.max(0, statusSteps.indexOf(estado));
+  const cancelable = ['nuevo','en_preparacion'].includes(estado);
+
+  // Agrupar items únicos
+  const uniqueItems = [];
+  const seenItems = new Set();
+  rows.forEach(r => {
+    const key = r.item_nombre || r.nombre || '';
+    if (key && !seenItems.has(key)) {
+      seenItems.add(key);
+      uniqueItems.push(r);
+    }
+  });
+
+  document.getElementById('detalle-pedido-content').innerHTML = `
+    <div class="order-detail">
+      <div class="order-detail__header">
+        <div>
+          <div class="order-detail__num">${numero}</div>
+          <div class="order-detail__date">Detalle del pedido</div>
+        </div>
+        <span class="order-status ${estado.replace('_','-')}">${estado.replace('_',' ')}</span>
+      </div>
+      <div class="order-detail__body">
+
+        <!-- Tracker -->
+        <div class="order-tracker" style="margin-bottom:24px">
+          <div class="tracker-steps">
+            ${['Confirmado','En preparacion','Enviado','En camino','Entregado'].map((s,i) => `
+              <div class="tracker-step ${i<idx?'done':i===idx?'active':''}">
+                <div class="tracker-step__dot">${i<idx?'✓':i+1}</div>
+                <span>${s}</span>
+              </div>
+              ${i<4?'<div class="tracker-line"></div>':''}`).join('')}
+          </div>
+        </div>
+
+        <div class="order-detail__grid">
+          <!-- Items -->
+          <div>
+            <h4 style="margin-bottom:12px;color:var(--navy);font-family:Rajdhani,sans-serif">Productos ordenados</h4>
+            ${uniqueItems.map(r => `
+              <div style="display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--gray-100)">
+                <div style="width:48px;height:48px;background:var(--gray-50);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0">📦</div>
+                <div style="flex:1">
+                  <div style="font-weight:600;font-size:.9rem;color:var(--navy)">${r.item_nombre||r.nombre||''}</div>
+                  <div style="font-size:.75rem;color:var(--gray-400)">SKU: ${r.item_sku||r.sku||''} · ×${r.item_cantidad||r.cantidad||1}</div>
+                </div>
+                <div style="font-weight:700;color:var(--orange)">${formatPrice(r.item_subtotal||r.subtotal||0)}</div>
+              </div>`).join('')}
+            <div style="padding-top:14px">
+              <div style="display:flex;justify-content:space-between;font-size:.85rem;color:var(--gray-600);margin-bottom:6px">
+                <span>Subtotal</span><span>${formatPrice(first.r_subtotal||0)}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:.85rem;color:var(--gray-600);margin-bottom:6px">
+                <span>Envio</span><span>${formatPrice(first.r_costo_envio||0)}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:.85rem;color:var(--gray-600);margin-bottom:10px">
+                <span>IVA (16%)</span><span>${formatPrice(first.r_iva||0)}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-family:Rajdhani,sans-serif;font-size:1.1rem;font-weight:700;color:var(--navy)">
+                <span>TOTAL</span><span style="color:var(--orange)">${formatPrice(total)}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Info envío + acciones -->
+          <div>
+            <div style="background:var(--gray-50);border-radius:12px;padding:20px;margin-bottom:14px">
+              <h4 style="margin-bottom:10px;color:var(--navy);font-family:Rajdhani,sans-serif">Informacion de envio</h4>
+              <p style="font-size:.85rem;color:var(--gray-600);line-height:1.8">
+                ${first.dir_nombre||''} ${first.dir_apellidos||''}<br>
+                ${first.dir_calle||''}, ${first.dir_colonia||''}<br>
+                ${first.dir_ciudad||''}, ${first.dir_estado_geo||''}
+              </p>
+            </div>
+
+            <!-- Acciones -->
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <button class="btn btn-outline btn-sm"
+                onclick="descargarFactura(${id})"
+                style="justify-content:center">
+                📄 Descargar factura
+              </button>
+              <button class="btn btn-primary btn-sm"
+                onclick="volverAComprar(${id})"
+                style="justify-content:center">
+                🛒 Volver a comprar
+              </button>
+              ${cancelable ? `
+              <button class="btn btn-sm"
+                style="background:var(--red-lite);color:var(--red);justify-content:center"
+                onclick="solicitarCancelacion(${id}, '${numero}')">
+                ✕ Solicitar cancelacion
+              </button>` : ''}
+              <button class="btn btn-sm"
+                style="background:var(--electric-lite);color:var(--navy);justify-content:center"
+                onclick="contactarSoporte(${id}, '${numero}')">
+                🎧 Contactar soporte
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+};
+
+
+
+const loadFavorites = async () => {
+  const grid = document.getElementById('favoritos-grid');
+  grid.innerHTML = '<div class="skeleton" style="height:280px;border-radius:12px"></div>'.repeat(4);
+  const data = await API.get('/usuarios/favoritos');
+  if (!data.ok || !data.favoritos.length) {
+    grid.innerHTML = '<p class="text-muted" style="padding:32px">No tienes productos favoritos aún.</p>';
+    return;
+  }
+  grid.innerHTML = data.favoritos.map(p => {
+    const nombre = p.r_nombre||p.nombre;
+    const precio = p.r_precio_venta||p.precio_venta;
+    const slug   = p.r_slug||p.slug;
+    const id     = p.r_id||p.id;
+    return `
+    <div class="product-card">
+      <a href="/pages/producto.html?slug=${slug}">
+        <div class="product-card__img">
+          <button class="product-card__fav active" data-id="${id}"
+            onclick="event.preventDefault();toggleFav(${id},this)">♥</button>
+          <div class="product-card__img-placeholder"><span style="font-size:2rem">📦</span></div>
+        </div>
+      </a>
+      <div class="product-card__body">
+        <div class="product-card__name">${nombre}</div>
+        <div class="product-card__price">${formatPrice(precio)}</div>
+        <button class="btn btn-primary btn-full btn-add-cart" data-id="${id}"
+          onclick="Cart.add(${id},null,1)">Añadir al carrito</button>
+      </div>
+    </div>`;
+  }).join('');
+};
+
+window.toggleFav = async (id, btn) => {
+  const res = await API.post('/usuarios/favoritos/' + id, {});
+  if (res.ok) {
+    Toast.show(res.mensaje, 'success');
+    loadFavorites();
+  }
+};
+
+const loadAddresses = async () => {
+  const list = document.getElementById('direcciones-list');
+  const data = await API.get('/usuarios/direcciones');
+  if (!data.ok || !data.direcciones.length) {
+    list.innerHTML = '<p class="text-muted">No tienes direcciones guardadas.</p>';
+    document.getElementById('dirs-count').textContent = '0 guardadas';
+    dirData = [];
+    return;
+  }
+  dirData = data.direcciones;
+  document.getElementById('dirs-count').textContent = data.direcciones.length + ' guardadas';
+  list.innerHTML = data.direcciones.map(d => `
+    <div style="background:var(--white);border:1px solid var(--gray-100);border-radius:12px;padding:20px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div style="font-weight:700;color:var(--navy);margin-bottom:6px">${d.alias||'Dirección'}</div>
+        <div style="font-size:.88rem;color:var(--gray-600);line-height:1.7">
+          ${d.nombre} ${d.apellidos}<br>
+          ${d.calle_numero}, ${d.colonia}<br>
+          ${d.ciudad}, ${d.estado} · C.P. ${d.cp}
+        </div>
+        ${d.es_predeterminada ? '<span class="badge badge-electric" style="margin-top:8px">Predeterminada</span>' : ''}
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm"
+          onclick="abrirModalDireccion(dirData.find(x=>x.id===${d.id}))">Editar</button>
+        <button class="btn btn-sm" style="background:var(--red-lite);color:var(--red)"
+          onclick="deleteAddress(${d.id})">Eliminar</button>
+      </div>
+    </div>`).join('');
+};
+
+window.deleteAddress = async (id) => {
+  await API.del('/usuarios/direcciones/' + id);
+  Toast.show('Dirección eliminada', 'info');
+  loadAddresses();
+};
+
+window.showAddAddressForm = () => abrirModalDireccion(null);
+
+window.abrirModalDireccion = (d) => {
+  const isEdit = !!d;
+  const v = (f) => d ? (d[f] || '') : '';
+  const existente = document.getElementById('dir-modal');
+  if (existente) existente.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'dir-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:32px;max-width:520px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+      <h3 style="font-family:Rajdhani,sans-serif;font-size:1.3rem;color:#0B1E3D;margin-bottom:20px">
+        ${isEdit ? 'Editar dirección' : 'Nueva dirección'}
+      </h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div style="grid-column:1/-1">
+          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px">Alias (ej. Casa, Oficina)</label>
+          <input id="dir-alias" class="form-input" style="width:100%;padding:9px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem" value="${v('alias')}">
+        </div>
+        <div>
+          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px">Nombre *</label>
+          <input id="dir-nombre" class="form-input" style="width:100%;padding:9px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem" value="${v('nombre')}">
+        </div>
+        <div>
+          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px">Apellidos *</label>
+          <input id="dir-apellidos" class="form-input" style="width:100%;padding:9px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem" value="${v('apellidos')}">
+        </div>
+        <div style="grid-column:1/-1">
+          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px">Calle y número *</label>
+          <input id="dir-calle" class="form-input" style="width:100%;padding:9px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem" value="${v('calle_numero')}">
+        </div>
+        <div>
+          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px">Colonia *</label>
+          <input id="dir-colonia" class="form-input" style="width:100%;padding:9px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem" value="${v('colonia')}">
+        </div>
+        <div>
+          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px">Ciudad *</label>
+          <input id="dir-ciudad" class="form-input" style="width:100%;padding:9px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem" value="${v('ciudad')}">
+        </div>
+        <div>
+          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px">Estado *</label>
+          <input id="dir-estado" class="form-input" style="width:100%;padding:9px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem" value="${v('estado')}">
+        </div>
+        <div>
+          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px">Código postal *</label>
+          <input id="dir-cp" class="form-input" style="width:100%;padding:9px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem" maxlength="5" value="${v('cp')}">
+        </div>
+        <div>
+          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px">Teléfono</label>
+          <input id="dir-telefono" class="form-input" style="width:100%;padding:9px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem" value="${v('telefono')}">
+        </div>
+        <div style="grid-column:1/-1;display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="dir-pred" ${d && d.es_predeterminada ? 'checked' : ''}>
+          <label for="dir-pred" style="font-size:.88rem;color:#546E7A;cursor:pointer">Usar como dirección predeterminada</label>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button onclick="guardarDireccion(${isEdit ? d.id : 'null'})"
+          style="flex:1;padding:11px;background:#FF6F00;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:.95rem;cursor:pointer;font-family:inherit">
+          ${isEdit ? 'Guardar cambios' : 'Agregar dirección'}
+        </button>
+        <button onclick="document.getElementById('dir-modal').remove()"
+          style="padding:11px 20px;background:#E0E7EF;color:#263238;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-family:inherit">
+          Cancelar
+        </button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+};
+
+window.guardarDireccion = async (id) => {
+  const body = {
+    alias:         document.getElementById('dir-alias').value.trim(),
+    nombre:        document.getElementById('dir-nombre').value.trim(),
+    apellidos:     document.getElementById('dir-apellidos').value.trim(),
+    calle_numero:  document.getElementById('dir-calle').value.trim(),
+    colonia:       document.getElementById('dir-colonia').value.trim(),
+    ciudad:        document.getElementById('dir-ciudad').value.trim(),
+    estado:        document.getElementById('dir-estado').value.trim(),
+    cp:            document.getElementById('dir-cp').value.trim(),
+    telefono:      document.getElementById('dir-telefono').value.trim() || null,
+    es_predeterminada: document.getElementById('dir-pred').checked,
+  };
+  if (!body.nombre || !body.apellidos || !body.calle_numero || !body.colonia || !body.ciudad || !body.estado || !body.cp) {
+    Toast.show('Completa los campos obligatorios', 'error');
+    return;
+  }
+  const res = id
+    ? await API.put('/usuarios/direcciones/' + id, body)
+    : await API.post('/usuarios/direcciones', body);
+  if (res.ok) {
+    Toast.show(res.mensaje || 'Dirección guardada', 'success');
+    document.getElementById('dir-modal').remove();
+    loadAddresses();
+  } else {
+    Toast.show(res.mensaje || 'Error al guardar', 'error');
+  }
+};
+
+const loadNotifications = async () => {
+  const list = document.getElementById('notificaciones-list');
+  const data = await API.get('/usuarios/notificaciones');
+  if (!data.ok || !data.notificaciones.length) {
+    list.innerHTML = '<p class="text-muted" style="padding:32px;text-align:center">Sin notificaciones por ahora.</p>';
+    return;
+  }
+  list.innerHTML = data.notificaciones.map(n => `
+    <div style="background:${n.leida?'var(--white)':'var(--electric-lite)'};border:1px solid var(--gray-100);
+      border-radius:12px;padding:16px 20px;margin-bottom:10px;display:flex;gap:16px;align-items:flex-start">
+      <div style="width:40px;height:40px;background:var(--navy);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <span style="color:var(--white)">🔔</span>
+      </div>
+      <div style="flex:1">
+        <div style="font-weight:600;color:var(--navy);margin-bottom:4px">${n.titulo}</div>
+        <div style="font-size:.85rem;color:var(--gray-600)">${n.mensaje||''}</div>
+        <div style="font-size:.75rem;color:var(--gray-400);margin-top:6px">
+          ${new Date(n.created_at).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+        </div>
+      </div>
+      ${!n.leida ? `<button class="btn-ghost btn btn-sm" onclick="markRead(${n.id}, this)" style="color:var(--electric);font-size:.75rem">Marcar leída</button>` : ''}
+    </div>`).join('');
+};
+
+window.markRead = async (id, btn) => {
+  await API.put('/usuarios/notificaciones/' + id + '/leer', {});
+  btn.closest('div').style.background = 'var(--white)';
+  btn.remove();
+};
+
+window.guardarDatos = async () => {
+  const res = await API.put('/auth/perfil', {
+    nombre:       document.getElementById('p-nombre').value,
+    apellidos:    document.getElementById('p-apellidos').value,
+    telefono:     document.getElementById('p-telefono').value,
+    rfc:          document.getElementById('p-rfc').value,
+    razon_social: document.getElementById('p-razon').value
+  });
+  Toast.show(res.ok ? 'Datos actualizados correctamente' : res.mensaje || 'Error al guardar', res.ok ? 'success' : 'error');
+};
+
+window.cancelarDatos = () => {
+  showPanel('pedidos');
+};
+
+window.subirFoto = async (input) => {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { Toast.show('La imagen no puede superar 2 MB', 'error'); return; }
+  const form = new FormData();
+  form.append('foto', file);
+  const token = localStorage.getItem('mbs_token') || '';
+  const res = await fetch('/api/usuarios/foto', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token },
+    body: form
+  }).then(r => r.json()).catch(() => ({ ok: false, mensaje: 'Error de conexión' }));
+
+  if (res.ok) {
+    const img = document.getElementById('personal-avatar-img');
+    const txt = document.getElementById('personal-avatar-text');
+    img.src = res.avatar_url + '?t=' + Date.now();
+    img.style.display = 'block';
+    if (txt) txt.style.display = 'none';
+    const accAv = document.getElementById('account-avatar');
+    if (accAv) { accAv.style.backgroundImage = `url(${res.avatar_url})`; accAv.style.backgroundSize = 'cover'; accAv.textContent = ''; }
+    Toast.show('Foto actualizada correctamente', 'success');
+  } else {
+    Toast.show(res.mensaje || 'Error al subir la foto', 'error');
+  }
+  input.value = '';
+};
+
+window.cambiarPassword = async () => {
+  const actual = document.getElementById('p-pass-actual').value;
+  const nueva  = document.getElementById('p-pass-nueva').value;
+  if (!actual || !nueva) { Toast.show('Ingresa tu contraseña actual y la nueva', 'error'); return; }
+  if (nueva.length < 8)  { Toast.show('La nueva contraseña debe tener mínimo 8 caracteres', 'error'); return; }
+  const res = await API.put('/auth/password', { password_actual: actual, password_nueva: nueva });
+  Toast.show(res.mensaje || (res.ok ? 'Contraseña actualizada' : 'Error'), res.ok ? 'success' : 'error');
+  if (res.ok) {
+    document.getElementById('p-pass-actual').value = '';
+    document.getElementById('p-pass-nueva').value  = '';
+  }
+};
+
+window.cambiarPasswordSeguridad = async () => {
+  const actual   = document.getElementById('seg-pass-actual').value;
+  const nueva    = document.getElementById('seg-pass-nueva').value;
+  const confirm  = document.getElementById('seg-pass-confirm').value;
+  if (!actual || !nueva) { Toast.show('Completa todos los campos', 'error'); return; }
+  if (nueva.length < 8)  { Toast.show('La nueva contraseña debe tener mínimo 8 caracteres', 'error'); return; }
+  if (nueva !== confirm)  { Toast.show('Las contraseñas no coinciden', 'error'); return; }
+  const res = await API.put('/auth/password', { password_actual: actual, password_nueva: nueva });
+  Toast.show(res.mensaje || (res.ok ? 'Contraseña actualizada' : 'Error'), res.ok ? 'success' : 'error');
+  if (res.ok) {
+    document.getElementById('seg-pass-actual').value  = '';
+    document.getElementById('seg-pass-nueva').value   = '';
+    document.getElementById('seg-pass-confirm').value = '';
+  }
+};
+
+window.descargarFactura = (id) => {
+  // Abrir la factura en nueva pestaña (HTML imprimible como PDF)
+  const token = localStorage.getItem('mbs_token');
+  const url   = '/api/pedidos/' + id + '/factura';
+
+  // Crear enlace temporal con el token
+  fetch(url, { headers: { 'Authorization': 'Bearer ' + token } })
+    .then(r => r.text())
+    .then(html => {
+      const win = window.open('', '_blank');
+      win.document.write(html);
+      win.document.close();
+      // Disparar print automático después de cargar
+      win.onload = () => { win.print(); };
+    })
+    .catch(() => Toast.show('Error al generar la factura', 'error'));
+};
+
+window.volverAComprar = async (pedidoId) => {
+  try {
+    const data = await API.get('/pedidos/' + pedidoId);
+    if (!data.ok) { Toast.show('Error al obtener el pedido', 'error'); return; }
+
+    const items = data.pedido || [];
+    let agregados = 0;
+
+    for (const item of items) {
+      const pid = item.r_producto_id || item.producto_id;
+      const qty = item.item_cantidad || item.cantidad || 1;
+      if (pid) {
+        const res = await Cart.add(parseInt(pid), null, parseInt(qty));
+        if (res?.ok) agregados++;
+      }
+    }
+
+    if (agregados > 0) {
+      Toast.show(agregados + ' producto(s) agregado(s) al carrito', 'success');
+      setTimeout(() => window.location.href = '/pages/carrito.html', 1200);
+    } else {
+      Toast.show('No se pudo agregar los productos', 'error');
+    }
+  } catch (err) {
+    Toast.show('Error al procesar la solicitud', 'error');
+  }
+};
+
+window.solicitarCancelacion = (id, numero) => {
+  // Modal de confirmación inline
+  const motivo = prompt(
+    'Pedido ' + numero + '\n\n' +
+    'Por favor indica el motivo de la cancelacion:\n' +
+    '(Ej: Cambio de opinion, orden duplicada, etc.)'
+  );
+
+  if (motivo === null) return; // Canceló el prompt
+
+  API.post('/pedidos/' + id + '/cancelar', { motivo })
+    .then(res => {
+      if (res.ok) {
+        Toast.show(res.mensaje, 'success');
+        setTimeout(() => {
+          showPanel('pedidos');
+          loadOrders();
+        }, 1200);
+      } else {
+        Toast.show(res.mensaje || 'No se pudo cancelar el pedido', 'error');
+      }
+    })
+    .catch(() => Toast.show('Error de conexion', 'error'));
+};
+
+window.contactarSoporte = (id, numero) => {
+  // Modal inline de soporte
+  const existente = document.getElementById('soporte-modal');
+  if (existente) existente.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'soporte-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:32px;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+      <h3 style="font-family:Rajdhani,sans-serif;font-size:1.3rem;color:#0B1E3D;margin-bottom:4px">Contactar soporte</h3>
+      <p style="font-size:.85rem;color:#546E7A;margin-bottom:20px">Pedido: ${numero}</p>
+
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:.85rem;font-weight:600;color:#0B1E3D;margin-bottom:5px">Asunto *</label>
+        <select id="soporte-asunto" style="width:100%;padding:10px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem">
+          <option value="">Selecciona el motivo</option>
+          <option value="Producto dañado">Producto dañado o incorrecto</option>
+          <option value="Retraso en entrega">Retraso en la entrega</option>
+          <option value="Problema con el pago">Problema con el pago</option>
+          <option value="Devolucion">Solicitar devolución</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <label style="display:block;font-size:.85rem;font-weight:600;color:#0B1E3D;margin-bottom:5px">Mensaje *</label>
+        <textarea id="soporte-mensaje" rows="4"
+          placeholder="Describe tu problema con el mayor detalle posible..."
+          style="width:100%;padding:10px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem;resize:vertical"></textarea>
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button onclick="enviarSoporte(${id})"
+          style="flex:1;padding:11px;background:#FF6F00;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:.95rem;cursor:pointer;font-family:inherit">
+          Enviar mensaje
+        </button>
+        <button onclick="document.getElementById('soporte-modal').remove()"
+          style="padding:11px 20px;background:#E0E7EF;color:#263238;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-family:inherit">
+          Cancelar
+        </button>
+      </div>
+
+      <!-- WhatsApp alternativo -->
+      <div style="text-align:center;margin-top:16px;padding-top:14px;border-top:1px solid #E0E7EF">
+        <p style="font-size:.78rem;color:#90A4AE;margin-bottom:8px">O escríbenos directamente por</p>
+        <a href="https://wa.me/527713455929?text=Hola, tengo un problema con el pedido ${numero}"
+          target="_blank"
+          style="display:inline-flex;align-items:center;gap:6px;background:#25D366;color:#fff;padding:8px 18px;border-radius:6px;font-size:.85rem;font-weight:600;text-decoration:none">
+          💬 WhatsApp
+        </a>
+      </div>
+    </div>`;
+
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+};
+
+window.enviarSoporte = async (id) => {
+  const asunto  = document.getElementById('soporte-asunto').value;
+  const mensaje = document.getElementById('soporte-mensaje').value.trim();
+
+  if (!asunto || !mensaje) {
+    Toast.show('Por favor completa todos los campos', 'error');
+    return;
+  }
+
+  const res = await API.post('/pedidos/' + id + '/soporte', { asunto, mensaje });
+  if (res.ok) {
+    Toast.show('Mensaje enviado. Te responderemos pronto.', 'success');
+    document.getElementById('soporte-modal').remove();
+  } else {
+    Toast.show(res.mensaje || 'Error al enviar el mensaje', 'error');
+  }
+};
+</script>
+</body>
+</html>

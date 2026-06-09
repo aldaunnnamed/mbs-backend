@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Clientes | MBS Admin</title>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="ap">
+<div class="ap-layout">
+
+  <aside class="ap-sidebar" id="ap-sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo__mark">M</div>
+      <div><div class="sb-logo__name">MBS Comunicaciones</div><div class="sb-logo__sub">Panel de Administración</div></div>
+    </div>
+    <div class="sb-user">
+      <div class="sb-user__av js-ini">MB</div>
+      <div><div class="sb-user__name js-name">MBS Admin</div><div class="sb-user__email js-email">admin@mbs.mx</div></div>
+    </div>
+    <ul class="sb-nav">
+      <li><a href="/admin/index.html" class="sb-link"><span class="sb-icon">📊</span><span class="sb-label">Inicio</span></a></li>
+      <li><a href="/admin/productos.html" class="sb-link"><span class="sb-icon">📦</span><span class="sb-label">Productos</span></a></li>
+      <li><a href="/admin/pedidos.html" class="sb-link"><span class="sb-icon">🛒</span><span class="sb-label">Pedidos</span></a></li>
+      <li><a href="/admin/clientes.html" class="sb-link"><span class="sb-icon">👥</span><span class="sb-label">Clientes</span></a></li>
+      <li><a href="/admin/inventario.html" class="sb-link"><span class="sb-icon">🏪</span><span class="sb-label">Inventario</span></a></li>
+      <li><a href="/admin/mensajes.html"      class="sb-link"><span class="sb-icon">✉️</span><span class="sb-label">Mensajes</span></a></li>
+      <li><a href="/admin/configuracion.html" class="sb-link"><span class="sb-icon">⚙️</span><span class="sb-label">Configuración</span></a></li>
+    </ul>
+    <hr class="sb-divider">
+    <div class="sb-footer">
+      <button class="sb-link" onclick="AdminAuth.logout()" style="width:100%">
+        <span class="sb-icon">🚪</span><span class="sb-label">Cerrar sesión</span>
+      </button>
+    </div>
+  </aside>
+  <div class="sb-overlay" id="sb-overlay"></div>
+
+  <main class="ap-main">
+    <header class="ap-header">
+      <button class="ap-header__toggle" id="sb-toggle">☰</button>
+      <div>
+        <div class="ap-header__title">Clientes</div>
+        <div class="ap-header__sub" id="cli-sub">Cargando...</div>
+      </div>
+      <div class="ap-header__right">
+        <button class="btn btn-p btn-sm" onclick="exportarClientes()">⬇ Exportar clientes</button>
+        <div class="ap-huser"><div class="ap-huser__av js-ini">MB</div></div>
+      </div>
+    </header>
+
+    <div class="ap-content">
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="search-box">
+          <span>🔍</span>
+          <input type="text" id="search-cli" placeholder="Buscar por nombre, email o RFC..." oninput="onSearch(this.value)">
+        </div>
+        <select class="ap-select" id="tipo-filter" onchange="onFilter()">
+          <option value="">Tipo ▾</option>
+          <option value="particular">Particular</option>
+          <option value="empresa">Empresa</option>
+        </select>
+      </div>
+
+      <div class="card">
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr>
+              <th>Cliente / RFC</th>
+              <th>Contacto</th>
+              <th>Registro</th>
+              <th>Pedidos</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr></thead>
+            <tbody id="cli-tbody">
+              <tr><td colspan="6" style="text-align:center;padding:32px" class="tx-m">Cargando clientes...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <span class="pager__info" id="pager-info">—</span>
+          <div class="pager__btns" id="pager-btns"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal detalle cliente -->
+<div class="mo" id="mo-cliente">
+  <div class="mo__box">
+    <div class="mo__hd">
+      <span class="mo__title">Detalle del cliente</span>
+      <span class="mo__close" onclick="Mo.close('mo-cliente')">✕</span>
+    </div>
+    <div class="mo__bd" id="mo-cli-bd">—</div>
+    <div class="mo__ft">
+      <button class="btn btn-gr btn-sm" onclick="Mo.close('mo-cliente')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal bloqueo -->
+<div class="mo" id="mo-bloqueo">
+  <div class="mo__box" style="max-width:420px">
+    <div class="mo__hd">
+      <span class="mo__title" id="mo-bloqueo-title">Bloquear cliente</span>
+      <span class="mo__close" onclick="Mo.close('mo-bloqueo')">✕</span>
+    </div>
+    <div class="mo__bd">
+      <div class="fg">
+        <label class="flbl">Motivo <span>*</span></label>
+        <textarea class="fta" id="motivo-bloqueo" placeholder="Razón del bloqueo..."></textarea>
+      </div>
+    </div>
+    <div class="mo__ft">
+      <button class="btn btn-gr btn-sm" onclick="Mo.close('mo-bloqueo')">Cancelar</button>
+      <button class="btn btn-r btn-sm" id="btn-confirmar-bloqueo" onclick="confirmarBloqueo()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="/js/admin-core.js"></script>
+<script>
+let state = { busqueda: '', tipo: '', page: 1 };
+let bloqueoTarget = null;
+let searchTimer;
+
+async function loadClientes() {
+  let url = `/admin/clientes?pagina=${state.page}`;
+  if (state.busqueda) url += '&busqueda=' + encodeURIComponent(state.busqueda);
+  if (state.tipo)     url += '&tipo=' + state.tipo;
+
+  const r = await AdminAPI.get(url);
+  const clientes = r.clientes || [];
+  const total    = r.total || clientes.length;
+
+  document.getElementById('cli-sub').textContent =
+    `${fmt.num(total)} clientes registrados`;
+
+  document.getElementById('pager-info').textContent = `${clientes.length} cliente(s) mostrados`;
+
+  document.getElementById('cli-tbody').innerHTML = clientes.length
+    ? clientes.map(c => {
+        const bloqueado = c.bloqueado || c.r_bloqueado;
+        return `<tr>
+          <td>
+            <div class="tbl__name">${c.nombre_completo || c.r_nombre || (c.nombre + ' ' + c.apellidos) || '—'}</div>
+            <div class="tbl__sub">${c.rfc || c.r_rfc || '—'}</div>
+          </td>
+          <td>
+            <div>${c.email || c.r_email || '—'}</div>
+            <div class="tbl__sub">${c.telefono || c.r_telefono || ''}</div>
+          </td>
+          <td class="tx-m">${fmt.date(c.created_at || c.r_fecha_registro)}</td>
+          <td class="fw6">${c.total_pedidos || c.r_total_pedidos || 0}</td>
+          <td>${bloqueado ? '<span class="bdg bdg--r">Bloqueado</span>' : '<span class="bdg bdg--g">Activo</span>'}</td>
+          <td>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-b btn-xs" onclick="verCliente(${c.id || c.r_usuario_id})">Ver</button>
+              <button class="btn btn-xs ${bloqueado ? 'btn-gr' : ''}"
+                style="${bloqueado ? '' : 'background:var(--c-red-bg);color:var(--c-red-tx)'}"
+                onclick="toggleBloqueo(${c.id || c.r_usuario_id},'${c.nombre || c.r_nombre}',${bloqueado})">
+                ${bloqueado ? 'Desbloquear' : 'Bloquear'}
+              </button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="6" style="text-align:center;padding:32px" class="tx-m">Sin clientes</td></tr>';
+}
+
+async function verCliente(id) {
+  document.getElementById('mo-cli-bd').innerHTML = '<div class="tx-m fs12" style="text-align:center;padding:20px">Cargando...</div>';
+  Mo.open('mo-cliente');
+  const r = await AdminAPI.get('/admin/clientes/' + id);
+  if (!r.ok) {
+    document.getElementById('mo-cli-bd').innerHTML = '<div class="tx-m fs12" style="color:var(--c-red-tx)">Error al cargar el cliente.</div>';
+    return;
+  }
+  const c = r.cliente || {};
+  const nombre   = c.r_nombre    || c.nombre    || '—';
+  const apellidos= c.r_apellidos || c.apellidos || '';
+  const email    = c.r_email     || c.email     || '—';
+  const telefono = c.r_telefono  || c.telefono  || '—';
+  const rfc      = c.r_rfc       || c.rfc       || '—';
+  const razon    = c.r_razon_social || c.razon_social || '—';
+  const pedidos  = r.pedidos_recientes || [];
+
+  const estadoLabel = { nuevo:'Nuevo', en_preparacion:'En prep.', enviado:'Enviado', entregado:'Entregado', cancelado:'Cancelado' };
+
+  document.getElementById('mo-cli-bd').innerHTML = `
+    <div style="margin-bottom:16px">
+      <div class="fw6 fs14" style="color:var(--text);margin-bottom:2px">${nombre} ${apellidos}</div>
+      <div class="fs12 tx-m">${email}</div>
+    </div>
+    <div class="fg2" style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-bottom:16px">
+      <div><div class="fs11 tx-m">Teléfono</div><div class="fs12 fw6">${telefono}</div></div>
+      <div><div class="fs11 tx-m">RFC</div><div class="fs12 fw6">${rfc}</div></div>
+      <div><div class="fs11 tx-m">Razón social</div><div class="fs12 fw6">${razon}</div></div>
+      <div><div class="fs11 tx-m">Pedidos totales</div><div class="fs12 fw6">${pedidos.length >= 10 ? '10+' : pedidos.length}</div></div>
+    </div>
+    ${pedidos.length ? `
+    <div class="fs11 fw6 tx-m" style="margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Últimos pedidos</div>
+    <table class="tbl" style="font-size:.78rem">
+      <thead><tr><th># Pedido</th><th>Estado</th><th>Total</th><th>Fecha</th></tr></thead>
+      <tbody>
+        ${pedidos.map(p => `<tr>
+          <td class="fw6 tx-o">${p.numero}</td>
+          <td>${badge(p.estado)}</td>
+          <td>${fmt.money(p.total)}</td>
+          <td class="tx-m">${fmt.date(p.created_at)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>` : '<div class="tx-m fs12">Sin pedidos registrados.</div>'}`;
+}
+
+function toggleBloqueo(id, nombre, esBloqueado) {
+  bloqueoTarget = { id, bloqueado: !esBloqueado };
+  document.getElementById('mo-bloqueo-title').textContent = esBloqueado ? `Desbloquear: ${nombre}` : `Bloquear: ${nombre}`;
+  document.getElementById('btn-confirmar-bloqueo').textContent = esBloqueado ? 'Desbloquear' : 'Bloquear';
+  document.getElementById('btn-confirmar-bloqueo').className = esBloqueado ? 'btn btn-gr btn-sm' : 'btn btn-r btn-sm';
+  document.getElementById('motivo-bloqueo').value = '';
+  Mo.open('mo-bloqueo');
+}
+
+async function confirmarBloqueo() {
+  const motivo = document.getElementById('motivo-bloqueo').value;
+  if (!bloqueoTarget) return;
+  const r = await AdminAPI.put(`/admin/clientes/${bloqueoTarget.id}/bloqueo`, {
+    bloqueado: bloqueoTarget.bloqueado,
+    motivo
+  });
+  if (r.ok) {
+    Toast.show(r.mensaje || 'Actualizado', 'success');
+    Mo.close('mo-bloqueo');
+    loadClientes();
+  } else {
+    Toast.show(r.mensaje || 'Error', 'error');
+  }
+}
+
+function onSearch(v) {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { state.busqueda = v; state.page = 1; loadClientes(); }, 350);
+}
+function onFilter() { state.tipo = document.getElementById('tipo-filter').value; state.page = 1; loadClientes(); }
+
+function exportarClientes() {
+  const token = localStorage.getItem('mbs_token') || '';
+  const a = document.createElement('a');
+  a.href = '/api/admin/clientes/export';
+  // Trigger download with token via fetch → blob
+  fetch('/api/admin/clientes/export', { headers: { 'Authorization': 'Bearer ' + token } })
+    .then(res => res.blob())
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      a.href = url;
+      a.download = 'clientes-mbs.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    })
+    .catch(() => Toast.show('Error al exportar', 'error'));
+}
+
+document.addEventListener('DOMContentLoaded', loadClientes);
+</script>
+</body>
+</html>
