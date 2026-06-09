@@ -8,7 +8,9 @@ const AdminAuth = (() => {
     const token = localStorage.getItem('mbs_token');
     const user  = JSON.parse(localStorage.getItem('mbs_user') || 'null');
     if (!token || !user || !['admin', 'superadmin'].includes(user.rol)) {
-      window.location.href = '/pages/login.html';
+      localStorage.removeItem('mbs_token');
+      localStorage.removeItem('mbs_user');
+      window.location.href = '/pages/login.html?redirect=' + encodeURIComponent(window.location.pathname);
       return null;
     }
     return user;

@@ -139,8 +139,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       : `<span class="stock-badge no-stock">Sin stock</span>`;
 
     const imgHtml = p.imagen_principal
-      ? `<img src="${p.imagen_principal}" alt="${nombre}" loading="lazy">`
-      : `<div class="product-card__img-placeholder"><span style="font-size:2rem">📦</span></div>`;
+      ? `<img src="${p.imagen_principal}" alt="${nombre}" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/400x400/e2e8f0/64748b?text=${encodeURIComponent(sku)}'">`
+      : `<img src="https://placehold.co/400x400/e2e8f0/64748b?text=${encodeURIComponent(sku)}" alt="${nombre}" loading="lazy">`;
 
     const btnHtml = stock > 0
       ? `<button class="btn btn-primary btn-full btn-add-cart" data-id="${id}">Añadir al carrito</button>`
