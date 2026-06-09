@@ -31,7 +31,7 @@ const listar = async (req, res) => {
       ]
     );
 
-    const total = result.rows[0]?.total_registros || 0;
+    const total = result.rows[0]?.r_total_registros || 0;
     res.json({
       ok: true, total: parseInt(total),
       pagina: parseInt(pagina), por_pagina: parseInt(por_pagina),
