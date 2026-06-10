@@ -61,10 +61,18 @@ const agregar = async (req, res) => {
 // DELETE /api/carrito/:item_id
 const eliminarItem = async (req, res) => {
   try {
-    await query(
-      'DELETE FROM carrito_items WHERE id = CAST($1 AS INTEGER)',
-      [parseInt(req.params.item_id)]
+    const uid = toInt(req.usuario?.id);
+    const sk  = toStr(req.headers['x-session-key']);
+
+    const result = await query(
+      'DELETE FROM carrito_items ci USING carritos c' +
+      ' WHERE ci.id = CAST($1 AS INTEGER) AND ci.carrito_id = c.id' +
+      ' AND (c.usuario_id = CAST($2 AS INTEGER) OR c.session_key = CAST($3 AS CHARACTER VARYING))',
+      [parseInt(req.params.item_id), uid, sk]
     );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ ok: false, mensaje: 'Item no encontrado en tu carrito' });
+    }
     res.json({ ok: true, mensaje: 'Producto eliminado del carrito' });
   } catch (err) {
     console.error('eliminar item:', err.message);
@@ -79,10 +87,19 @@ const actualizarCantidad = async (req, res) => {
     if (!cantidad || cantidad < 1) {
       return res.status(400).json({ ok: false, mensaje: 'Cantidad invalida' });
     }
-    await query(
-      'UPDATE carrito_items SET cantidad = CAST($1 AS INTEGER) WHERE id = CAST($2 AS INTEGER)',
-      [parseInt(cantidad), parseInt(req.params.item_id)]
+    const uid = toInt(req.usuario?.id);
+    const sk  = toStr(req.headers['x-session-key']);
+
+    const result = await query(
+      'UPDATE carrito_items ci SET cantidad = CAST($1 AS INTEGER)' +
+      ' FROM carritos c' +
+      ' WHERE ci.id = CAST($2 AS INTEGER) AND ci.carrito_id = c.id' +
+      ' AND (c.usuario_id = CAST($3 AS INTEGER) OR c.session_key = CAST($4 AS CHARACTER VARYING))',
+      [parseInt(cantidad), parseInt(req.params.item_id), uid, sk]
     );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ ok: false, mensaje: 'Item no encontrado en tu carrito' });
+    }
     res.json({ ok: true, mensaje: 'Cantidad actualizada' });
   } catch (err) {
     console.error('actualizar cantidad:', err.message);

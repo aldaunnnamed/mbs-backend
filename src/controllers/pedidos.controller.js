@@ -40,7 +40,7 @@ const listar = async (req, res) => {
       'CAST($1 AS INTEGER), CAST($2 AS CHARACTER VARYING), CAST($3 AS INTEGER))',
       [parseInt(req.usuario.id), estado || null, parseInt(pagina)]
     );
-    const total = result.rows[0]?.total_registros || 0;
+    const total = result.rows[0]?.r_total_registros || 0;
     res.json({ ok: true, total: parseInt(total), pedidos: result.rows });
   } catch (err) {
     console.error('listar pedidos:', err.message);

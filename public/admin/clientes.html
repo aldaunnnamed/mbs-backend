@@ -157,7 +157,7 @@ async function loadClientes() {
             <div class="tbl__sub">${c.telefono || c.r_telefono || ''}</div>
           </td>
           <td class="tx-m">${fmt.date(c.created_at || c.r_fecha_registro)}</td>
-          <td class="fw6">${c.total_pedidos || c.r_total_pedidos || 0}</td>
+          <td class="fw6">${c.r_num_pedidos || 0}</td>
           <td>${bloqueado ? '<span class="bdg bdg--r">Bloqueado</span>' : '<span class="bdg bdg--g">Activo</span>'}</td>
           <td>
             <div style="display:flex;gap:6px">

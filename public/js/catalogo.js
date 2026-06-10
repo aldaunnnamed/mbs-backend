@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     pagina: 1,
     por_pagina: 9,
     orden: 'relevancia',
-    categoria_id: null,
+    categoria_ids: [],
     marca_id: null,
     precio_min: 0,
     precio_max: 15000,
@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Leer parámetros de la URL ───────────────────────────────
   const params = new URLSearchParams(window.location.search);
-  if (params.get('categoria'))  state.categoria_id = params.get('categoria');
+  if (params.get('categoria'))  state.categoria_ids = [params.get('categoria')];
   if (params.get('busqueda'))   state.busqueda     = params.get('busqueda');
   if (params.get('marca'))      state.marca_id     = params.get('marca');
   if (params.get('pagina'))     state.pagina       = parseInt(params.get('pagina'));
@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="filter-option">
           <label>
             <input type="checkbox" name="categoria" value="${c.id}"
-              ${state.categoria_id == c.id ? 'checked' : ''}>
+              ${state.categoria_ids.includes(String(c.id)) ? 'checked' : ''}>
             ${c.nombre}
           </label>
           <span class="filter-option__count">—</span>
@@ -64,6 +64,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>`).join('');
     }
 
+    // Selección única para marca: el backend solo soporta un marca_id a la
+    // vez, así que al marcar una se desmarcan las demás. Las categorías sí
+    // permiten selección múltiple (filtro OR).
+    mksContainer?.querySelectorAll('[name="marca"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        if (cb.checked) {
+          mksContainer.querySelectorAll('[name="marca"]').forEach(other => {
+            if (other !== cb) other.checked = false;
+          });
+        }
+      });
+    });
+
     // Prellenar búsqueda si viene por URL
     if (state.busqueda) {
       const inp = document.getElementById('search-input');
@@ -74,7 +87,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ── Construir query string ─────────────────────────────────
   const buildQuery = () => {
     const q = new URLSearchParams();
-    if (state.categoria_id) q.set('categoria_id', state.categoria_id);
+    if (state.categoria_ids.length) q.set('categoria_id', state.categoria_ids.join(','));
     if (state.marca_id)     q.set('marca_id',     state.marca_id);
     if (state.busqueda)     q.set('busqueda',      state.busqueda);
     if (state.solo_stock)   q.set('solo_stock',    'true');
@@ -271,9 +284,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Aplicar filtros del panel ──────────────────────────────
   const applyFilters = () => {
-    // Categoría (el backend soporta un ID; se toma el primero marcado)
+    // Categoría (selección múltiple: el backend filtra con OR)
     const catsChecked = document.querySelectorAll('[name="categoria"]:checked');
-    state.categoria_id = catsChecked.length > 0 ? catsChecked[0].value : null;
+    state.categoria_ids = Array.from(catsChecked).map(c => c.value);
 
     // Marca (el backend soporta un ID; se toma el primero marcado)
     const mksChecked = document.querySelectorAll('[name="marca"]:checked');
@@ -314,8 +327,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const id = key.split('_')[1];
       const el = document.querySelector(`[name="categoria"][value="${id}"]`);
       if (el) el.checked = false;
-      const remaining = document.querySelectorAll('[name="categoria"]:checked');
-      state.categoria_id = remaining.length > 0 ? remaining[0].value : null;
+      state.categoria_ids = state.categoria_ids.filter(c => c !== id);
     }
     if (key.startsWith('marca_')) {
       const id = key.split('_')[1];
@@ -328,7 +340,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadProducts();
   };
   window.clearAllFilters = () => {
-    state.categoria_id = null; state.marca_id = null;
+    state.categoria_ids = []; state.marca_id = null;
     state.busqueda = null; state.solo_stock = false;
     state.precio_min = 0; state.precio_max = 15000;
     state.pagina = 1;

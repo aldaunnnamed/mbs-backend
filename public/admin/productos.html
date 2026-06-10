@@ -209,34 +209,36 @@ async function loadCats() {
 }
 
 async function loadProducts() {
-  let url = `/productos?pagina=${state.page}&por_pagina=10`;
+  let url = `/admin/productos?pagina=${state.page}&por_pagina=10`;
   if (state.busqueda) url += '&busqueda=' + encodeURIComponent(state.busqueda);
   if (state.categoria) url += '&categoria_id=' + state.categoria;
-  if (state.tab === 'stock_bajo') url += '&solo_stock=false';
+  if (state.tab === 'activos')   url += '&estado=activo';
+  if (state.tab === 'inactivos') url += '&estado=inactivo';
 
   const r = await AdminAPI.get(url);
   let prods = r.productos || [];
   state.total = r.total || prods.length;
 
-  // Client-side tab filter
-  if (state.tab === 'activos')   prods = prods.filter(p => p.estado === 'activo' && p.stock_actual > (p.stock_minimo||5));
-  if (state.tab === 'inactivos') prods = prods.filter(p => p.estado === 'inactivo');
-  if (state.tab === 'stock_bajo') prods = prods.filter(p => p.stock_actual <= (p.stock_minimo||5) && p.stock_actual > 0);
+  // Filtro adicional de stock (sobre la página actual)
+  if (state.tab === 'activos')    prods = prods.filter(p => p.r_stock_actual > (p.r_stock_minimo||5));
+  if (state.tab === 'stock_bajo') prods = prods.filter(p => p.r_stock_actual <= (p.r_stock_minimo||5) && p.r_stock_actual > 0);
 
   state.productos = prods;
 
-  // Update counts (approximate)
-  document.getElementById('cnt-todos').textContent     = r.total || 0;
-  document.getElementById('cnt-activos').textContent   = (r.productos||[]).filter(p=>p.estado==='activo').length;
-  document.getElementById('cnt-inactivos').textContent = (r.productos||[]).filter(p=>p.estado==='inactivo').length;
-  document.getElementById('cnt-stock').textContent     = (r.productos||[]).filter(p=>p.stock_actual<=(p.stock_minimo||5)).length;
+  // Conteos (aproximados, sobre la página actual)
+  document.getElementById('cnt-todos').textContent     = state.tab === 'todos'     ? (r.total || 0) : prods.length;
+  document.getElementById('cnt-activos').textContent   = state.tab === 'activos'   ? (r.total || 0) : prods.filter(p=>p.r_estado==='activo').length;
+  document.getElementById('cnt-inactivos').textContent = state.tab === 'inactivos' ? (r.total || 0) : prods.filter(p=>p.r_estado==='inactivo').length;
+  document.getElementById('cnt-stock').textContent     = prods.filter(p=>p.r_stock_actual<=(p.r_stock_minimo||5)).length;
 
   renderTable(prods, r.total || 0);
 }
 
 function stockBadge(p) {
-  if (p.stock_actual === 0) return '<span class="bdg bdg--r">Sin stock</span>';
-  if (p.stock_actual <= (p.r_stock_minimo || p.stock_minimo || 5)) return '<span class="bdg bdg--o">Stock bajo</span>';
+  const stock  = p.stock_actual ?? p.r_stock_actual;
+  const minimo = p.stock_minimo ?? p.r_stock_minimo ?? 5;
+  if (stock === 0) return '<span class="bdg bdg--r">Sin stock</span>';
+  if (stock <= minimo) return '<span class="bdg bdg--o">Stock bajo</span>';
   return '<span class="bdg bdg--g">Activo</span>';
 }
 
@@ -258,14 +260,14 @@ function renderTable(prods, total) {
           </div>
         </td>
         <td class="tx-m">${p.categoria_nombre || p.r_categoria || '—'}</td>
-        <td class="fw6">${fmt.money(p.precio_venta || p.r_precio || 0)}</td>
-        <td>${p.stock_actual ?? p.r_stock ?? '—'}</td>
+        <td class="fw6">${fmt.money(p.precio_venta || p.r_precio_venta || 0)}</td>
+        <td>${p.stock_actual ?? p.r_stock_actual ?? '—'}</td>
         <td>${stockBadge(p)}</td>
         <td>
           <div style="display:flex;gap:6px">
-            <button class="btn btn-b btn-xs" onclick="editProducto(${p.id || p.r_producto_id})">Editar</button>
+            <button class="btn btn-b btn-xs" onclick="editProducto(${p.id || p.r_id})">Editar</button>
             <button class="btn btn-gr btn-xs">Ver</button>
-            <button class="btn btn-xs" style="background:var(--c-red-bg);color:var(--c-red-tx)" onclick="darBajaId(${p.id || p.r_producto_id})">Baja</button>
+            <button class="btn btn-xs" style="background:var(--c-red-bg);color:var(--c-red-tx)" onclick="darBajaId(${p.id || p.r_id})">Baja</button>
           </div>
         </td>
       </tr>`).join('')
@@ -330,19 +332,20 @@ async function editProducto(id) {
   document.getElementById('mo-title').textContent = 'Editar producto';
   document.getElementById('mo-baja-btn').style.display = 'inline-flex';
   // Find in local state
-  const p = state.productos.find(x => (x.id || x.r_producto_id) == id);
+  const p = state.productos.find(x => (x.id || x.r_id) == id);
   if (p) {
     document.getElementById('f-nombre').value      = p.nombre || p.r_nombre || '';
     document.getElementById('f-sku').value         = p.sku || p.r_sku || '';
-    document.getElementById('f-precio').value      = p.precio_venta || p.r_precio || '';
-    document.getElementById('f-precio-antes').value= p.precio_antes || '';
-    document.getElementById('f-desc-corta').value  = p.descripcion_corta || '';
-    document.getElementById('f-categoria').value   = p.categoria_id || '';
-    document.getElementById('f-marca').value       = p.marca_id || '';
-    document.getElementById('f-estado').value      = p.estado || 'activo';
-    document.getElementById('f-badge').value       = p.badge || '';
-    document.getElementById('f-stock').value       = p.stock_actual ?? '';
-    document.getElementById('f-stock-min').value   = p.stock_minimo || '';
+    document.getElementById('f-precio').value      = p.precio_venta || p.r_precio_venta || '';
+    document.getElementById('f-precio-antes').value= p.precio_antes ?? p.r_precio_antes ?? '';
+    document.getElementById('f-desc-corta').value  = p.descripcion_corta || p.r_descripcion_corta || '';
+    document.getElementById('f-desc-larga').value  = p.descripcion_larga || p.r_descripcion_larga || '';
+    document.getElementById('f-categoria').value   = p.categoria_id || p.r_categoria_id || '';
+    document.getElementById('f-marca').value       = p.marca_id || p.r_marca_id || '';
+    document.getElementById('f-estado').value      = p.estado || p.r_estado || 'activo';
+    document.getElementById('f-badge').value       = p.badge || p.r_badge || '';
+    document.getElementById('f-stock').value       = p.stock_actual ?? p.r_stock_actual ?? '';
+    document.getElementById('f-stock-min').value   = p.stock_minimo ?? p.r_stock_minimo ?? '';
   }
   Mo.open('mo-producto');
 }

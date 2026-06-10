@@ -27,7 +27,7 @@ const listarClientes = async (req, res) => {
       'CAST($1 AS CHARACTER VARYING), CAST($2 AS CHARACTER VARYING), CAST($3 AS INTEGER))',
       [busqueda || null, tipo || null, parseInt(pagina)]
     );
-    const total = result.rows[0]?.total_registros || 0;
+    const total = result.rows[0]?.r_total_registros || 0;
     res.json({ ok: true, total: parseInt(total), clientes: result.rows });
   } catch (err) {
     console.error('listarClientes:', err.message);
@@ -111,6 +111,24 @@ const ajustarStock = async (req, res) => {
   } catch (err) {
     console.error('ajustarStock:', err.message);
     res.status(500).json({ ok: false, mensaje: 'Error al ajustar stock' });
+  }
+};
+
+const listarProductos = async (req, res) => {
+  try {
+    const { busqueda = null, categoria_id = null, estado = null, pagina = 1, por_pagina = 10 } = req.query;
+    const result = await query(
+      'SELECT * FROM fn_admin_listar_productos(' +
+      'CAST($1 AS CHARACTER VARYING), CAST($2 AS INTEGER), CAST($3 AS CHARACTER VARYING),' +
+      'CAST($4 AS INTEGER), CAST($5 AS INTEGER))',
+      [busqueda || null, categoria_id ? parseInt(categoria_id) : null, estado || null,
+       parseInt(pagina), parseInt(por_pagina)]
+    );
+    const total = result.rows[0]?.r_total_registros || 0;
+    res.json({ ok: true, total: parseInt(total), productos: result.rows });
+  } catch (err) {
+    console.error('listarProductos:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error al obtener productos' });
   }
 };
 
@@ -515,17 +533,16 @@ const detallePedido = async (req, res) => {
     const [pedidoRes, itemsRes] = await Promise.all([
       query(
         'SELECT p.id, p.numero, p.estado, p.subtotal, p.costo_envio, p.iva,' +
-        ' p.descuento, p.total, p.notas_cliente, p.notas_admin,' +
+        ' p.total, p.notas_cliente, p.notas_internas,' +
         ' p.paqueteria, p.numero_guia, p.requiere_factura, p.created_at,' +
         " u.nombre || ' ' || u.apellidos AS cliente_nombre," +
         ' u.email AS email_cliente, u.telefono,' +
         ' me.nombre AS metodo_envio_nombre, mp.nombre AS metodo_pago_nombre,' +
-        " COALESCE(d.calle_numero || ', ' || d.colonia || ', ' || d.ciudad || ', ' || d.estado, '') AS direccion_entrega" +
+        " p.dir_calle || ', ' || p.dir_colonia || ', ' || p.dir_ciudad || ', ' || p.dir_estado_geo || ', CP ' || p.dir_cp AS direccion_entrega" +
         ' FROM pedidos p' +
         ' JOIN usuarios u ON u.id = p.usuario_id' +
-        ' JOIN metodos_envio me ON me.id = p.metodo_envio_id' +
+        ' LEFT JOIN metodos_envio me ON me.id = p.metodo_envio_id' +
         ' JOIN metodos_pago mp ON mp.id = p.metodo_pago_id' +
-        ' LEFT JOIN direcciones d ON d.id = p.direccion_id' +
         ' WHERE p.id = $1',
         [id]
       ),
@@ -586,7 +603,7 @@ const marcarMensajeLeido = async (req, res) => {
 module.exports = {
   dashboard, listarClientes, toggleBloqueo,
   listarPedidos, actualizarEstadoPedido,
-  alertasInventario, ajustarStock, guardarProducto,
+  alertasInventario, ajustarStock, listarProductos, guardarProducto,
   obtenerConfiguracion, guardarConfiguracion,
   detalleCliente, detallePedido,
   topProductos,

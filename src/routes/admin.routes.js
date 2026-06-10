@@ -28,6 +28,7 @@ router.put('/inventario/:id/stock',         ctrl.ajustarStock);
 router.get ('/productos/top',               ctrl.topProductos);
 router.get ('/productos/export',            ctrl.exportarProductos);
 router.post('/productos/import',            uploadCsv.single('archivo'), ctrl.importarProductos);
+router.get ('/productos',                   ctrl.listarProductos);
 router.post('/productos',                   ctrl.guardarProducto);
 router.put ('/productos/:id',               ctrl.guardarProducto);
 router.post('/productos/:id/imagenes',      uploadImage.single('imagen'), ctrl.subirImagenProducto);

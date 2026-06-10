@@ -11,15 +11,19 @@ const listar = async (req, res) => {
       pagina       = 1,    por_pagina   = 9
     } = req.query;
 
+    const categoriaIds = categoria_id
+      ? String(categoria_id).split(',').map(id => parseInt(id)).filter(id => !isNaN(id))
+      : null;
+
     const result = await query(
       'SELECT * FROM fn_listar_productos(' +
-      'CAST($1 AS INTEGER), CAST($2 AS INTEGER),' +
+      'CAST($1 AS INTEGER[]), CAST($2 AS INTEGER),' +
       'CAST($3 AS NUMERIC),  CAST($4 AS NUMERIC),' +
       'CAST($5 AS BOOLEAN),' +
       'CAST($6 AS CHARACTER VARYING), CAST($7 AS CHARACTER VARYING),' +
       'CAST($8 AS INTEGER),  CAST($9 AS INTEGER))',
       [
-        categoria_id ? parseInt(categoria_id) : null,
+        categoriaIds && categoriaIds.length ? categoriaIds : null,
         marca_id     ? parseInt(marca_id)     : null,
         precio_min   ? parseFloat(precio_min) : null,
         precio_max   ? parseFloat(precio_max) : null,

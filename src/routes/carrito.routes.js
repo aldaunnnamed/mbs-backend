@@ -1,10 +1,10 @@
 const router = require('express').Router();
 const ctrl   = require('../controllers/carrito.controller');
-const { tokenOpcional, verificarToken } = require('../middlewares/auth');
+const { tokenOpcional } = require('../middlewares/auth');
 
 router.get ('/',              tokenOpcional, ctrl.obtener);
 router.post('/agregar',       tokenOpcional, ctrl.agregar);
-router.put ('/:item_id',      verificarToken, ctrl.actualizarCantidad);
+router.put ('/:item_id',      tokenOpcional, ctrl.actualizarCantidad);
 router.delete('/:item_id',    tokenOpcional, ctrl.eliminarItem);
 
 // GET /api/carrito/id — devuelve el carrito_id activo

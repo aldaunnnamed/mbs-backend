@@ -177,13 +177,13 @@ async function load() {
   allItems = items;
 
   const k = (dashboard.ok && dashboard.kpis) || {};
-  document.getElementById('k-total').textContent  = fmt.num(k.total_productos || items.length);
-  document.getElementById('k-bajo').textContent   = items.filter(i=>i.alerta==='bajo'||i.alerta==='critico').length;
-  document.getElementById('k-cero').textContent   = items.filter(i=>i.alerta==='sin_stock').length;
-  document.getElementById('k-ok').textContent     = fmt.num((k.total_productos||0) - items.filter(i=>i.alerta!=='ok').length);
+  document.getElementById('k-total').textContent  = fmt.num(k.productos_activos || items.length);
+  document.getElementById('k-bajo').textContent   = items.filter(i=>i.r_nivel_alerta==='bajo'||i.r_nivel_alerta==='critico').length;
+  document.getElementById('k-cero').textContent   = items.filter(i=>i.r_nivel_alerta==='sin_stock').length;
+  document.getElementById('k-ok').textContent     = fmt.num((k.productos_activos||0) - items.length);
 
   document.getElementById('inv-sub').textContent =
-    `Control de stock · ${items.filter(i=>i.alerta!=='ok').length} productos con alerta`;
+    `Control de stock · ${items.length} productos con alerta`;
 
   renderTable(items);
 }
@@ -191,28 +191,28 @@ async function load() {
 function renderTable(items) {
   document.getElementById('inv-tbody').innerHTML = items.length
     ? items.map(a => {
-        const { cls, lbl } = alertaClass(a.alerta);
-        const pct = barPct(a.stock_actual, a.stock_minimo);
+        const { cls, lbl } = alertaClass(a.r_nivel_alerta);
+        const pct = barPct(a.r_stock_actual, a.r_stock_minimo);
         return `<tr>
           <td>
-            <div class="tbl__name">${a.nombre || a.producto_nombre || '—'}</div>
-            <div class="tbl__sub">${a.sku || ''}</div>
+            <div class="tbl__name">${a.r_nombre || '—'}</div>
+            <div class="tbl__sub">${a.r_sku || ''}</div>
           </td>
-          <td class="tx-m">${a.categoria_nombre || a.categoria || '—'}</td>
+          <td class="tx-m">${a.r_categoria || '—'}</td>
           <td>
             <div class="flex-c gap8">
-              <span class="fw6">${a.stock_actual}</span>
+              <span class="fw6">${a.r_stock_actual}</span>
               <div class="sbar-wrap">
-                <div class="sbar"><div class="sbar__fill ${barClass(a.alerta)}" style="width:${pct}%"></div></div>
+                <div class="sbar"><div class="sbar__fill ${barClass(a.r_nivel_alerta)}" style="width:${pct}%"></div></div>
               </div>
             </div>
           </td>
-          <td class="tx-m">${a.stock_minimo ?? '—'}</td>
+          <td class="tx-m">${a.r_stock_minimo ?? '—'}</td>
           <td><span class="bdg ${cls}">${lbl}</span></td>
           <td>
             <div style="display:flex;gap:6px">
-              <button class="btn btn-p btn-xs" onclick="abrirAjuste(${a.producto_id},'${(a.nombre||'').replace(/'/g,"\\'")}',${a.stock_actual})">Reponer stock</button>
-              <button class="btn btn-gr btn-xs" onclick="abrirAjuste(${a.producto_id},'${(a.nombre||'').replace(/'/g,"\\'")}',${a.stock_actual})">Ajustar</button>
+              <button class="btn btn-p btn-xs" onclick="abrirAjuste(${a.r_id},'${(a.r_nombre||'').replace(/'/g,"\\'")}',${a.r_stock_actual})">Reponer stock</button>
+              <button class="btn btn-gr btn-xs" onclick="abrirAjuste(${a.r_id},'${(a.r_nombre||'').replace(/'/g,"\\'")}',${a.r_stock_actual})">Ajustar</button>
             </div>
           </td>
         </tr>`;
@@ -247,15 +247,15 @@ function onSearch(v) {
   searchTimer = setTimeout(() => {
     const q = v.toLowerCase();
     renderTable(allItems.filter(i =>
-      (i.nombre||i.producto_nombre||'').toLowerCase().includes(q) ||
-      (i.sku||'').toLowerCase().includes(q)
+      (i.r_nombre||'').toLowerCase().includes(q) ||
+      (i.r_sku||'').toLowerCase().includes(q)
     ));
   }, 300);
 }
 
 function onFilter() {
   const f = document.getElementById('alerta-filter').value;
-  renderTable(f ? allItems.filter(i => i.alerta === f) : allItems);
+  renderTable(f ? allItems.filter(i => i.r_nivel_alerta === f) : allItems);
 }
 
 document.addEventListener('DOMContentLoaded', load);

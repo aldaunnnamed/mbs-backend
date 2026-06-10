@@ -462,14 +462,12 @@ const NOTIF_ADM = [
   { clave:'notif_admin_nuevo_pedido',    name:'Nuevo pedido recibido',    sub:'Email inmediato' },
   { clave:'notif_admin_pedido_cancelado',name:'Pedido cancelado',         sub:'Notificación email' },
   { clave:'notif_admin_stock_bajo',      name:'Stock bajo (umbral)',       sub:'Alerta diaria' },
-  { clave:'notif_admin_nueva_cotizacion',name:'Nueva cotización',         sub:'Email inmediato' },
   { clave:'notif_admin_nuevo_cliente',   name:'Nuevo cliente registrado', sub:'Resumen semanal' },
 ];
 const NOTIF_CLI = [
   { clave:'notif_cli_confirmacion', name:'Confirmación de pedido',      sub:'Email con detalle y # de orden' },
   { clave:'notif_cli_estado',       name:'Cambio de estado del pedido', sub:'Prep. / Enviado / Entregado' },
   { clave:'notif_cli_guia',         name:'Número de guía disponible',   sub:'Con link de rastreo' },
-  { clave:'notif_cli_cotizacion',   name:'Respuesta a cotización',      sub:'Cuando admin responde' },
 ];
 
 async function loadNotif() {
