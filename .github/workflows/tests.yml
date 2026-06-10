@@ -1,0 +1,66 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mbs_comunicaciones
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout backend
+        uses: actions/checkout@v4
+
+      - name: Checkout esquema de base de datos (mbs-comunicaciones)
+        uses: actions/checkout@v4
+        with:
+          repository: aldaunnnamed/mbs-comunicaciones
+          path: mbs-comunicaciones
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Crear esquema, funciones y datos de prueba
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d mbs_comunicaciones -c "CREATE EXTENSION IF NOT EXISTS unaccent;"
+          psql -h localhost -U postgres -d mbs_comunicaciones -v ON_ERROR_STOP=1 -f mbs-comunicaciones/01_schema.sql
+          psql -h localhost -U postgres -d mbs_comunicaciones -v ON_ERROR_STOP=1 -f mbs-comunicaciones/02_functions.sql
+          psql -h localhost -U postgres -d mbs_comunicaciones -v ON_ERROR_STOP=1 -f mbs-comunicaciones/03_seed_data.sql
+          psql -h localhost -U postgres -d mbs_comunicaciones -v ON_ERROR_STOP=1 -f mbs-comunicaciones/05_pagos.sql
+          psql -h localhost -U postgres -d mbs_comunicaciones -v ON_ERROR_STOP=1 -f mbs-comunicaciones/06_imagenes.sql
+          psql -h localhost -U postgres -d mbs_comunicaciones -v ON_ERROR_STOP=1 -f mbs-comunicaciones/07_contacto.sql
+
+      - name: Ejecutar pruebas
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: mbs_comunicaciones
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          JWT_SECRET: ci_test_secret_only
+          JWT_EXPIRES_IN: 7d
+        run: npm test
