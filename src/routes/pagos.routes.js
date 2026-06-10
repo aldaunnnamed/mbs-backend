@@ -11,6 +11,7 @@ router.post('/spei/webhook',                      ctrl.webhookSpei);
 
 // PayPal
 router.post('/paypal/orden',      verificarToken, ctrl.crearOrdenPaypal);
+router.post('/paypal/capturar',   verificarToken, ctrl.capturarOrdenPaypal);
 router.post('/paypal/webhook',                    ctrl.webhookPaypal);
 
 module.exports = router;

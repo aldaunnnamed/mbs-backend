@@ -568,6 +568,18 @@ window.confirmarPedido = async () => {
     });
 
     if (pedidoRes.ok) {
+      Cart.updateBadge();
+
+      // Si el pago es con PayPal, redirigir a la pasarela en vez de mostrar el éxito directo
+      if (selectedPayment === 'paypal') {
+        const ordenRes = await API.post('/pagos/paypal/orden', { pedido_id: pedidoRes.pedido_id });
+        if (ordenRes.ok && ordenRes.approval_url) {
+          window.location.href = ordenRes.approval_url;
+          return;
+        }
+        Toast.show(ordenRes.mensaje || 'Tu pedido fue creado, pero no se pudo iniciar el pago con PayPal. Puedes reintentarlo desde "Mis pedidos".', 'error');
+      }
+
       // Pantalla de éxito
       document.getElementById('success-order-num').textContent = pedidoRes.numero_pedido;
       document.getElementById('success-msg').textContent =
@@ -580,7 +592,6 @@ window.confirmarPedido = async () => {
 
       document.getElementById('checkout-form-page').style.display = 'none';
       document.getElementById('success-page').style.display = 'flex';
-      Cart.updateBadge();
     } else {
       Toast.show(pedidoRes.mensaje || 'Error al procesar el pedido', 'error');
       btn.disabled = false;

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pago con PayPal — MBS Comunicaciones</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/navbar.css">
+  <style>
+    .pp-page{min-height:80vh;display:flex;align-items:center;justify-content:center;padding:40px 16px}
+    .pp-card{background:var(--white);border:1px solid var(--gray-100);border-radius:var(--radius-md);padding:40px 36px;max-width:440px;width:100%;box-shadow:var(--shadow-md);text-align:center}
+    .pp-icon{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:1.8rem}
+    .pp-icon.loading{background:var(--gray-50);color:var(--navy)}
+    .pp-icon.success{background:var(--green-lite);color:var(--green)}
+    .pp-icon.error{background:#fff0f0;color:#c62828}
+    .pp-card h2{font-size:1.3rem;color:var(--navy);margin-bottom:8px}
+    .pp-card p{color:var(--gray-600);font-size:.9rem;line-height:1.5;margin-bottom:20px}
+    .pp-detail{background:var(--gray-50);border-radius:var(--radius-sm);padding:14px;font-size:.85rem;margin-bottom:20px;text-align:left}
+    .pp-detail-row{display:flex;justify-content:space-between;padding:3px 0}
+    .pp-detail-row span:first-child{color:var(--gray-600)}
+    .pp-detail-row span:last-child{font-weight:700;color:var(--navy)}
+    .pp-btns{display:flex;flex-direction:column;gap:10px}
+    .spinner{width:36px;height:36px;border:3px solid var(--gray-100);border-top-color:var(--navy);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+<nav class="navbar">
+  <div class="container">
+    <div class="navbar__inner">
+      <a href="/" class="navbar__logo"><span class="navbar__logo-text">MBS</span></a>
+      <div class="navbar__actions" id="navbar-actions"></div>
+    </div>
+  </div>
+</nav>
+
+<div class="pp-page">
+  <div class="pp-card">
+    <div class="pp-icon loading" id="pp-icon"><div class="spinner"></div></div>
+    <h2 id="pp-title">Confirmando tu pago...</h2>
+    <p id="pp-desc">Estamos verificando tu pago con PayPal. Esto solo toma un momento.</p>
+
+    <div class="pp-detail" id="pp-detail" style="display:none">
+      <div class="pp-detail-row"><span>Pedido</span><span id="pp-pedido"></span></div>
+      <div class="pp-detail-row"><span>Total</span><span id="pp-total"></span></div>
+      <div class="pp-detail-row"><span>Estado del pago</span><span id="pp-estado"></span></div>
+    </div>
+
+    <div class="pp-btns" id="pp-btns" style="display:none"></div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="/js/global.js"></script>
+<script>
+const params    = new URLSearchParams(window.location.search);
+const pedidoId  = params.get('pedido_id');
+const orderId   = params.get('token'); // PayPal devuelve el order id como "token"
+const cancelado = params.get('cancelado') === '1';
+
+const setIcon = (tipo, contenido) => {
+  const icon = document.getElementById('pp-icon');
+  icon.className = 'pp-icon ' + tipo;
+  icon.innerHTML = contenido;
+};
+
+const showButtons = (btns) => {
+  const c = document.getElementById('pp-btns');
+  c.innerHTML = btns;
+  c.style.display = 'flex';
+};
+
+const reintentar = async () => {
+  if (!pedidoId) { window.location.href = '/pages/mis-pedidos.html'; return; }
+  const res = await API.post('/pagos/paypal/orden', { pedido_id: parseInt(pedidoId) });
+  if (res.ok && res.approval_url) {
+    window.location.href = res.approval_url;
+  } else {
+    Toast.show(res.mensaje || 'No se pudo reiniciar el pago con PayPal', 'error');
+  }
+};
+window.reintentar = reintentar;
+
+const mostrarFallo = (mensaje) => {
+  setIcon('error', '✕');
+  document.getElementById('pp-title').textContent = 'No se completó el pago';
+  document.getElementById('pp-desc').textContent = mensaje ||
+    'Tu pago con PayPal no se completó. Puedes intentarlo de nuevo o elegir otro método de pago.';
+  showButtons(`
+    <button class="btn btn-primary" onclick="reintentar()">Reintentar con PayPal</button>
+    <a href="/pages/mis-pedidos.html" class="btn btn-outline">Ver mis pedidos</a>
+  `);
+};
+
+const mostrarExito = (pago) => {
+  setIcon('success', '✓');
+  document.getElementById('pp-title').textContent = '¡Pago confirmado!';
+  document.getElementById('pp-desc').textContent = 'Tu pago con PayPal se procesó correctamente.';
+
+  document.getElementById('pp-pedido').textContent = pago.r_pedido_numero || '—';
+  document.getElementById('pp-total').textContent  = formatPrice(pago.r_total || 0);
+  document.getElementById('pp-estado').textContent = pago.r_estatus_pago === 'pagado' ? 'Pagado' : (pago.r_paypal_estado || pago.r_proveedor_estado || '—');
+  document.getElementById('pp-detail').style.display = 'block';
+
+  showButtons(`
+    <a href="/pages/mis-pedidos.html" class="btn btn-primary">Ver mis pedidos</a>
+    <a href="/pages/catalogo.html" class="btn btn-outline">Seguir comprando</a>
+  `);
+};
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (cancelado) {
+    mostrarFallo('Cancelaste el pago en PayPal. Tu pedido sigue pendiente de pago.');
+    return;
+  }
+
+  if (!Session.isLoggedIn()) {
+    setIcon('error', '⚠');
+    document.getElementById('pp-title').textContent = 'Sesión expirada';
+    document.getElementById('pp-desc').textContent = 'Inicia sesión de nuevo para confirmar tu pago.';
+    showButtons(`<a href="/pages/login.html?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}" class="btn btn-primary">Iniciar sesión</a>`);
+    return;
+  }
+
+  if (!orderId) {
+    mostrarFallo('No se encontró información de la orden de PayPal.');
+    return;
+  }
+
+  try {
+    const res = await API.post('/pagos/paypal/capturar', { order_id: orderId });
+    if (res.ok && res.pago && res.pago.r_estatus_pago === 'pagado') {
+      mostrarExito(res.pago);
+      Cart.updateBadge();
+    } else {
+      mostrarFallo(res.mensaje);
+    }
+  } catch (err) {
+    console.error('Error capturando pago PayPal:', err);
+    mostrarFallo('Error de conexión al confirmar el pago.');
+  }
+});
+</script>
+</body>
+</html>

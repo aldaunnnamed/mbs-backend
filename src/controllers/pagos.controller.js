@@ -1,4 +1,5 @@
 const { query } = require('../config/db');
+const paypal = require('../services/paypal.service');
 
 // GET /api/pagos/estado/:pedido_id
 const estadoPago = async (req, res) => {
@@ -64,38 +65,146 @@ const webhookSpei = async (req, res) => {
 // POST /api/pagos/paypal/orden
 const crearOrdenPaypal = async (req, res) => {
   try {
+    if (!paypal.credencialesConfiguradas()) {
+      return res.status(503).json({
+        ok: false,
+        mensaje: 'PayPal no está configurado. Define PAYPAL_CLIENT_ID y PAYPAL_SECRET en .env'
+      });
+    }
+
     const { pedido_id } = req.body;
-    // Aquí irá la integración real con el SDK de PayPal
-    // Por ahora devuelve instrucciones
-    res.json({
-      ok: true,
-      mensaje: 'Integración PayPal pendiente de configurar con credenciales reales',
-      instrucciones: 'Configura PAYPAL_CLIENT_ID y PAYPAL_SECRET en el archivo .env'
+    if (!pedido_id) {
+      return res.status(400).json({ ok: false, mensaje: 'pedido_id requerido' });
+    }
+
+    const pedidoRes = await query(
+      'SELECT id, numero, total, estatus_pago FROM pedidos' +
+      ' WHERE id = CAST($1 AS INTEGER) AND usuario_id = CAST($2 AS INTEGER)',
+      [parseInt(pedido_id), parseInt(req.usuario.id)]
+    );
+    if (!pedidoRes.rows.length) {
+      return res.status(404).json({ ok: false, mensaje: 'Pedido no encontrado' });
+    }
+
+    const pedido = pedidoRes.rows[0];
+    if (pedido.estatus_pago === 'pagado') {
+      return res.status(400).json({ ok: false, mensaje: 'Este pedido ya fue pagado' });
+    }
+
+    const appUrl = (process.env.APP_URL || (req.protocol + '://' + req.get('host'))).replace(/\/$/, '');
+    const orden = await paypal.crearOrden({
+      pedidoId: pedido.id,
+      numeroPedido: pedido.numero,
+      total: pedido.total,
+      moneda: 'MXN',
+      returnUrl: appUrl + '/pages/paypal-retorno.html?pedido_id=' + pedido.id,
+      cancelUrl: appUrl + '/pages/paypal-retorno.html?pedido_id=' + pedido.id + '&cancelado=1'
     });
+
+    if (!orden.approvalUrl) {
+      return res.status(502).json({ ok: false, mensaje: 'PayPal no devolvió una URL de aprobación' });
+    }
+
+    await query(
+      'SELECT fn_crear_orden_paypal(CAST($1 AS INTEGER), CAST($2 AS VARCHAR), CAST($3 AS VARCHAR))',
+      [pedido.id, orden.orderId, orden.approvalUrl]
+    );
+
+    res.json({ ok: true, order_id: orden.orderId, approval_url: orden.approvalUrl });
   } catch (err) {
+    console.error('crearOrdenPaypal:', err.message);
     res.status(500).json({ ok: false, mensaje: 'Error al crear orden PayPal' });
+  }
+};
+
+// POST /api/pagos/paypal/capturar  ← el frontend llama a esto al volver de PayPal
+const capturarOrdenPaypal = async (req, res) => {
+  try {
+    const { order_id } = req.body;
+    if (!order_id) {
+      return res.status(400).json({ ok: false, mensaje: 'order_id requerido' });
+    }
+
+    // Verificar que la orden pertenece a un pedido del usuario autenticado
+    const ownRes = await query(
+      'SELECT pp.pedido_id, pp.estado FROM pago_paypal pp' +
+      ' JOIN pedidos p ON p.id = pp.pedido_id' +
+      ' WHERE pp.order_id = $1 AND p.usuario_id = CAST($2 AS INTEGER)',
+      [order_id, parseInt(req.usuario.id)]
+    );
+    if (!ownRes.rows.length) {
+      return res.status(404).json({ ok: false, mensaje: 'Orden de PayPal no encontrada' });
+    }
+    const pedidoId = ownRes.rows[0].pedido_id;
+
+    // Si ya fue capturada antes (doble clic, regreso repetido), no volver a capturar en PayPal
+    if (ownRes.rows[0].estado !== 'COMPLETED') {
+      const captura = await paypal.capturarOrden(order_id);
+      const purchaseUnit = captura.purchase_units?.[0];
+      const capture = purchaseUnit?.payments?.captures?.[0];
+
+      const estado  = capture?.status || captura.status;
+      const monto   = capture?.amount?.value ?? purchaseUnit?.amount?.value ?? null;
+      const comision = capture?.seller_receivable_breakdown?.paypal_fee?.value ?? null;
+      const email   = captura.payer?.email_address || null;
+
+      await query(
+        'SELECT fn_confirmar_pago_paypal(' +
+        'CAST($1 AS VARCHAR), CAST($2 AS VARCHAR), CAST($3 AS VARCHAR),' +
+        'CAST($4 AS NUMERIC), CAST($5 AS NUMERIC), CAST($6 AS VARCHAR), CAST($7 AS JSONB))',
+        [order_id, capture?.id || null, estado, monto, comision, email, JSON.stringify(captura)]
+      );
+    }
+
+    const estadoPago = await query('SELECT * FROM fn_estado_pago_pedido(CAST($1 AS INTEGER))', [pedidoId]);
+    res.json({ ok: true, pago: estadoPago.rows[0] });
+  } catch (err) {
+    console.error('capturarOrdenPaypal:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error al capturar el pago de PayPal' });
   }
 };
 
 // POST /api/pagos/paypal/webhook  ← PayPal llama a esta ruta
 const webhookPaypal = async (req, res) => {
   try {
-    const { id: order_id, resource } = req.body;
-    if (!order_id) {
-      return res.status(400).json({ ok: false });
+    const evento = req.body;
+
+    if (process.env.PAYPAL_WEBHOOK_ID) {
+      const valido = await paypal.verificarWebhook(req.headers, evento);
+      if (!valido) {
+        console.warn('webhookPaypal: firma de webhook inválida');
+        return res.status(400).json({ ok: false });
+      }
     }
-    const result = await query(
-      'SELECT fn_confirmar_pago_paypal($1,$2,$3,$4,$5,$6,$7)',
-      [
-        order_id,
-        resource?.id,
-        resource?.status,
-        resource?.amount?.value,
-        null,
-        resource?.payer?.email_address,
-        req.body
-      ]
-    );
+
+    const tipo = evento.event_type;
+    const resource = evento.resource;
+    const eventosCaptura = {
+      'PAYMENT.CAPTURE.COMPLETED': 'COMPLETED',
+      'PAYMENT.CAPTURE.DENIED':    'DENIED',
+      'PAYMENT.CAPTURE.REFUNDED':  'REFUNDED'
+    };
+
+    if (resource && eventosCaptura[tipo]) {
+      const orderId = resource.supplementary_data?.related_ids?.order_id;
+      if (orderId) {
+        await query(
+          'SELECT fn_confirmar_pago_paypal(' +
+          'CAST($1 AS VARCHAR), CAST($2 AS VARCHAR), CAST($3 AS VARCHAR),' +
+          'CAST($4 AS NUMERIC), CAST($5 AS NUMERIC), CAST($6 AS VARCHAR), CAST($7 AS JSONB))',
+          [
+            orderId,
+            resource.id || null,
+            eventosCaptura[tipo],
+            resource.amount?.value || null,
+            resource.seller_receivable_breakdown?.paypal_fee?.value || null,
+            null,
+            JSON.stringify(evento)
+          ]
+        );
+      }
+    }
+
     res.json({ ok: true });
   } catch (err) {
     console.error('webhookPaypal:', err.message);
@@ -105,5 +214,5 @@ const webhookPaypal = async (req, res) => {
 
 module.exports = {
   estadoPago, crearReferenciaSpei, webhookSpei,
-  crearOrdenPaypal, webhookPaypal
+  crearOrdenPaypal, capturarOrdenPaypal, webhookPaypal
 };

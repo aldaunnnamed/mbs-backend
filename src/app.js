@@ -46,7 +46,7 @@ const pages = [
   'checkout', 'mi-cuenta', 'mis-pedidos',
   'login', 'registro', 'contacto', 'recuperar-password',
   'sobre-nosotros', 'faq', 'politica-envios', 'garantia', 'privacidad', 'terminos',
-  'reset-password'
+  'reset-password', 'paypal-retorno'
 ];
 pages.forEach(page => {
   app.get('/pages/' + page + '.html', (req, res) => {
@@ -93,10 +93,13 @@ app.use((err, req, res, next) => {
 });
 
 // ── Iniciar servidor ──────────────────────────────────────────
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log('Servidor MBS corriendo en http://localhost:' + PORT);
-  console.log('Entorno:', process.env.NODE_ENV || 'development');
-});
+// Solo escuchar si este archivo se ejecuta directamente (no al hacer require desde los tests)
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log('Servidor MBS corriendo en http://localhost:' + PORT);
+    console.log('Entorno:', process.env.NODE_ENV || 'development');
+  });
+}
 
 module.exports = app;
