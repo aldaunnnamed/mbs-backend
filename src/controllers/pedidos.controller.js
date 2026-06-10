@@ -78,7 +78,7 @@ const metodos_envio = async (req, res) => {
 // GET /api/pedidos/pagos-metodos
 const metodos_pago = async (req, res) => {
   try {
-    const result = await query('SELECT id, clave, nombre, descripcion FROM metodos_pago WHERE activo = TRUE');
+    const result = await query('SELECT id, clave, nombre, descripcion, activo FROM metodos_pago WHERE activo = TRUE');
     res.json({ ok: true, metodos: result.rows });
   } catch (err) {
     res.status(500).json({ ok: false, mensaje: 'Error al obtener metodos de pago' });
