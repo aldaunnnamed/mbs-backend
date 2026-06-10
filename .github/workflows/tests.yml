@@ -47,12 +47,12 @@ jobs:
           PGPASSWORD: postgres
         run: |
           psql -h localhost -U postgres -d mbs_comunicaciones -c "CREATE EXTENSION IF NOT EXISTS unaccent;"
-          psql -h localhost -U postgres -d mbs_comunicaciones -v ON_ERROR_STOP=1 -f mbs-comunicaciones/01_schema.sql
-          psql -h localhost -U postgres -d mbs_comunicaciones -v ON_ERROR_STOP=1 -f mbs-comunicaciones/02_functions.sql
-          psql -h localhost -U postgres -d mbs_comunicaciones -v ON_ERROR_STOP=1 -f mbs-comunicaciones/03_seed_data.sql
-          psql -h localhost -U postgres -d mbs_comunicaciones -v ON_ERROR_STOP=1 -f mbs-comunicaciones/05_pagos.sql
-          psql -h localhost -U postgres -d mbs_comunicaciones -v ON_ERROR_STOP=1 -f mbs-comunicaciones/06_imagenes.sql
-          psql -h localhost -U postgres -d mbs_comunicaciones -v ON_ERROR_STOP=1 -f mbs-comunicaciones/07_contacto.sql
+          psql -h localhost -U postgres -d mbs_comunicaciones -v ON_ERROR_STOP=1 -f mbs-comunicaciones/database/01_schema.sql
+          psql -h localhost -U postgres -d mbs_comunicaciones -v ON_ERROR_STOP=1 -f mbs-comunicaciones/database/02_functions.sql
+          psql -h localhost -U postgres -d mbs_comunicaciones -v ON_ERROR_STOP=1 -f mbs-comunicaciones/database/03_seed_data.sql
+          psql -h localhost -U postgres -d mbs_comunicaciones -v ON_ERROR_STOP=1 -f mbs-comunicaciones/database/05_pagos.sql
+          psql -h localhost -U postgres -d mbs_comunicaciones -v ON_ERROR_STOP=1 -f mbs-comunicaciones/database/06_imagenes.sql
+          psql -h localhost -U postgres -d mbs_comunicaciones -v ON_ERROR_STOP=1 -f mbs-comunicaciones/database/07_contacto.sql
 
       - name: Ejecutar pruebas
         env:
