@@ -60,6 +60,21 @@
       <div class="success-detail-row"><span>Dirección</span><span id="s-dir"></span></div>
     </div>
 
+    <!-- Datos bancarios para transferencia SPEI (solo si aplica) -->
+    <div class="shipping-info" id="spei-info" style="display:none;text-align:left;margin-bottom:24px">
+      <p><strong>🏦 Datos para tu transferencia SPEI</strong></p>
+      <p>CLABE: <strong id="spei-clabe"></strong></p>
+      <p>Banco: <span id="spei-banco"></span></p>
+      <p>Beneficiario: <span id="spei-beneficiario"></span></p>
+      <p>Referencia: <span id="spei-referencia"></span></p>
+      <p>Monto a transferir: <strong id="spei-monto"></strong></p>
+      <p>Vence: <span id="spei-vence"></span></p>
+    </div>
+    <div class="shipping-info" id="spei-info-pendiente" style="display:none;text-align:left;margin-bottom:24px">
+      <p><strong>🏦 Pago por transferencia SPEI</strong></p>
+      <p>Te enviaremos los datos bancarios (CLABE, monto y referencia) por correo electrónico en las próximas horas.</p>
+    </div>
+
     <div class="order-progress">
       <div class="progress-label">Estado del pedido</div>
       <div class="progress-steps">
@@ -578,6 +593,25 @@ window.confirmarPedido = async () => {
           return;
         }
         Toast.show(ordenRes.mensaje || 'Tu pedido fue creado, pero no se pudo iniciar el pago con PayPal. Puedes reintentarlo desde "Mis pedidos".', 'error');
+      }
+
+      // Si el pago es por transferencia SPEI, generar y mostrar los datos bancarios
+      if (selectedPayment === 'spei') {
+        const refRes = await API.post('/pagos/spei/referencia', { pedido_id: pedidoRes.pedido_id });
+        if (refRes.ok && refRes.spei) {
+          const s = refRes.spei;
+          document.getElementById('spei-clabe').textContent = s.r_clabe;
+          document.getElementById('spei-banco').textContent = s.r_banco;
+          document.getElementById('spei-beneficiario').textContent = s.r_beneficiario;
+          document.getElementById('spei-referencia').textContent = s.r_referencia;
+          document.getElementById('spei-monto').textContent = '$' + parseFloat(s.r_monto).toFixed(2) + ' MXN';
+          document.getElementById('spei-vence').textContent = new Date(s.r_vence_en).toLocaleString('es-MX', {
+            dateStyle: 'medium', timeStyle: 'short'
+          });
+          document.getElementById('spei-info').style.display = 'block';
+        } else {
+          document.getElementById('spei-info-pendiente').style.display = 'block';
+        }
       }
 
       // Pantalla de éxito
