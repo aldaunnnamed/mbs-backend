@@ -160,6 +160,22 @@
 
           <!-- PAGOS -->
           <div class="cfg-panel" id="cfg-pagos">
+            <div class="card mb16">
+              <div class="card__hd"><span class="card__title">🏦 Datos bancarios para SPEI</span></div>
+              <div class="card__bd">
+                <div class="fs11 tx-m mb8">Estos datos se muestran al cliente cuando elige "Transferencia SPEI" en el checkout.</div>
+                <div class="form-gap">
+                  <div class="fg2">
+                    <div class="fg"><label class="flbl">CLABE interbancaria <span>*</span></label><input class="fi" id="cfg-spei-clabe" maxlength="18" placeholder="18 dígitos"></div>
+                    <div class="fg"><label class="flbl">Banco / proveedor</label><input class="fi" id="cfg-spei-banco" placeholder="STP"></div>
+                  </div>
+                  <div class="fg"><label class="flbl">Beneficiario</label><input class="fi" id="cfg-spei-beneficiario" placeholder="MBS Comunicaciones"></div>
+                </div>
+              </div>
+              <div class="card__hd" style="border-top:1px solid var(--border);border-bottom:none">
+                <button class="btn btn-p btn-sm" onclick="guardarSpeiConfig()">Guardar datos SPEI</button>
+              </div>
+            </div>
             <div class="card">
               <div class="card__hd"><span class="card__title">💳 Métodos de pago</span></div>
               <div class="tbl-wrap">
@@ -245,7 +261,7 @@ function setPanel(el, id) {
   document.getElementById('cfg-' + id).classList.add('on');
   if (id === 'envios') loadEnvios();
   if (id === 'admins') loadAdmins();
-  if (id === 'pagos')  loadPagoMetodos();
+  if (id === 'pagos')  { loadPagoMetodos(); loadSpeiConfig(); }
   if (id === 'notif')  loadNotif();
 }
 
@@ -456,6 +472,41 @@ async function togglePagoMetodo(id) {
   const r = await AdminAPI.put('/admin/pagos-metodos/' + id + '/activo', {});
   if (r.ok) { Toast.show('Estado actualizado', 'success'); loadPagoMetodos(); }
   else Toast.show(r.mensaje || 'Error', 'error');
+}
+
+async function loadSpeiConfig() {
+  const r = await AdminAPI.get('/admin/configuracion?seccion=pagos');
+  const cfg = {};
+  (r.configuracion || []).forEach(c => { cfg[c.r_clave] = c.r_valor; });
+  document.getElementById('cfg-spei-clabe').value        = cfg.spei_clabe || '';
+  document.getElementById('cfg-spei-banco').value        = cfg.spei_banco || '';
+  document.getElementById('cfg-spei-beneficiario').value = cfg.spei_beneficiario || '';
+}
+
+async function guardarSpeiConfig() {
+  const clabe        = document.getElementById('cfg-spei-clabe').value.trim();
+  const banco        = document.getElementById('cfg-spei-banco').value.trim();
+  const beneficiario = document.getElementById('cfg-spei-beneficiario').value.trim();
+
+  if (clabe && !/^\d{18}$/.test(clabe)) {
+    Toast.show('La CLABE debe tener 18 dígitos', 'error');
+    return;
+  }
+
+  const campos = [
+    { clave: 'spei_clabe',        valor: clabe },
+    { clave: 'spei_banco',        valor: banco },
+    { clave: 'spei_beneficiario', valor: beneficiario },
+  ];
+  const errores = [];
+  for (const c of campos) {
+    const r = await AdminAPI.post('/admin/configuracion', c);
+    if (!r.ok) errores.push(c.clave);
+  }
+  Toast.show(
+    errores.length ? 'Error al guardar: ' + errores.join(', ') : 'Datos SPEI guardados correctamente',
+    errores.length ? 'error' : 'success'
+  );
 }
 
 const NOTIF_ADM = [
