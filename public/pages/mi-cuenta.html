@@ -573,13 +573,17 @@ const loadFavorites = async () => {
     const precio = p.r_precio_venta||p.precio_venta;
     const slug   = p.r_slug||p.slug;
     const id     = p.r_id||p.id;
+    const imagen = p.r_imagen||p.imagen;
+    const imgHtml = imagen
+      ? `<img src="${imagen}" alt="${nombre}" loading="lazy">`
+      : `<div class="product-card__img-placeholder"><span style="font-size:2rem">📦</span></div>`;
     return `
     <div class="product-card">
       <a href="/pages/producto.html?slug=${slug}">
         <div class="product-card__img">
           <button class="product-card__fav active" data-id="${id}"
             onclick="event.preventDefault();toggleFav(${id},this)">♥</button>
-          <div class="product-card__img-placeholder"><span style="font-size:2rem">📦</span></div>
+          ${imgHtml}
         </div>
       </a>
       <div class="product-card__body">
