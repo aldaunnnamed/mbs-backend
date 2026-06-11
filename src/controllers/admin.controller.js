@@ -69,10 +69,15 @@ const listarPedidos = async (req, res) => {
   }
 };
 
+const ESTADOS_PEDIDO_VALIDOS = ['nuevo', 'en_preparacion', 'enviado', 'en_camino', 'entregado', 'cancelado', 'devolucion'];
+
 const actualizarEstadoPedido = async (req, res) => {
   try {
     const { estado, paqueteria, numero_guia, notas } = req.body;
     if (!estado) return res.status(400).json({ ok: false, mensaje: 'Estado requerido' });
+    if (!ESTADOS_PEDIDO_VALIDOS.includes(estado)) {
+      return res.status(400).json({ ok: false, mensaje: 'Estado inválido' });
+    }
     await query(
       'SELECT fn_actualizar_estado_pedido(' +
       'CAST($1 AS INTEGER), CAST($2 AS CHARACTER VARYING),' +
@@ -107,7 +112,11 @@ const ajustarStock = async (req, res) => {
       'CAST($1 AS INTEGER), CAST($2 AS INTEGER), CAST($3 AS CHARACTER VARYING), CAST($4 AS INTEGER))',
       [parseInt(req.params.id), parseInt(nuevo_stock), motivo, parseInt(req.usuario.id)]
     );
-    res.json({ ok: true, mensaje: result.rows[0].fn_ajustar_stock });
+    const mensaje = result.rows[0].fn_ajustar_stock;
+    if (mensaje === 'Producto no encontrado.') {
+      return res.status(404).json({ ok: false, mensaje });
+    }
+    res.json({ ok: true, mensaje });
   } catch (err) {
     console.error('ajustarStock:', err.message);
     res.status(500).json({ ok: false, mensaje: 'Error al ajustar stock' });
@@ -156,6 +165,7 @@ const guardarProducto = async (req, res) => {
     const fila = result.rows[0];
     res.status(id === 0 ? 201 : 200).json({ ok: true, mensaje: fila.r_mensaje, producto_id: fila.r_producto_id });
   } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ ok: false, mensaje: 'El SKU ya está registrado en otro producto' });
     console.error('guardarProducto:', err.message);
     res.status(500).json({ ok: false, mensaje: 'Error al guardar producto' });
   }

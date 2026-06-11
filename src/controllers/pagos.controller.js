@@ -4,13 +4,18 @@ const paypal = require('../services/paypal.service');
 // GET /api/pagos/estado/:pedido_id
 const estadoPago = async (req, res) => {
   try {
-    const result = await query(
-      'SELECT * FROM fn_estado_pago_pedido($1)',
-      [req.params.pedido_id]
+    const pedidoRes = await query(
+      'SELECT id FROM pedidos WHERE id = CAST($1 AS INTEGER) AND usuario_id = CAST($2 AS INTEGER)',
+      [parseInt(req.params.pedido_id), parseInt(req.usuario.id)]
     );
-    if (result.rows.length === 0) {
+    if (!pedidoRes.rows.length) {
       return res.status(404).json({ ok: false, mensaje: 'Pedido no encontrado' });
     }
+
+    const result = await query(
+      'SELECT * FROM fn_estado_pago_pedido(CAST($1 AS INTEGER))',
+      [parseInt(req.params.pedido_id)]
+    );
     res.json({ ok: true, pago: result.rows[0] });
   } catch (err) {
     res.status(500).json({ ok: false, mensaje: 'Error al consultar estado de pago' });
@@ -21,6 +26,14 @@ const estadoPago = async (req, res) => {
 const crearReferenciaSpei = async (req, res) => {
   try {
     const { pedido_id, horas_vence = 48 } = req.body;
+
+    const pedidoRes = await query(
+      'SELECT id FROM pedidos WHERE id = CAST($1 AS INTEGER) AND usuario_id = CAST($2 AS INTEGER)',
+      [parseInt(pedido_id), parseInt(req.usuario.id)]
+    );
+    if (!pedidoRes.rows.length) {
+      return res.status(404).json({ ok: false, mensaje: 'Pedido no encontrado' });
+    }
 
     // Leer configuracion SPEI de la BD
     const cfg = await query(
