@@ -446,9 +446,9 @@ window.verDetallePedido = async (id) => {
   const rows = data.pedido || [];
   if (!rows.length) return;
   const first = rows[0];
-  const numero = first.pedido_numero || '';
-  const estado = first.r_estado || first.estado || '';
-  const total  = first.r_total  || first.total  || 0;
+  const numero = first.r_pedido_numero || '';
+  const estado = first.r_estado || '';
+  const total  = first.r_total  || 0;
 
   const statusSteps = ['nuevo','en_preparacion','enviado','en_camino','entregado'];
   const idx = Math.max(0, statusSteps.indexOf(estado));
@@ -458,7 +458,7 @@ window.verDetallePedido = async (id) => {
   const uniqueItems = [];
   const seenItems = new Set();
   rows.forEach(r => {
-    const key = r.item_nombre || r.nombre || '';
+    const key = r.r_item_nombre || '';
     if (key && !seenItems.has(key)) {
       seenItems.add(key);
       uniqueItems.push(r);
@@ -496,10 +496,10 @@ window.verDetallePedido = async (id) => {
               <div style="display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--gray-100)">
                 <div style="width:48px;height:48px;background:var(--gray-50);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0">📦</div>
                 <div style="flex:1">
-                  <div style="font-weight:600;font-size:.9rem;color:var(--navy)">${r.item_nombre||r.nombre||''}</div>
-                  <div style="font-size:.75rem;color:var(--gray-400)">SKU: ${r.item_sku||r.sku||''} · ×${r.item_cantidad||r.cantidad||1}</div>
+                  <div style="font-weight:600;font-size:.9rem;color:var(--navy)">${r.r_item_nombre||''}</div>
+                  <div style="font-size:.75rem;color:var(--gray-400)">SKU: ${r.r_item_sku||''} · ×${r.r_item_cantidad||1}</div>
                 </div>
-                <div style="font-weight:700;color:var(--orange)">${formatPrice(r.item_subtotal||r.subtotal||0)}</div>
+                <div style="font-weight:700;color:var(--orange)">${formatPrice(r.r_item_subtotal||0)}</div>
               </div>`).join('')}
             <div style="padding-top:14px">
               <div style="display:flex;justify-content:space-between;font-size:.85rem;color:var(--gray-600);margin-bottom:6px">
@@ -522,9 +522,9 @@ window.verDetallePedido = async (id) => {
             <div style="background:var(--gray-50);border-radius:12px;padding:20px;margin-bottom:14px">
               <h4 style="margin-bottom:10px;color:var(--navy);font-family:Rajdhani,sans-serif">Informacion de envio</h4>
               <p style="font-size:.85rem;color:var(--gray-600);line-height:1.8">
-                ${first.dir_nombre||''} ${first.dir_apellidos||''}<br>
-                ${first.dir_calle||''}, ${first.dir_colonia||''}<br>
-                ${first.dir_ciudad||''}, ${first.dir_estado_geo||''}
+                ${first.r_dir_nombre||''} ${first.r_dir_apellidos||''}<br>
+                ${first.r_dir_calle||''}, ${first.r_dir_colonia||''}<br>
+                ${first.r_dir_ciudad||''}, ${first.r_dir_estado_geo||''}
               </p>
             </div>
 
@@ -866,12 +866,14 @@ window.volverAComprar = async (pedidoId) => {
     if (!data.ok) { Toast.show('Error al obtener el pedido', 'error'); return; }
 
     const items = data.pedido || [];
+    const seen = new Set();
     let agregados = 0;
 
     for (const item of items) {
-      const pid = item.r_producto_id || item.producto_id;
-      const qty = item.item_cantidad || item.cantidad || 1;
-      if (pid) {
+      const pid = item.r_item_producto_id;
+      const qty = item.r_item_cantidad || 1;
+      if (pid && !seen.has(pid)) {
+        seen.add(pid);
         const res = await Cart.add(parseInt(pid), null, parseInt(qty));
         if (res?.ok) agregados++;
       }
