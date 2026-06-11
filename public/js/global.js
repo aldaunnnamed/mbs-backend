@@ -199,6 +199,49 @@ const Navbar = (() => {
 })();
 
 
+/* ── Menú móvil (hamburguesa) ────────────────────────────────── */
+const MobileMenu = (() => {
+  const init = () => {
+    const btn = document.querySelector('.navbar__hamburger');
+    const nav = document.querySelector('.navbar__nav');
+    if (!btn || !nav) return;
+
+    const close = () => {
+      btn.classList.remove('open');
+      nav.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+    };
+
+    btn.addEventListener('click', () => {
+      const open = nav.classList.toggle('open');
+      btn.classList.toggle('open', open);
+      btn.setAttribute('aria-expanded', String(open));
+    });
+
+    // Cerrar el menú al elegir un link
+    nav.querySelectorAll('a').forEach(a => a.addEventListener('click', close));
+
+    // Cerrar al hacer click fuera del navbar
+    document.addEventListener('click', e => {
+      if (!nav.classList.contains('open')) return;
+      if (!nav.contains(e.target) && !btn.contains(e.target)) close();
+    });
+
+    // Buscador dentro del menú móvil
+    const mobileSearch = document.getElementById('navbar-search-mobile');
+    if (mobileSearch) {
+      mobileSearch.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          const q = e.target.value.trim();
+          if (q) window.location.href = '/pages/catalogo.html?busqueda=' + encodeURIComponent(q);
+        }
+      });
+    }
+  };
+
+  return { init };
+})();
+
 /* ── Conversor de moneda MXN / USD ──────────────────────────── */
 const Currency = (() => {
   let _rate = null;        // tipo de cambio USD→MXN
@@ -334,6 +377,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const savedCurrency = localStorage.getItem('mbs_currency') || 'MXN';
   await Currency.init();
   Navbar.init();
+  MobileMenu.init();
   // Aplicar moneda guardada después de inicializar
   if (savedCurrency !== 'MXN') {
     Currency.setMode(savedCurrency);

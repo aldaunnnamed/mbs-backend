@@ -94,6 +94,9 @@
   pointer-events: none;
 }
 
+/* Buscador dentro del menú móvil (oculto en escritorio) */
+.navbar__nav__search { display: none; }
+
 /* Acciones del navbar (carrito, usuario) */
 .navbar__actions {
   display: flex;
@@ -230,9 +233,11 @@
 .navbar__hamburger {
   display: none;
   flex-direction: column;
+  justify-content: center;
   gap: 5px;
   cursor: pointer;
   padding: 6px;
+  flex-shrink: 0;
 }
 .navbar__hamburger span {
   display: block;
@@ -242,6 +247,9 @@
   border-radius: 2px;
   transition: var(--transition);
 }
+.navbar__hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.navbar__hamburger.open span:nth-child(2) { opacity: 0; }
+.navbar__hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
 /* ── FOOTER ──────────────────────────────────────────────────── */
 .footer {
@@ -353,18 +361,51 @@
 
 /* ── RESPONSIVE NAVBAR / FOOTER ──────────────────────────────── */
 @media (max-width: 968px) {
-  .navbar__nav    { display: none; }
+  .navbar__inner { gap: 8px; }
+  .navbar__nav {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    margin-left: 0;
+    gap: 0;
+    background: var(--navy);
+    border-bottom: 3px solid var(--orange);
+    box-shadow: 0 12px 24px rgba(0,0,0,.25);
+    padding: 8px 0;
+  }
+  .navbar__nav.open { display: flex; }
+  .navbar__nav a {
+    padding: 14px 24px;
+    border-radius: 0;
+  }
+  .navbar__nav a::after { display: none; }
   .navbar__search { max-width: 220px; }
-  .navbar__hamburger { display: flex; }
+  .navbar__hamburger { display: flex; padding: 4px; }
 }
 @media (max-width: 768px) {
   .navbar__search { display: none; }
+  .navbar__nav__search {
+    display: block;
+    padding: 10px 16px 16px;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+  }
+  .navbar__nav__search .navbar__search {
+    display: block;
+    max-width: none;
+  }
   .footer__grid   {
     grid-template-columns: 1fr 1fr;
     gap: 32px;
   }
 }
 @media (max-width: 480px) {
+  .navbar__inner     { gap: 4px; }
+  .navbar__btn-login { padding: 8px 12px; font-size: .85rem; }
+  .currency-toggle   { padding: 6px 8px; }
   .footer__grid { grid-template-columns: 1fr; }
   .footer__bottom { flex-direction: column; gap: 12px; text-align: center; }
 }

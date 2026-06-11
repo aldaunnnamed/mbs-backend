@@ -16,6 +16,12 @@
     <div class="navbar__inner">
       <a href="/" class="navbar__logo"><span class="navbar__logo-text">MBS</span></a>
       <ul class="navbar__nav">
+        <li class="navbar__nav__search">
+          <div class="navbar__search">
+            <span class="navbar__search__icon">🔍</span>
+            <input type="text" id="navbar-search-mobile" placeholder="Buscar producto, SKU...">
+          </div>
+        </li>
         <li><a href="/pages/catalogo.html">Catálogo</a></li>
         <li><a href="/pages/contacto.html">Contacto</a></li>
       </ul>
@@ -24,6 +30,9 @@
         <input type="text" id="navbar-search" placeholder="Buscar producto, SKU...">
       </div>
       <div class="navbar__actions" id="navbar-actions"></div>
+      <button class="navbar__hamburger" id="navbar-hamburger" aria-label="Abrir menú" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
     </div>
   </div>
 </nav>
