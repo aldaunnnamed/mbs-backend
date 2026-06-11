@@ -156,15 +156,15 @@ async function loadClientes() {
             <div>${c.email || c.r_email || '—'}</div>
             <div class="tbl__sub">${c.telefono || c.r_telefono || ''}</div>
           </td>
-          <td class="tx-m">${fmt.date(c.created_at || c.r_fecha_registro)}</td>
+          <td class="tx-m">${fmt.date(c.r_created_at || c.created_at)}</td>
           <td class="fw6">${c.r_num_pedidos || 0}</td>
           <td>${bloqueado ? '<span class="bdg bdg--r">Bloqueado</span>' : '<span class="bdg bdg--g">Activo</span>'}</td>
           <td>
             <div style="display:flex;gap:6px">
-              <button class="btn btn-b btn-xs" onclick="verCliente(${c.id || c.r_usuario_id})">Ver</button>
+              <button class="btn btn-b btn-xs" onclick="verCliente(${c.r_id || c.id})">Ver</button>
               <button class="btn btn-xs ${bloqueado ? 'btn-gr' : ''}"
                 style="${bloqueado ? '' : 'background:var(--c-red-bg);color:var(--c-red-tx)'}"
-                onclick="toggleBloqueo(${c.id || c.r_usuario_id},'${c.nombre || c.r_nombre}',${bloqueado})">
+                onclick="toggleBloqueo(${c.r_id || c.id},'${c.nombre || c.r_nombre}',${bloqueado})">
                 ${bloqueado ? 'Desbloquear' : 'Bloquear'}
               </button>
             </div>

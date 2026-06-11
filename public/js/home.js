@@ -95,11 +95,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       top_venta: 'badge-navy', liquidacion: 'badge-red'
     };
     const badgeLabel = { nuevo: 'NUEVO', oferta: 'OFERTA', top_venta: 'TOP VENTA', liquidacion: 'LIQUIDACIÓN' };
-    const badgeHtml = p.badge
-      ? `<span class="badge ${badgeMap[p.badge] || 'badge-navy'} product-card__badge">${badgeLabel[p.badge] || p.badge}</span>`
+    const badge = p.r_badge || p.badge;
+    const imagenPrincipal = p.r_imagen_principal || p.imagen_principal;
+    const badgeHtml = badge
+      ? `<span class="badge ${badgeMap[badge] || 'badge-navy'} product-card__badge">${badgeLabel[badge] || badge}</span>`
       : '';
-    const imgHtml = p.imagen_principal
-      ? `<img src="${p.imagen_principal}" alt="${p.r_nombre || p.nombre}" loading="lazy">`
+    const imgHtml = imagenPrincipal
+      ? `<img src="${imagenPrincipal}" alt="${p.r_nombre || p.nombre}" loading="lazy">`
       : `<div class="product-card__img-placeholder"><span style="font-size:2.5rem">📦</span><p>Imagen próximamente</p></div>`;
     const nombre = p.r_nombre || p.nombre;
     const sku    = p.r_sku    || p.sku;

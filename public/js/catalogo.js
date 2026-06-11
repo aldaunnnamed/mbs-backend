@@ -143,16 +143,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     const slug    = p.r_slug          || p.slug;
     const id      = p.r_id            || p.id;
     const stock   = p.r_stock_actual  ?? p.stock_actual;
+    const badge   = p.r_badge || p.badge;
+    const imagenPrincipal = p.r_imagen_principal || p.imagen_principal;
 
-    const badgeHtml = p.badge
-      ? `<span class="badge ${badgeMap[p.badge]} product-card__badge">${badgeLabel[p.badge]}</span>` : '';
+    const badgeHtml = badge
+      ? `<span class="badge ${badgeMap[badge]} product-card__badge">${badgeLabel[badge]}</span>` : '';
 
     const stockHtml = stock > 0
       ? `<span class="stock-badge in-stock">En stock</span>`
       : `<span class="stock-badge no-stock">Sin stock</span>`;
 
-    const imgHtml = p.imagen_principal
-      ? `<img src="${p.imagen_principal}" alt="${nombre}" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/400x400/e2e8f0/64748b?text=${encodeURIComponent(sku)}'">`
+    const imgHtml = imagenPrincipal
+      ? `<img src="${imagenPrincipal}" alt="${nombre}" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/400x400/e2e8f0/64748b?text=${encodeURIComponent(sku)}'">`
       : `<img src="https://placehold.co/400x400/e2e8f0/64748b?text=${encodeURIComponent(sku)}" alt="${nombre}" loading="lazy">`;
 
     const btnHtml = stock > 0

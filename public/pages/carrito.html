@@ -355,8 +355,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const precio = p.r_precio_venta || p.precio_venta;
       const slug   = p.r_slug || p.slug;
       const id     = p.r_id || p.id;
-      const img    = p.imagen_principal;
-      const badge  = p.badge;
+      const img    = p.r_imagen_principal || p.imagen_principal;
+      const badge  = p.r_badge || p.badge;
       const badgeLabel = { nuevo:'NUEVO', oferta:'OFERTA', top_venta:'TOP VENTA', liquidacion:'LIQUIDACIÓN' };
       const badgeMap   = { nuevo:'badge-orange', oferta:'badge-amber', top_venta:'badge-navy', liquidacion:'badge-red' };
       return `

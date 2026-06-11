@@ -349,8 +349,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const rPrecio = rp.r_precio_venta || rp.precio_venta;
         const rSlug   = rp.r_slug || rp.slug;
         const rId     = rp.r_id || rp.id;
-        const rImg    = rp.imagen_principal;
-        const rBadge  = rp.badge;
+        const rImg    = rp.r_imagen_principal || rp.imagen_principal;
+        const rBadge  = rp.r_badge || rp.badge;
         return `<div class="product-card">
           <a href="/pages/producto.html?slug=${rSlug}">
             <div class="product-card__img">
