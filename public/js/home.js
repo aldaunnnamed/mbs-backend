@@ -126,8 +126,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div class="product-card__name">${nombre}</div>
           </a>
           <div class="product-card__sku">SKU: ${sku}</div>
-          <div class="product-card__price" data-mxn="${precio}">
-            ${Currency.format(precio)}
+          <div class="product-card__price">
+            <span data-mxn="${precio}">${Currency.format(precio)}</span>
+            ${antes && antes > precio ? `<del data-mxn="${antes}">${Currency.format(antes)}</del>` : ''}
           </div>
           <button class="btn btn-primary btn-full btn-add-cart" data-id="${id}">
             Añadir al carrito

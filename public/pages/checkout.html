@@ -409,6 +409,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
   }
+
+  // "+ Agregar nueva dirección" — limpiar formulario para capturar una nueva
+  document.getElementById('btn-add-address')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.querySelectorAll('.saved-address').forEach(el => el.classList.remove('selected'));
+    ['dir-nombre','dir-apellidos','dir-calle','dir-colonia','dir-cp','dir-estado','dir-ciudad'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('dir-nombre').focus();
+  });
 });
 
 const renderShippingMethods = () => {

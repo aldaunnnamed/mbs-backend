@@ -76,12 +76,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       });
     });
-
-    // Prellenar búsqueda si viene por URL
-    if (state.busqueda) {
-      const inp = document.getElementById('search-input');
-      if (inp) inp.value = state.busqueda;
-    }
   };
 
   // ── Construir query string ─────────────────────────────────
@@ -177,8 +171,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           </a>
           <div class="product-card__sku">SKU: ${sku}</div>
           ${stockHtml}
-          <div class="product-card__price" data-mxn="${precio}">
-            ${Currency.format(precio)}
+          <div class="product-card__price">
+            <span data-mxn="${precio}">${Currency.format(precio)}</span>
+            ${antes && antes > precio ? `<del data-mxn="${antes}">${Currency.format(antes)}</del>` : ''}
           </div>
           ${btnHtml}
         </div>
@@ -323,7 +318,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadProducts();
   };
   window.removeFilter = (key) => {
-    if (key === 'busqueda')    { state.busqueda = null; const si = document.getElementById('search-input'); if (si) si.value = ''; }
+    if (key === 'busqueda')    { state.busqueda = null; }
     if (key === 'solo_stock')  { state.solo_stock = false; document.getElementById('toggle-stock').checked = false; }
     if (key.startsWith('categoria_')) {
       const id = key.split('_')[1];
@@ -349,8 +344,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelectorAll('.filter-option input[type="checkbox"]').forEach(i => i.checked = false);
     const stockToggle = document.getElementById('toggle-stock');
     if (stockToggle) stockToggle.checked = false;
-    const si = document.getElementById('search-input');
-    if (si) si.value = '';
     loadProducts();
   };
 
@@ -379,16 +372,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       btn.classList.add('active');
       grid.classList.toggle('list-view', state.vista === 'list');
     });
-  });
-
-  // ── Búsqueda inline ───────────────────────────────────────
-  const searchInput = document.getElementById('search-input');
-  searchInput?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      state.busqueda = searchInput.value.trim() || null;
-      state.pagina = 1;
-      loadProducts();
-    }
   });
 
   // ── Init ───────────────────────────────────────────────────
