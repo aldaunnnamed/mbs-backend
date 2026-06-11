@@ -102,4 +102,20 @@ const marcas = async (req, res) => {
   }
 };
 
-module.exports = { listar, detalle, categorias, marcas };
+// GET /api/productos/:id/resenas
+const resenas = async (req, res) => {
+  try {
+    const { pagina = 1 } = req.query;
+    const result = await query(
+      'SELECT * FROM fn_listar_resenas_producto(CAST($1 AS INTEGER), CAST($2 AS INTEGER))',
+      [parseInt(req.params.id), parseInt(pagina)]
+    );
+    const total = result.rows[0]?.r_total_registros || 0;
+    res.json({ ok: true, total: parseInt(total), resenas: result.rows });
+  } catch (err) {
+    console.error('resenas producto:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error al obtener reseñas' });
+  }
+};
+
+module.exports = { listar, detalle, categorias, marcas, resenas };

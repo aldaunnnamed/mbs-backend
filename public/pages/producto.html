@@ -378,6 +378,28 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.querySelector('.container').appendChild(relSection);
     }
   }
+
+  // Reseñas — cargar listado si el producto tiene reseñas aprobadas
+  if (nres > 0) {
+    const resData = await API.get('/productos/' + prodId + '/resenas');
+    const reviewsList = document.getElementById('reviews-list');
+    if (reviewsList) {
+      const items = resData.resenas || [];
+      reviewsList.innerHTML = items.length
+        ? items.map(r => `
+            <div style="border-bottom:1px solid var(--gray-100);padding:14px 0">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                <strong style="font-size:.9rem;color:var(--navy)">${r.r_usuario_nombre}</strong>
+                <span style="font-size:.78rem;color:var(--gray-500)">${new Date(r.r_created_at).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}</span>
+              </div>
+              <div style="color:#f59e0b;font-size:.95rem;margin-bottom:4px">${stars(r.r_calificacion)}</div>
+              ${r.r_titulo ? `<div style="font-weight:600;font-size:.88rem;margin-bottom:2px">${r.r_titulo}</div>` : ''}
+              ${r.r_comentario ? `<p style="font-size:.85rem;color:var(--gray-600);line-height:1.5">${r.r_comentario}</p>` : ''}
+              ${r.r_verificado ? `<span class="badge" style="background:var(--green-lite);color:var(--green);font-size:.7rem;margin-top:6px;display:inline-block">✓ Compra verificada</span>` : ''}
+            </div>`).join('')
+        : '<p class="text-muted" style="font-size:.88rem">Aún no hay reseñas para mostrar.</p>';
+    }
+  }
 });
 
 window.switchImg = (url, el) => {
