@@ -435,4 +435,6 @@
 }
 @media (max-width: 480px) {
   .products-catalog-grid { grid-template-columns: 1fr; }
+  .catalog-controls { flex-wrap: wrap; }
+  .catalog-sort { min-width: 0; flex: 1 1 100%; }
 }

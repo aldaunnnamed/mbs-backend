@@ -201,12 +201,14 @@
 .tabs-nav {
   display: flex; border-bottom: 2px solid var(--gray-100);
   margin-bottom: 32px; gap: 0;
+  overflow-x: auto;
 }
 .tab-btn {
   padding: 12px 24px;
   font-size: .95rem; font-weight: 600;
   color: var(--gray-600);
   cursor: pointer;
+  white-space: nowrap; flex-shrink: 0;
   border-bottom: 3px solid transparent;
   margin-bottom: -2px;
   transition: var(--transition);
@@ -1016,6 +1018,7 @@
   .orders-tabs  { flex-wrap: wrap; }
 }
 @media (max-width: 480px) {
-  .product-gallery__thumbs { display: none; }
+  .product-gallery__thumbs { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+  .product-gallery__thumb { flex-shrink: 0; }
   .product-actions { grid-template-columns: 1fr; }
 }

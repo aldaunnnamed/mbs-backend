@@ -206,17 +206,19 @@ async function verCliente(id) {
     </div>
     ${pedidos.length ? `
     <div class="fs11 fw6 tx-m" style="margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Últimos pedidos</div>
-    <table class="tbl" style="font-size:.78rem">
-      <thead><tr><th># Pedido</th><th>Estado</th><th>Total</th><th>Fecha</th></tr></thead>
-      <tbody>
-        ${pedidos.map(p => `<tr>
-          <td class="fw6 tx-o">${p.numero}</td>
-          <td>${badge(p.estado)}</td>
-          <td>${fmt.money(p.total)}</td>
-          <td class="tx-m">${fmt.date(p.created_at)}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table>` : '<div class="tx-m fs12">Sin pedidos registrados.</div>'}`;
+    <div class="tbl-wrap">
+      <table class="tbl" style="font-size:.78rem">
+        <thead><tr><th># Pedido</th><th>Estado</th><th>Total</th><th>Fecha</th></tr></thead>
+        <tbody>
+          ${pedidos.map(p => `<tr>
+            <td class="fw6 tx-o">${p.numero}</td>
+            <td>${badge(p.estado)}</td>
+            <td>${fmt.money(p.total)}</td>
+            <td class="tx-m">${fmt.date(p.created_at)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>` : '<div class="tx-m fs12">Sin pedidos registrados.</div>'}`;
 }
 
 function toggleBloqueo(id, nombre, esBloqueado) {

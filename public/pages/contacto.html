@@ -42,7 +42,7 @@
       font-size: 1rem; font-weight: 700; color: var(--navy);
       margin-bottom: 4px;
     }
-    .contact-card__text { font-size: .9rem; color: var(--gray-600); line-height: 1.6; }
+    .contact-card__text { font-size: .9rem; color: var(--gray-600); line-height: 1.6; overflow-wrap: break-word; }
     .contact-card__text a { color: var(--electric); }
     .contact-card__text a:hover { text-decoration: underline; }
 
@@ -144,7 +144,7 @@
     .hours-card__closed { color: rgba(255,255,255,.4); }
 
     @media (max-width: 768px) {
-      .contact-grid { grid-template-columns: 1fr; }
+      .contact-grid { grid-template-columns: minmax(0, 1fr); }
       .form-grid-2  { grid-template-columns: 1fr; }
       .hours-grid   { grid-template-columns: 1fr; }
     }
