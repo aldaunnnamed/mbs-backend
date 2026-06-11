@@ -3,6 +3,7 @@ const ctrl   = require('../controllers/auth.controller');
 const { verificarToken } = require('../middlewares/auth');
 const { query } = require('../config/db');
 const crypto = require('crypto');
+const { enviarCorreoRecuperacion } = require('../services/email.service');
 
 router.post('/registro',          ctrl.registro);
 router.post('/login',             ctrl.login);
@@ -16,7 +17,8 @@ router.post('/recuperar', async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ ok: false, mensaje: 'Email requerido' });
 
-    const r = await query('SELECT id FROM usuarios WHERE email = $1 AND activo = true', [email.trim().toLowerCase()]);
+    const correo = email.trim().toLowerCase();
+    const r = await query('SELECT id, nombre FROM usuarios WHERE email = $1 AND activo = true', [correo]);
     if (!r.rows.length) {
       // Respuesta genérica por seguridad
       return res.json({ ok: true, mensaje: 'Si el correo está registrado, recibirás instrucciones.' });
@@ -30,6 +32,12 @@ router.post('/recuperar', async (req, res) => {
       ' ON CONFLICT (usuario_id) DO UPDATE SET token=$2, expira_at=$3, usado=false',
       [r.rows[0].id, token, expira]
     );
+
+    const appUrl = (process.env.APP_URL || (req.protocol + '://' + req.get('host'))).replace(/\/$/, '');
+    const resetUrl = appUrl + '/pages/reset-password.html?token=' + token;
+
+    enviarCorreoRecuperacion({ to: correo, nombre: r.rows[0].nombre, resetUrl })
+      .catch(err => console.error('enviarCorreoRecuperacion:', err.message));
 
     res.json({ ok: true, mensaje: 'Si el correo está registrado, recibirás instrucciones.' });
   } catch (err) {
