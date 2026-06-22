@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><title>Test Login</title>
+<style>body{font-family:monospace;padding:20px;background:#1e1e1e;color:#d4d4d4;}
+pre{background:#2d2d2d;padding:12px;border-radius:6px;overflow:auto;}
+button{padding:8px 16px;background:#f97316;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:14px;}
+</style>
+</head>
+<body>
+<h2>🔧 Diagnóstico MBS Login</h2>
+<button onclick="probar()">Probar login admin@mbs.mx / Admin@MBS2025</button>
+<br><br>
+<strong>Respuesta del servidor:</strong>
+<pre id="out">Haz clic en el botón...</pre>
+
+<script>
+async function probar() {
+  document.getElementById('out').textContent = 'Enviando petición...';
+  try {
+    const r = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'admin@mbs.mx', password: 'Admin@MBS2025' })
+    });
+    const data = await r.json();
+    document.getElementById('out').textContent =
+      'Status HTTP: ' + r.status + '\n\n' +
+      JSON.stringify(data, null, 2);
+  } catch(e) {
+    document.getElementById('out').textContent = 'Error de conexión: ' + e.message;
+  }
+}
+</script>
+</body>
+</html>

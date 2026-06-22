@@ -22,16 +22,59 @@ const dashboard = async (req, res) => {
 const listarClientes = async (req, res) => {
   try {
     const { busqueda = null, tipo = null, pagina = 1 } = req.query;
-    const result = await query(
-      'SELECT * FROM fn_admin_listar_clientes(' +
-      'CAST($1 AS CHARACTER VARYING), CAST($2 AS CHARACTER VARYING), CAST($3 AS INTEGER))',
-      [busqueda || null, tipo || null, parseInt(pagina)]
+    const limite = 15;
+    const offset = (parseInt(pagina) - 1) * limite;
+    const params = [];
+    let whereExtra = '';
+
+    if (busqueda) {
+      params.push(`%${busqueda}%`);
+      whereExtra += ` AND (u.nombre ILIKE $${params.length} OR u.apellidos ILIKE $${params.length} OR u.email ILIKE $${params.length} OR COALESCE(u.rfc,'') ILIKE $${params.length})`;
+    }
+    if (tipo) {
+      params.push(tipo);
+      whereExtra += ` AND u.tipo = $${params.length}`;
+    }
+
+    // Total de registros
+    const countRes = await query(
+      `SELECT COUNT(*) AS total FROM usuarios u
+       WHERE u.rol NOT IN ('admin', 'superadmin')${whereExtra}`,
+      params
     );
-    const total = result.rows[0]?.r_total_registros || 0;
-    res.json({ ok: true, total: parseInt(total), clientes: result.rows });
+    const total = parseInt(countRes.rows[0].total) || 0;
+
+    // Datos paginados
+    const limitParam  = params.length + 1;
+    const offsetParam = params.length + 2;
+    const dataRes = await query(
+      `SELECT
+         u.id            AS r_id,
+         u.nombre        AS r_nombre,
+         u.apellidos     AS r_apellidos,
+         u.email         AS r_email,
+         u.telefono      AS r_telefono,
+         u.rfc           AS r_rfc,
+         u.tipo          AS r_tipo,
+         u.activo        AS r_activo,
+         u.bloqueado     AS r_bloqueado,
+         u.created_at    AS r_created_at,
+         COUNT(DISTINCT pe.id)          AS r_num_pedidos,
+         COALESCE(SUM(pe.total), 0)     AS r_total_gastado
+       FROM usuarios u
+       LEFT JOIN pedidos pe
+         ON pe.usuario_id = u.id AND pe.estatus_pago = 'pagado'
+       WHERE u.rol NOT IN ('admin', 'superadmin')${whereExtra}
+       GROUP BY u.id
+       ORDER BY COALESCE(SUM(pe.total), 0) DESC, u.created_at DESC
+       LIMIT $${limitParam} OFFSET $${offsetParam}`,
+      [...params, limite, offset]
+    );
+
+    res.json({ ok: true, total, clientes: dataRes.rows });
   } catch (err) {
     console.error('listarClientes:', err.message);
-    res.status(500).json({ ok: false, mensaje: 'Error al obtener clientes' });
+    res.status(500).json({ ok: false, mensaje: 'Error al obtener clientes: ' + err.message });
   }
 };
 
@@ -126,18 +169,63 @@ const ajustarStock = async (req, res) => {
 const listarProductos = async (req, res) => {
   try {
     const { busqueda = null, categoria_id = null, estado = null, pagina = 1, por_pagina = 10 } = req.query;
-    const result = await query(
-      'SELECT * FROM fn_admin_listar_productos(' +
-      'CAST($1 AS CHARACTER VARYING), CAST($2 AS INTEGER), CAST($3 AS CHARACTER VARYING),' +
-      'CAST($4 AS INTEGER), CAST($5 AS INTEGER))',
-      [busqueda || null, categoria_id ? parseInt(categoria_id) : null, estado || null,
-       parseInt(pagina), parseInt(por_pagina)]
+    const limite = parseInt(por_pagina) || 10;
+    const offset = (parseInt(pagina) - 1) * limite;
+    const params = [];
+    let whereExtra = '';
+
+    if (busqueda) {
+      params.push(`%${busqueda}%`);
+      const idx = params.length;
+      whereExtra += ` AND (p.nombre ILIKE $${idx} OR p.sku ILIKE $${idx} OR p.descripcion_corta ILIKE $${idx})`;
+    }
+    if (categoria_id) {
+      params.push(parseInt(categoria_id));
+      whereExtra += ` AND p.categoria_id = $${params.length}`;
+    }
+    if (estado) {
+      params.push(estado);
+      whereExtra += ` AND p.estado = $${params.length}`;
+    }
+
+    const countRes = await query(
+      `SELECT COUNT(*) AS total FROM productos p WHERE 1=1${whereExtra}`,
+      params
     );
-    const total = result.rows[0]?.r_total_registros || 0;
-    res.json({ ok: true, total: parseInt(total), productos: result.rows });
+    const total = parseInt(countRes.rows[0].total) || 0;
+
+    const dataRes = await query(
+      `SELECT
+         p.id            AS r_id,
+         p.sku           AS r_sku,
+         p.nombre        AS r_nombre,
+         p.slug          AS r_slug,
+         p.descripcion_corta AS r_descripcion_corta,
+         p.descripcion_larga AS r_descripcion_larga,
+         p.categoria_id  AS r_categoria_id,
+         COALESCE(c.nombre, '—') AS r_categoria,
+         p.marca_id      AS r_marca_id,
+         m.nombre        AS r_marca,
+         p.precio_venta  AS r_precio_venta,
+         p.precio_antes  AS r_precio_antes,
+         p.stock_actual  AS r_stock_actual,
+         p.stock_minimo  AS r_stock_minimo,
+         p.estado        AS r_estado,
+         p.badge         AS r_badge,
+         p.destacado     AS r_destacado
+       FROM productos p
+       LEFT JOIN categorias c ON c.id = p.categoria_id
+       LEFT JOIN marcas m ON m.id = p.marca_id
+       WHERE 1=1${whereExtra}
+       ORDER BY p.created_at DESC
+       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      [...params, limite, offset]
+    );
+
+    res.json({ ok: true, total, productos: dataRes.rows });
   } catch (err) {
     console.error('listarProductos:', err.message);
-    res.status(500).json({ ok: false, mensaje: 'Error al obtener productos' });
+    res.status(500).json({ ok: false, mensaje: 'Error al obtener productos: ' + err.message });
   }
 };
 
@@ -146,28 +234,127 @@ const guardarProducto = async (req, res) => {
     const id = req.params.id ? parseInt(req.params.id) : 0;
     const { sku, nombre, descripcion_corta, descripcion_larga, categoria_id, marca_id,
             precio_venta, precio_antes, stock_actual, stock_minimo, estado, badge } = req.body;
-    const result = await query(
-      'SELECT * FROM fn_guardar_producto(' +
-      'CAST($1 AS INTEGER), CAST($2 AS CHARACTER VARYING), CAST($3 AS CHARACTER VARYING),' +
-      'CAST($4 AS CHARACTER VARYING), CAST($5 AS TEXT),' +
-      'CAST($6 AS INTEGER), CAST($7 AS INTEGER),' +
-      'CAST($8 AS NUMERIC), CAST($9 AS NUMERIC),' +
-      'CAST($10 AS INTEGER), CAST($11 AS INTEGER),' +
-      'CAST($12 AS CHARACTER VARYING), CAST($13 AS CHARACTER VARYING), CAST($14 AS INTEGER))',
-      [
-        id, sku, nombre, descripcion_corta || null, descripcion_larga || null,
-        parseInt(categoria_id), marca_id ? parseInt(marca_id) : null,
-        parseFloat(precio_venta), precio_antes ? parseFloat(precio_antes) : null,
-        parseInt(stock_actual) || 0, parseInt(stock_minimo) || 5,
-        estado || 'activo', badge || null, parseInt(req.usuario.id)
-      ]
-    );
-    const fila = result.rows[0];
-    res.status(id === 0 ? 201 : 200).json({ ok: true, mensaje: fila.r_mensaje, producto_id: fila.r_producto_id });
+
+    // Validaciones básicas
+    if (!sku || !nombre || !precio_venta || !categoria_id) {
+      return res.status(400).json({ ok: false, mensaje: 'Faltan campos obligatorios: nombre, SKU, precio y categoría' });
+    }
+
+    const catId    = parseInt(categoria_id);
+    const marcaId  = marca_id ? parseInt(marca_id) : null;
+    const precio   = parseFloat(precio_venta);
+    const precioAnt= precio_antes ? parseFloat(precio_antes) : null;
+    const stockAct = parseInt(stock_actual) || 0;
+    const stockMin = parseInt(stock_minimo) || 5;
+    const estadoVal= ['activo','inactivo','borrador'].includes(estado) ? estado : 'activo';
+    const adminId  = parseInt(req.usuario.id);
+
+    // Generar slug desde el nombre
+    const slug = nombre.toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '').replace(/-+/g, '-');
+
+    if (isNaN(catId) || catId <= 0) {
+      return res.status(400).json({ ok: false, mensaje: 'Selecciona una categoría válida' });
+    }
+
+    let productoId;
+
+    if (id === 0) {
+      // Crear nuevo producto
+      const ins = await query(
+        `INSERT INTO productos
+           (sku, nombre, slug, descripcion_corta, descripcion_larga,
+            categoria_id, marca_id, precio_venta, precio_antes,
+            stock_actual, stock_minimo, estado, badge)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+         RETURNING id`,
+        [sku, nombre, slug, descripcion_corta || null, descripcion_larga || null,
+         catId, marcaId, precio, precioAnt, stockAct, stockMin, estadoVal, badge || null]
+      );
+      productoId = ins.rows[0].id;
+
+      // Movimiento inicial de inventario si hay stock (no-fatal)
+      if (stockAct > 0) {
+        try {
+          await query(
+            `INSERT INTO inventario_movimientos
+               (producto_id, tipo, cantidad, stock_antes, stock_despues, motivo, usuario_id)
+             VALUES ($1,'entrada',$2,0,$3,'Stock inicial al crear producto',$4)`,
+            [productoId, stockAct, stockAct, adminId]
+          );
+        } catch (e) { console.warn('inventario_movimientos (crear):', e.message); }
+      }
+
+      // Auditoría (no-fatal)
+      try {
+        await query(
+          `INSERT INTO auditoria (usuario_id, accion, tabla, registro_id) VALUES ($1,'crear_producto','productos',$2)`,
+          [adminId, productoId]
+        );
+      } catch (e) { console.warn('auditoria (crear_producto):', e.message); }
+
+      res.status(201).json({ ok: true, mensaje: 'Producto creado exitosamente', producto_id: productoId });
+    } else {
+      // Actualizar producto existente
+      const before = await query('SELECT stock_actual FROM productos WHERE id = $1', [id]);
+      if (!before.rows.length) return res.status(404).json({ ok: false, mensaje: 'Producto no encontrado' });
+      const stockAntes = before.rows[0].stock_actual;
+
+      await query(
+        `UPDATE productos SET
+           sku=$1, nombre=$2, slug=$3, descripcion_corta=$4, descripcion_larga=$5,
+           categoria_id=$6, marca_id=$7, precio_venta=$8, precio_antes=$9,
+           stock_actual=$10, stock_minimo=$11, estado=$12, badge=$13
+         WHERE id=$14`,
+        [sku, nombre, slug, descripcion_corta || null, descripcion_larga || null,
+         catId, marcaId, precio, precioAnt, stockAct, stockMin, estadoVal, badge || null, id]
+      );
+
+      if (stockAct !== stockAntes) {
+        try {
+          await query(
+            `INSERT INTO inventario_movimientos
+               (producto_id, tipo, cantidad, stock_antes, stock_despues, motivo, usuario_id)
+             VALUES ($1,'ajuste',$2,$3,$4,'Ajuste manual desde admin',$5)`,
+            [id, stockAct - stockAntes, stockAntes, stockAct, adminId]
+          );
+        } catch (e) { console.warn('inventario_movimientos (editar):', e.message); }
+      }
+
+      // Auditoría (no-fatal)
+      try {
+        await query(
+          `INSERT INTO auditoria (usuario_id, accion, tabla, registro_id) VALUES ($1,'editar_producto','productos',$2)`,
+          [adminId, id]
+        );
+      } catch (e) { console.warn('auditoria (editar_producto):', e.message); }
+
+      res.json({ ok: true, mensaje: 'Producto actualizado exitosamente', producto_id: id });
+    }
   } catch (err) {
-    if (err.code === '23505') return res.status(409).json({ ok: false, mensaje: 'El SKU ya está registrado en otro producto' });
+    if (err.code === '23505') return res.status(409).json({ ok: false, mensaje: 'El SKU ya está registrado en otro producto — usa un SKU diferente' });
+    if (err.code === '23503') return res.status(400).json({ ok: false, mensaje: 'La categoría o marca seleccionada no existe' });
     console.error('guardarProducto:', err.message);
-    res.status(500).json({ ok: false, mensaje: 'Error al guardar producto' });
+    res.status(500).json({ ok: false, mensaje: 'Error al guardar: ' + err.message });
+  }
+};
+
+const toggleEstadoProducto = async (req, res) => {
+  try {
+    const { estado } = req.body;
+    if (!['activo', 'inactivo'].includes(estado)) {
+      return res.status(400).json({ ok: false, mensaje: 'Estado inválido' });
+    }
+    const r = await query(
+      'UPDATE productos SET estado = $1 WHERE id = $2 RETURNING id',
+      [estado, parseInt(req.params.id)]
+    );
+    if (!r.rows.length) return res.status(404).json({ ok: false, mensaje: 'Producto no encontrado' });
+    res.json({ ok: true, mensaje: estado === 'inactivo' ? 'Producto dado de baja' : 'Producto reactivado' });
+  } catch (err) {
+    console.error('toggleEstadoProducto:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error al cambiar estado' });
   }
 };
 
@@ -446,24 +633,36 @@ const importarProductos = async (req, res) => {
       const row = {};
       header.forEach((h, idx) => { row[h] = vals[idx] || null; });
       try {
-        const r = await query(
-          'SELECT * FROM fn_guardar_producto(' +
-          'CAST($1 AS INTEGER), CAST($2 AS CHARACTER VARYING), CAST($3 AS CHARACTER VARYING),' +
-          'CAST($4 AS CHARACTER VARYING), CAST($5 AS TEXT),' +
-          'CAST($6 AS INTEGER), CAST($7 AS INTEGER),' +
-          'CAST($8 AS NUMERIC), CAST($9 AS NUMERIC),' +
-          'CAST($10 AS INTEGER), CAST($11 AS INTEGER),' +
-          'CAST($12 AS CHARACTER VARYING), CAST($13 AS CHARACTER VARYING), CAST($14 AS INTEGER))',
-          [
-            0, row.sku, row.nombre,
-            row.descripcion_corta || null, row.descripcion_larga || null,
-            parseInt(row.categoria_id) || 1, row.marca_id ? parseInt(row.marca_id) : null,
-            parseFloat(row.precio_venta) || 0, row.precio_antes ? parseFloat(row.precio_antes) : null,
-            parseInt(row.stock_actual) || 0, parseInt(row.stock_minimo) || 5,
-            row.estado || 'activo', row.badge || null, parseInt(req.usuario.id)
-          ]
-        );
-        r.rows[0]?.r_mensaje?.includes('creado') ? creados++ : actualizados++;
+        if (!row.sku || !row.nombre) { errores++; continue; }
+        const slug = (row.nombre || '').toLowerCase()
+          .normalize('NFD').replace(/[̀-ͯ]/g, '')
+          .replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '');
+        const exists = await query('SELECT id FROM productos WHERE sku = $1', [row.sku]);
+        if (exists.rows.length) {
+          await query(
+            `UPDATE productos SET nombre=$1,slug=$2,descripcion_corta=$3,descripcion_larga=$4,
+             categoria_id=$5,marca_id=$6,precio_venta=$7,precio_antes=$8,
+             stock_actual=$9,stock_minimo=$10,estado=$11,badge=$12 WHERE sku=$13`,
+            [row.nombre, slug, row.descripcion_corta||null, row.descripcion_larga||null,
+             parseInt(row.categoria_id)||1, row.marca_id?parseInt(row.marca_id):null,
+             parseFloat(row.precio_venta)||0, row.precio_antes?parseFloat(row.precio_antes):null,
+             parseInt(row.stock_actual)||0, parseInt(row.stock_minimo)||5,
+             row.estado||'activo', row.badge||null, row.sku]
+          );
+          actualizados++;
+        } else {
+          await query(
+            `INSERT INTO productos (sku,nombre,slug,descripcion_corta,descripcion_larga,
+             categoria_id,marca_id,precio_venta,precio_antes,stock_actual,stock_minimo,estado,badge)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+            [row.sku, row.nombre, slug, row.descripcion_corta||null, row.descripcion_larga||null,
+             parseInt(row.categoria_id)||1, row.marca_id?parseInt(row.marca_id):null,
+             parseFloat(row.precio_venta)||0, row.precio_antes?parseFloat(row.precio_antes):null,
+             parseInt(row.stock_actual)||0, parseInt(row.stock_minimo)||5,
+             row.estado||'activo', row.badge||null]
+          );
+          creados++;
+        }
       } catch { errores++; }
     }
     res.json({ ok: true, mensaje: `Importación completada: ${creados} creados, ${actualizados} actualizados, ${errores} errores` });
@@ -610,10 +809,21 @@ const marcarMensajeLeido = async (req, res) => {
   }
 };
 
+const subirLogo = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ ok: false, mensaje: 'No se recibió ningún archivo' });
+    const url = '/uploads/logo/' + req.file.filename;
+    res.json({ ok: true, mensaje: 'Logo actualizado correctamente', url });
+  } catch (err) {
+    console.error('subirLogo:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error al subir logo' });
+  }
+};
+
 module.exports = {
   dashboard, listarClientes, toggleBloqueo,
   listarPedidos, actualizarEstadoPedido,
-  alertasInventario, ajustarStock, listarProductos, guardarProducto,
+  alertasInventario, ajustarStock, listarProductos, guardarProducto, toggleEstadoProducto,
   obtenerConfiguracion, guardarConfiguracion,
   detalleCliente, detallePedido,
   topProductos,
@@ -624,5 +834,6 @@ module.exports = {
   listarAdmins, crearAdmin,
   listarMetodosPago, toggleMetodoPago,
   guardarConfigNotif,
-  listarMensajes, marcarMensajeLeido
+  listarMensajes, marcarMensajeLeido,
+  subirLogo
 };

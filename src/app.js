@@ -61,7 +61,7 @@ app.get('/admin', (req, res) => {
 app.get('/admin/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/admin/index.html'));
 });
-['productos','pedidos','clientes','inventario','mensajes','configuracion'].forEach(page => {
+['login','productos','pedidos','clientes','inventario','mensajes','configuracion'].forEach(page => {
   app.get('/admin/' + page, (req, res) => {
     res.sendFile(path.join(__dirname, '../public/admin/' + page + '.html'));
   });

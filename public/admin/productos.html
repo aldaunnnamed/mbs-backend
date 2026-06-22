@@ -149,9 +149,10 @@
             <div class="fg"><label class="flbl">Badge / Etiqueta</label>
               <select class="fs" id="f-badge">
                 <option value="">Sin etiqueta</option>
-                <option value="NUEVO">NUEVO</option>
-                <option value="OFERTA">OFERTA</option>
-                <option value="TOP VENTA">TOP VENTA</option>
+                <option value="nuevo">Nuevo</option>
+                <option value="oferta">Oferta</option>
+                <option value="top_venta">Top Venta</option>
+                <option value="liquidacion">Liquidación</option>
               </select>
             </div>
           </div>
@@ -183,7 +184,7 @@
       <button class="btn btn-r btn-sm" id="mo-baja-btn" onclick="darBaja()" style="display:none">Dar de baja</button>
       <div style="display:flex;gap:8px">
         <button class="btn btn-gr btn-sm" onclick="Mo.close('mo-producto')">Cancelar</button>
-        <button class="btn btn-p btn-sm" onclick="guardarProducto()">Guardar cambios</button>
+        <button class="btn btn-p btn-sm" id="btn-guardar-prod" onclick="guardarProducto()">Guardar cambios</button>
       </div>
     </div>
   </div>
@@ -216,20 +217,25 @@ async function loadProducts() {
   if (state.tab === 'inactivos') url += '&estado=inactivo';
 
   const r = await AdminAPI.get(url);
+
+  if (!r.ok && !r.productos) {
+    document.getElementById('prod-tbody').innerHTML =
+      `<tr><td colspan="6" style="text-align:center;padding:32px;color:#dc2626">${r.mensaje || 'Error al cargar productos. Verifica tu sesión.'}</td></tr>`;
+    return;
+  }
+
+  // Stock bajo: filtro local SOLO para esa pestaña (las otras usan el total real del servidor)
   let prods = r.productos || [];
+  if (state.tab === 'stock_bajo') prods = prods.filter(p => p.r_stock_actual <= (p.r_stock_minimo || 5));
+
   state.total = r.total || prods.length;
-
-  // Filtro adicional de stock (sobre la página actual)
-  if (state.tab === 'activos')    prods = prods.filter(p => p.r_stock_actual > (p.r_stock_minimo||5));
-  if (state.tab === 'stock_bajo') prods = prods.filter(p => p.r_stock_actual <= (p.r_stock_minimo||5) && p.r_stock_actual > 0);
-
   state.productos = prods;
 
-  // Conteos (aproximados, sobre la página actual)
-  document.getElementById('cnt-todos').textContent     = state.tab === 'todos'     ? (r.total || 0) : prods.length;
-  document.getElementById('cnt-activos').textContent   = state.tab === 'activos'   ? (r.total || 0) : prods.filter(p=>p.r_estado==='activo').length;
-  document.getElementById('cnt-inactivos').textContent = state.tab === 'inactivos' ? (r.total || 0) : prods.filter(p=>p.r_estado==='inactivo').length;
-  document.getElementById('cnt-stock').textContent     = prods.filter(p=>p.r_stock_actual<=(p.r_stock_minimo||5)).length;
+  // Conteos
+  document.getElementById('cnt-todos').textContent     = state.tab === 'todos'      ? (r.total || 0) : '—';
+  document.getElementById('cnt-activos').textContent   = state.tab === 'activos'    ? (r.total || 0) : '—';
+  document.getElementById('cnt-inactivos').textContent = state.tab === 'inactivos'  ? (r.total || 0) : '—';
+  document.getElementById('cnt-stock').textContent     = state.tab === 'stock_bajo' ? prods.length : '—';
 
   renderTable(prods, r.total || 0);
 }
@@ -352,37 +358,47 @@ async function editProducto(id) {
 
 async function guardarProducto() {
   const body = {
-    nombre:           document.getElementById('f-nombre').value,
-    sku:              document.getElementById('f-sku').value,
+    nombre:           document.getElementById('f-nombre').value.trim(),
+    sku:              document.getElementById('f-sku').value.trim(),
     precio_venta:     document.getElementById('f-precio').value,
     precio_antes:     document.getElementById('f-precio-antes').value || null,
-    descripcion_corta:document.getElementById('f-desc-corta').value,
-    descripcion_larga:document.getElementById('f-desc-larga').value,
+    descripcion_corta:document.getElementById('f-desc-corta').value.trim(),
+    descripcion_larga:document.getElementById('f-desc-larga').value.trim(),
     categoria_id:     document.getElementById('f-categoria').value,
     marca_id:         document.getElementById('f-marca').value || null,
-    estado:           document.getElementById('f-estado').value,
+    estado:           document.getElementById('f-estado').value || 'activo',
     badge:            document.getElementById('f-badge').value || null,
     stock_actual:     document.getElementById('f-stock').value || 0,
     stock_minimo:     document.getElementById('f-stock-min').value || 5,
   };
-  if (!body.nombre || !body.sku || !body.precio_venta || !body.categoria_id) {
-    Toast.show('Completa los campos obligatorios', 'error'); return;
-  }
+
+  if (!body.nombre)       { Toast.show('El nombre del producto es obligatorio', 'error'); return; }
+  if (!body.sku)          { Toast.show('El SKU es obligatorio', 'error'); return; }
+  if (!body.precio_venta) { Toast.show('El precio de venta es obligatorio', 'error'); return; }
+  if (!body.categoria_id) { Toast.show('Selecciona una categoría', 'error'); return; }
+
+  const btn = document.getElementById('btn-guardar-prod');
+  const txtOrig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+
   const r = editId
     ? await AdminAPI.put('/admin/productos/' + editId, body)
     : await AdminAPI.post('/admin/productos', body);
+
+  if (btn) { btn.disabled = false; btn.textContent = txtOrig; }
+
   if (r.ok) {
-    Toast.show(r.mensaje || 'Guardado correctamente', 'success');
+    Toast.show(r.mensaje || 'Producto guardado correctamente', 'success');
     Mo.close('mo-producto');
     loadProducts();
   } else {
-    Toast.show(r.mensaje || 'Error al guardar', 'error');
+    Toast.show(r.mensaje || 'Error al guardar. Verifica los datos e intenta de nuevo.', 'error');
   }
 }
 
 async function darBajaId(id) {
   if (!confirm('¿Dar de baja este producto?')) return;
-  const r = await AdminAPI.put('/admin/productos/' + id, { estado: 'inactivo' });
+  const r = await AdminAPI.put('/admin/productos/' + id + '/estado', { estado: 'inactivo' });
   if (r.ok) { Toast.show('Producto dado de baja', 'success'); loadProducts(); }
   else Toast.show(r.mensaje || 'Error', 'error');
 }
@@ -400,10 +416,9 @@ function setMoTab(el, tab) {
 
 // ── Export / Import ──────────────────────────────────────────
 function exportarCSV() {
-  const token = localStorage.getItem('mbs_token');
+  const token = localStorage.getItem(typeof ADMIN_TOKEN_KEY !== 'undefined' ? ADMIN_TOKEN_KEY : 'mbs_admin_token');
   const a = document.createElement('a');
   a.href = '/api/admin/productos/export';
-  // Necesitamos enviar el token; usamos fetch + Blob
   fetch('/api/admin/productos/export', {
     headers: { 'Authorization': 'Bearer ' + (token || '') }
   })
@@ -465,7 +480,7 @@ async function subirImagen(input) {
   const esPrin = !document.getElementById('imgs-grid').innerHTML.trim();
   if (esPrin) formData.append('es_principal', 'true');
   try {
-    const token = localStorage.getItem('mbs_token');
+    const token = localStorage.getItem(typeof ADMIN_TOKEN_KEY !== 'undefined' ? ADMIN_TOKEN_KEY : 'mbs_admin_token');
     const r = await fetch('/api/admin/productos/' + editId + '/imagenes', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + (token || '') },

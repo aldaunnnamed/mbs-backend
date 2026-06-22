@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const ctrl   = require('../controllers/admin.controller');
 const { verificarToken, soloAdmin } = require('../middlewares/auth');
-const { uploadImage, uploadCsv } = require('../middlewares/upload');
+const { uploadImage, uploadCsv, uploadLogo } = require('../middlewares/upload');
 
 // Todas las rutas admin requieren token + rol admin
 router.use(verificarToken, soloAdmin);
@@ -31,6 +31,7 @@ router.post('/productos/import',            uploadCsv.single('archivo'), ctrl.im
 router.get ('/productos',                   ctrl.listarProductos);
 router.post('/productos',                   ctrl.guardarProducto);
 router.put ('/productos/:id',               ctrl.guardarProducto);
+router.put ('/productos/:id/estado',        ctrl.toggleEstadoProducto);
 router.post('/productos/:id/imagenes',      uploadImage.single('imagen'), ctrl.subirImagenProducto);
 router.delete('/productos/:id/imagenes/:img_id', ctrl.eliminarImagenProducto);
 
@@ -44,6 +45,7 @@ router.put ('/envios/:id/activo',           ctrl.toggleMetodoEnvio);
 router.get ('/configuracion',               ctrl.obtenerConfiguracion);
 router.post('/configuracion',               ctrl.guardarConfiguracion);
 router.post('/configuracion/notificaciones', ctrl.guardarConfigNotif);
+router.post('/configuracion/logo',          uploadLogo.single('logo'), ctrl.subirLogo);
 
 // Admins
 router.get ('/admins',                      ctrl.listarAdmins);

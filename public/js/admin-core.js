@@ -3,22 +3,39 @@
 ================================================================ */
 
 /* ── Auth ───────────────────────────────────────────────────── */
+// Claves separadas del frontend de cliente — no interfieren entre sí
+const ADMIN_TOKEN_KEY = 'mbs_admin_token';
+const ADMIN_USER_KEY  = 'mbs_admin_user';
+
 const AdminAuth = (() => {
   const check = () => {
-    const token = localStorage.getItem('mbs_token');
-    const user  = JSON.parse(localStorage.getItem('mbs_user') || 'null');
+    let token = localStorage.getItem(ADMIN_TOKEN_KEY);
+    let user  = JSON.parse(localStorage.getItem(ADMIN_USER_KEY) || 'null');
+
+    // Migración automática: si ya había sesión admin en mbs_token/mbs_user, la mueve a la clave nueva
+    if ((!token || !user) || (user && !['admin','superadmin'].includes(user.rol))) {
+      const oldToken = localStorage.getItem('mbs_token');
+      const oldUser  = JSON.parse(localStorage.getItem('mbs_user') || 'null');
+      if (oldToken && oldUser && ['admin','superadmin'].includes(oldUser.rol)) {
+        token = oldToken;
+        user  = oldUser;
+        localStorage.setItem(ADMIN_TOKEN_KEY, token);
+        localStorage.setItem(ADMIN_USER_KEY, JSON.stringify(user));
+      }
+    }
+
     if (!token || !user || !['admin', 'superadmin'].includes(user.rol)) {
-      localStorage.removeItem('mbs_token');
-      localStorage.removeItem('mbs_user');
-      window.location.href = '/pages/login.html?redirect=' + encodeURIComponent(window.location.pathname);
+      localStorage.removeItem(ADMIN_TOKEN_KEY);
+      localStorage.removeItem(ADMIN_USER_KEY);
+      window.location.href = '/admin/login.html';
       return null;
     }
     return user;
   };
   const logout = () => {
-    localStorage.removeItem('mbs_token');
-    localStorage.removeItem('mbs_user');
-    window.location.href = '/pages/login.html';
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
+    localStorage.removeItem(ADMIN_USER_KEY);
+    window.location.href = '/admin/login.html';
   };
   return { check, logout };
 })();
@@ -28,7 +45,7 @@ const AdminAPI = (() => {
   const BASE = '/api';
   const hdrs = () => ({
     'Content-Type': 'application/json',
-    'Authorization': 'Bearer ' + (localStorage.getItem('mbs_token') || '')
+    'Authorization': 'Bearer ' + (localStorage.getItem(ADMIN_TOKEN_KEY) || '')
   });
   const req = async (method, url, body) => {
     const opts = { method, headers: hdrs() };

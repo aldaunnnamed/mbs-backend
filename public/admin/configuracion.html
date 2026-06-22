@@ -100,11 +100,12 @@
                   <div class="fg">
                     <label class="flbl">Logo del sitio</label>
                     <div class="logo-prev">
-                      <div class="logo-prev__img">MBS</div>
+                      <div class="logo-prev__img" id="logo-preview-box">MBS</div>
                       <div>
                         <div class="fw6 fs12">Logo actual</div>
-                        <div class="fs11 tx-m">481 × 196 px</div>
-                        <button class="btn btn-gr btn-xs mt8">🖼 Cambiar logo</button>
+                        <div class="fs11 tx-m" id="logo-info">JPG, PNG o WEBP · máx. 2 MB</div>
+                        <button class="btn btn-gr btn-xs mt8" onclick="document.getElementById('logo-file-input').click()">🖼 Cambiar logo</button>
+                        <input type="file" id="logo-file-input" accept=".jpg,.jpeg,.png,.webp" style="display:none" onchange="subirLogo(this)">
                       </div>
                     </div>
                   </div>
@@ -552,6 +553,40 @@ async function guardarNotif() {
 document.addEventListener('DOMContentLoaded', () => {
   // panels load on demand via setPanel; nothing needed at startup
 });
+
+async function subirLogo(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  // Previsualizar
+  const reader = new FileReader();
+  reader.onload = e => {
+    const box = document.getElementById('logo-preview-box');
+    box.innerHTML = `<img src="${e.target.result}" style="max-width:100%;max-height:80px;object-fit:contain;">`;
+  };
+  reader.readAsDataURL(file);
+
+  // Subir al servidor
+  const fd = new FormData();
+  fd.append('logo', file);
+  try {
+    const r = await fetch('/api/admin/configuracion/logo', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('mbs_token') || '') },
+      body: fd
+    });
+    const data = await r.json();
+    if (data.ok) {
+      document.getElementById('logo-info').textContent = '✓ Logo actualizado: ' + file.name;
+      Toast.show('Logo actualizado correctamente', 'success');
+    } else {
+      Toast.show(data.mensaje || 'Error al subir logo', 'error');
+    }
+  } catch(e) {
+    Toast.show('Error de conexión al subir logo', 'error');
+  }
+  input.value = '';
+}
 
 async function guardarConfig() {
   const campos = [

@@ -62,6 +62,7 @@
           <option value="particular">Particular</option>
           <option value="empresa">Empresa</option>
         </select>
+        <button class="btn btn-gr btn-sm" onclick="loadClientes()" title="Recargar lista">↻ Actualizar</button>
       </div>
 
       <div class="card">
@@ -131,47 +132,93 @@ let bloqueoTarget = null;
 let searchTimer;
 
 async function loadClientes() {
-  let url = `/admin/clientes?pagina=${state.page}`;
+  // Cache-buster para evitar respuestas cacheadas por el navegador
+  let url = `/admin/clientes?pagina=${state.page}&_t=${Date.now()}`;
   if (state.busqueda) url += '&busqueda=' + encodeURIComponent(state.busqueda);
   if (state.tipo)     url += '&tipo=' + state.tipo;
 
+  document.getElementById('cli-tbody').innerHTML =
+    '<tr><td colspan="6" style="text-align:center;padding:32px" class="tx-m">Cargando...</td></tr>';
+
   const r = await AdminAPI.get(url);
+
+  // Manejo de error de autenticación o servidor
+  if (!r.ok && !r.clientes) {
+    const msg = r.mensaje || 'Error al cargar clientes. ¿El token expiró? Intenta cerrar sesión y volver a entrar.';
+    document.getElementById('cli-sub').textContent = 'Error al cargar';
+    document.getElementById('cli-tbody').innerHTML =
+      `<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--c-red-tx)">${msg}</td></tr>`;
+    document.getElementById('pager-info').textContent = '';
+    return;
+  }
+
   const clientes = r.clientes || [];
-  const total    = r.total || clientes.length;
+  const total    = parseInt(r.total) || clientes.length;
+  const limite   = 15;
+  const totalPags = Math.ceil(total / limite) || 1;
 
   document.getElementById('cli-sub').textContent =
-    `${fmt.num(total)} clientes registrados`;
+    `${fmt.num(total)} cliente${total !== 1 ? 's' : ''} registrado${total !== 1 ? 's' : ''}`;
 
-  document.getElementById('pager-info').textContent = `${clientes.length} cliente(s) mostrados`;
+  document.getElementById('pager-info').textContent =
+    `Página ${state.page} de ${totalPags} · ${clientes.length} mostrado${clientes.length !== 1 ? 's' : ''}`;
+
+  // Botones de paginación
+  const pagerBtns = document.getElementById('pager-btns');
+  let btnsHtml = `<button class="btn btn-gr btn-xs" onclick="cambiarPag(${state.page - 1})" ${state.page <= 1 ? 'disabled' : ''}>‹ Anterior</button>`;
+  for (let p = 1; p <= totalPags; p++) {
+    if (totalPags <= 7 || p === 1 || p === totalPags || Math.abs(p - state.page) <= 1) {
+      btnsHtml += `<button class="btn btn-xs ${p === state.page ? 'btn-p' : 'btn-gr'}" onclick="cambiarPag(${p})">${p}</button>`;
+    } else if (Math.abs(p - state.page) === 2) {
+      btnsHtml += `<span style="padding:0 4px;color:var(--tx-muted)">…</span>`;
+    }
+  }
+  btnsHtml += `<button class="btn btn-gr btn-xs" onclick="cambiarPag(${state.page + 1})" ${state.page >= totalPags ? 'disabled' : ''}>Siguiente ›</button>`;
+  pagerBtns.innerHTML = btnsHtml;
 
   document.getElementById('cli-tbody').innerHTML = clientes.length
     ? clientes.map(c => {
-        const bloqueado = c.bloqueado || c.r_bloqueado;
+        const id       = c.r_id       || c.id;
+        const nombre   = c.r_nombre   || c.nombre   || '—';
+        const apellidos= c.r_apellidos|| c.apellidos || '';
+        const email    = c.r_email    || c.email    || '—';
+        const tel      = c.r_telefono || c.telefono || '';
+        const rfc      = c.r_rfc      || c.rfc      || '—';
+        const fecha    = c.r_created_at || c.created_at;
+        const npedidos = c.r_num_pedidos || 0;
+        const bloqueado= !!(c.r_bloqueado || c.bloqueado);
+        const nomEsc   = nombre.replace(/'/g, "\\'");
         return `<tr>
           <td>
-            <div class="tbl__name">${c.nombre_completo || c.r_nombre || (c.nombre + ' ' + c.apellidos) || '—'}</div>
-            <div class="tbl__sub">${c.rfc || c.r_rfc || '—'}</div>
+            <div class="tbl__name">${nombre} ${apellidos}</div>
+            <div class="tbl__sub">${rfc}</div>
           </td>
           <td>
-            <div>${c.email || c.r_email || '—'}</div>
-            <div class="tbl__sub">${c.telefono || c.r_telefono || ''}</div>
+            <div>${email}</div>
+            <div class="tbl__sub">${tel}</div>
           </td>
-          <td class="tx-m">${fmt.date(c.r_created_at || c.created_at)}</td>
-          <td class="fw6">${c.r_num_pedidos || 0}</td>
+          <td class="tx-m">${fmt.date(fecha)}</td>
+          <td class="fw6">${npedidos}</td>
           <td>${bloqueado ? '<span class="bdg bdg--r">Bloqueado</span>' : '<span class="bdg bdg--g">Activo</span>'}</td>
           <td>
             <div style="display:flex;gap:6px">
-              <button class="btn btn-b btn-xs" onclick="verCliente(${c.r_id || c.id})">Ver</button>
+              <button class="btn btn-b btn-xs" onclick="verCliente(${id})">Ver</button>
               <button class="btn btn-xs ${bloqueado ? 'btn-gr' : ''}"
                 style="${bloqueado ? '' : 'background:var(--c-red-bg);color:var(--c-red-tx)'}"
-                onclick="toggleBloqueo(${c.r_id || c.id},'${c.nombre || c.r_nombre}',${bloqueado})">
+                onclick="toggleBloqueo(${id},'${nomEsc}',${bloqueado})">
                 ${bloqueado ? 'Desbloquear' : 'Bloquear'}
               </button>
             </div>
           </td>
         </tr>`;
       }).join('')
-    : '<tr><td colspan="6" style="text-align:center;padding:32px" class="tx-m">Sin clientes</td></tr>';
+    : '<tr><td colspan="6" style="text-align:center;padding:32px" class="tx-m">Sin clientes registrados</td></tr>';
+}
+
+function cambiarPag(p) {
+  if (p < 1) return;
+  state.page = p;
+  loadClientes();
 }
 
 async function verCliente(id) {
