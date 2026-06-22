@@ -93,6 +93,27 @@ const toggleBloqueo = async (req, res) => {
   }
 };
 
+const kpisPedidos = async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT
+        COUNT(*)                                                   AS total,
+        COUNT(*) FILTER (WHERE created_at::DATE = CURRENT_DATE)   AS pedidos_hoy,
+        COUNT(*) FILTER (WHERE estado = 'nuevo')                   AS sin_atender,
+        COUNT(*) FILTER (WHERE estado = 'en_preparacion')          AS en_preparacion,
+        COUNT(*) FILTER (WHERE estado IN ('enviado','en_camino'))  AS enviados,
+        COUNT(*) FILTER (WHERE estado = 'entregado'
+                         AND fecha_entrega::DATE = CURRENT_DATE)   AS entregados_hoy
+      FROM pedidos
+      WHERE estado NOT IN ('cancelado','devolucion')
+    `);
+    res.json({ ok: true, kpis: result.rows[0] });
+  } catch (err) {
+    console.error('kpisPedidos:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error al obtener KPIs de pedidos' });
+  }
+};
+
 const listarPedidos = async (req, res) => {
   try {
     const { estado = null, pagina = 1, por_pagina = 10 } = req.query;
@@ -392,31 +413,96 @@ const guardarConfiguracion = async (req, res) => {
 const exportarClientes = async (req, res) => {
   try {
     const result = await query(
-      'SELECT u.nombre, u.apellidos, u.email, u.telefono, u.rfc, u.razon_social,' +
+      'SELECT u.nombre, u.apellidos, u.email, u.telefono, u.rfc,' +
       ' u.tipo, u.activo, u.bloqueado, u.created_at,' +
       ' COUNT(p.id) AS total_pedidos,' +
       ' COALESCE(SUM(p.total),0) AS total_gastado' +
       ' FROM usuarios u' +
       " LEFT JOIN pedidos p ON p.usuario_id = u.id AND p.estatus_pago = 'pagado'" +
-      " WHERE u.rol = 'cliente'" +
+      " WHERE u.rol NOT IN ('admin','superadmin')" +
       ' GROUP BY u.id ORDER BY u.created_at DESC'
     );
-    const cols = ['nombre','apellidos','email','telefono','rfc','razon_social',
-                  'tipo','activo','bloqueado','created_at','total_pedidos','total_gastado'];
-    const esc = (v) => {
-      if (v === null || v === undefined) return '';
-      const s = String(v);
-      return s.includes(',') || s.includes('"') || s.includes('\n')
-        ? '"' + s.replace(/"/g, '""') + '"' : s;
+
+    const PDFDocument = require('pdfkit');
+    const doc = new PDFDocument({ margin: 40, size: 'A4', layout: 'landscape' });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="clientes-mbs.pdf"');
+    doc.pipe(res);
+
+    const W = doc.page.width;
+    const MARGIN = 40;
+    const tableW = W - MARGIN * 2;
+
+    // ── Cabecera ──────────────────────────────────────────────────
+    doc.rect(0, 0, W, 64).fill('#0b1e3d');
+    doc.fillColor('#ffffff').fontSize(16).font('Helvetica-Bold').text('MBS Comunicaciones', MARGIN, 16);
+    doc.fontSize(9).font('Helvetica').text('Reporte de Clientes', MARGIN, 38);
+    doc.fillColor('#f97316').fontSize(8)
+       .text('Generado: ' + new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'}), MARGIN, 51);
+    doc.fillColor('#94a3b8').fontSize(8)
+       .text(`${result.rows.length} registros`, W - MARGIN - 60, 28);
+
+    // ── Tabla ─────────────────────────────────────────────────────
+    const HDR   = ['Nombre', 'Apellidos', 'Email', 'Teléfono', 'RFC', 'Tipo', 'Pedidos', 'Total Gastado', 'Estado'];
+    const COLS  = [90, 90, 155, 78, 70, 55, 50, 90, 64];  // suma = 742
+    const ROW_H = 20;
+    const fmtM  = n => '$' + parseFloat(n||0).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const fmtD  = s => s ? new Date(s).toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
+
+    const drawHeader = (y) => {
+      doc.rect(MARGIN, y, tableW, ROW_H).fill('#1e3a5f');
+      let x = MARGIN;
+      HDR.forEach((h, i) => {
+        doc.fillColor('#ffffff').fontSize(7).font('Helvetica-Bold')
+           .text(h, x + 3, y + 7, { width: COLS[i] - 6, lineBreak: false });
+        x += COLS[i];
+      });
+      return y + ROW_H;
     };
-    const rows = [cols.join(',')];
-    result.rows.forEach(r => rows.push(cols.map(c => esc(r[c])).join(',')));
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename="clientes-mbs.csv"');
-    res.send('﻿' + rows.join('\r\n'));
+
+    let y = drawHeader(74);
+
+    result.rows.forEach((row, ri) => {
+      if (y + ROW_H > doc.page.height - 36) {
+        doc.addPage();
+        y = drawHeader(40);
+      }
+      doc.rect(MARGIN, y, tableW, ROW_H).fill(ri % 2 === 0 ? '#f8fafc' : '#ffffff');
+
+      const estado = row.bloqueado ? 'Bloqueado' : (row.activo !== false ? 'Activo' : 'Inactivo');
+      const cells  = [
+        row.nombre || '—', row.apellidos || '—', row.email || '—',
+        row.telefono || '—', row.rfc || '—', row.tipo || '—',
+        String(row.total_pedidos || 0), fmtM(row.total_gastado), estado
+      ];
+      let x = MARGIN;
+      cells.forEach((cell, i) => {
+        const isEstado = i === 8;
+        const color = isEstado
+          ? (cell === 'Activo' ? '#16a34a' : cell === 'Bloqueado' ? '#dc2626' : '#64748b')
+          : '#1e293b';
+        doc.fillColor(color).fontSize(7.5).font(isEstado ? 'Helvetica-Bold' : 'Helvetica')
+           .text(cell, x + 3, y + 7, { width: COLS[i] - 6, lineBreak: false });
+        x += COLS[i];
+      });
+      doc.moveTo(MARGIN, y + ROW_H).lineTo(MARGIN + tableW, y + ROW_H)
+         .strokeColor('#e2e8f0').lineWidth(0.4).stroke();
+      y += ROW_H;
+    });
+
+    // Pie de página
+    const pageRange = doc.bufferedPageRange();
+    for (let i = 0; i < pageRange.count; i++) {
+      doc.switchToPage(pageRange.start + i);
+      doc.fillColor('#94a3b8').fontSize(7.5)
+         .text(`MBS Comunicaciones — Clientes — Pág. ${i + 1} / ${pageRange.count}`,
+               MARGIN, doc.page.height - 22, { width: tableW, align: 'center' });
+    }
+
+    doc.end();
   } catch (err) {
     console.error('exportarClientes:', err.message);
-    res.status(500).json({ ok: false, mensaje: 'Error al exportar clientes' });
+    if (!res.headersSent) res.status(500).json({ ok: false, mensaje: 'Error al exportar clientes' });
   }
 };
 
@@ -573,31 +659,102 @@ const toggleMetodoEnvio = async (req, res) => {
 const exportarProductos = async (req, res) => {
   try {
     const result = await query(
-      'SELECT p.sku, p.nombre, p.descripcion_corta, p.precio_venta, p.precio_antes,' +
+      'SELECT p.sku, p.nombre, p.precio_venta, p.precio_antes,' +
       ' p.stock_actual, p.stock_minimo, p.estado, p.badge,' +
       ' c.nombre AS categoria, m.nombre AS marca' +
       ' FROM productos p' +
       ' LEFT JOIN categorias c ON c.id = p.categoria_id' +
       ' LEFT JOIN marcas m ON m.id = p.marca_id' +
-      ' ORDER BY p.id'
+      ' ORDER BY p.nombre'
     );
-    const cols = ['sku','nombre','descripcion_corta','precio_venta','precio_antes',
-                  'stock_actual','stock_minimo','estado','badge','categoria','marca'];
-    const esc = (v) => {
-      if (v === null || v === undefined) return '';
-      const s = String(v);
-      return s.includes(',') || s.includes('"') || s.includes('\n')
-        ? '"' + s.replace(/"/g, '""') + '"'
-        : s;
+
+    const PDFDocument = require('pdfkit');
+    const doc = new PDFDocument({ margin: 40, size: 'A4', layout: 'landscape' });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="productos-mbs.pdf"');
+    doc.pipe(res);
+
+    const W = doc.page.width;
+    const MARGIN = 40;
+    const tableW = W - MARGIN * 2;
+
+    // ── Cabecera ──────────────────────────────────────────────────
+    doc.rect(0, 0, W, 64).fill('#0b1e3d');
+    doc.fillColor('#ffffff').fontSize(16).font('Helvetica-Bold').text('MBS Comunicaciones', MARGIN, 16);
+    doc.fontSize(9).font('Helvetica').text('Catálogo de Productos', MARGIN, 38);
+    doc.fillColor('#f97316').fontSize(8)
+       .text('Generado: ' + new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'}), MARGIN, 51);
+    doc.fillColor('#94a3b8').fontSize(8)
+       .text(`${result.rows.length} productos`, W - MARGIN - 65, 28);
+
+    // ── Tabla ─────────────────────────────────────────────────────
+    const HDR  = ['SKU', 'Nombre', 'Categoría', 'Marca', 'Precio', 'Precio Ant.', 'Stock', 'Stock Mín.', 'Estado'];
+    const COLS = [85, 175, 100, 90, 75, 75, 50, 55, 57];  // suma = 762
+    const ROW_H = 20;
+    const fmtM = n => '$' + parseFloat(n||0).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+    const ESTADO_MAP = {
+      activo: { label: 'Activo', color: '#16a34a' },
+      inactivo: { label: 'Inactivo', color: '#64748b' },
+      borrador: { label: 'Borrador', color: '#d97706' },
     };
-    const rows = [cols.join(',')];
-    result.rows.forEach(r => rows.push(cols.map(c => esc(r[c])).join(',')));
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename="productos-mbs.csv"');
-    res.send('﻿' + rows.join('\r\n'));
+
+    const drawHeader = (y) => {
+      doc.rect(MARGIN, y, tableW, ROW_H).fill('#1e3a5f');
+      let x = MARGIN;
+      HDR.forEach((h, i) => {
+        doc.fillColor('#ffffff').fontSize(7).font('Helvetica-Bold')
+           .text(h, x + 3, y + 7, { width: COLS[i] - 6, lineBreak: false });
+        x += COLS[i];
+      });
+      return y + ROW_H;
+    };
+
+    let y = drawHeader(74);
+
+    result.rows.forEach((row, ri) => {
+      if (y + ROW_H > doc.page.height - 36) {
+        doc.addPage();
+        y = drawHeader(40);
+      }
+      doc.rect(MARGIN, y, tableW, ROW_H).fill(ri % 2 === 0 ? '#f8fafc' : '#ffffff');
+
+      const estInfo = ESTADO_MAP[row.estado] || { label: row.estado || '—', color: '#64748b' };
+      const cells = [
+        row.sku || '—', row.nombre || '—', row.categoria || '—',
+        row.marca || '—', fmtM(row.precio_venta),
+        row.precio_antes ? fmtM(row.precio_antes) : '—',
+        String(row.stock_actual ?? 0), String(row.stock_minimo ?? 5),
+        estInfo.label
+      ];
+      let x = MARGIN;
+      cells.forEach((cell, i) => {
+        const isEstado = i === 8;
+        const isSku    = i === 0;
+        const color = isEstado ? estInfo.color : (isSku ? '#0369a1' : '#1e293b');
+        doc.fillColor(color).fontSize(7.5)
+           .font(isEstado || isSku ? 'Helvetica-Bold' : 'Helvetica')
+           .text(cell, x + 3, y + 7, { width: COLS[i] - 6, lineBreak: false });
+        x += COLS[i];
+      });
+      doc.moveTo(MARGIN, y + ROW_H).lineTo(MARGIN + tableW, y + ROW_H)
+         .strokeColor('#e2e8f0').lineWidth(0.4).stroke();
+      y += ROW_H;
+    });
+
+    // Pie de página
+    const pageRange = doc.bufferedPageRange();
+    for (let i = 0; i < pageRange.count; i++) {
+      doc.switchToPage(pageRange.start + i);
+      doc.fillColor('#94a3b8').fontSize(7.5)
+         .text(`MBS Comunicaciones — Productos — Pág. ${i + 1} / ${pageRange.count}`,
+               MARGIN, doc.page.height - 22, { width: tableW, align: 'center' });
+    }
+
+    doc.end();
   } catch (err) {
     console.error('exportarProductos:', err.message);
-    res.status(500).json({ ok: false, mensaje: 'Error al exportar' });
+    if (!res.headersSent) res.status(500).json({ ok: false, mensaje: 'Error al exportar' });
   }
 };
 
@@ -820,9 +977,127 @@ const subirLogo = async (req, res) => {
   }
 };
 
+const crearCategoria = async (req, res) => {
+  try {
+    const { nombre, descripcion, icono } = req.body;
+    if (!nombre || !nombre.trim()) {
+      return res.status(400).json({ ok: false, mensaje: 'El nombre de la categoría es obligatorio' });
+    }
+    const slug = nombre.trim().toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '').replace(/-+/g, '-');
+    const r = await query(
+      `INSERT INTO categorias (nombre, slug, descripcion, icono, activa)
+       VALUES ($1, $2, $3, $4, true) RETURNING id, nombre`,
+      [nombre.trim(), slug, descripcion || null, icono || null]
+    );
+    res.status(201).json({ ok: true, mensaje: 'Categoría creada', categoria: r.rows[0] });
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ ok: false, mensaje: 'Ya existe una categoría con ese nombre' });
+    console.error('crearCategoria:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error al crear categoría: ' + err.message });
+  }
+};
+
+const crearMarca = async (req, res) => {
+  try {
+    const { nombre } = req.body;
+    if (!nombre || !nombre.trim()) {
+      return res.status(400).json({ ok: false, mensaje: 'El nombre de la marca es obligatorio' });
+    }
+    const r = await query(
+      `INSERT INTO marcas (nombre, activa) VALUES ($1, true) RETURNING id, nombre`,
+      [nombre.trim()]
+    );
+    res.status(201).json({ ok: true, mensaje: 'Marca creada', marca: r.rows[0] });
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ ok: false, mensaje: 'Ya existe una marca con ese nombre' });
+    console.error('crearMarca:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error al crear marca: ' + err.message });
+  }
+};
+
+const notificaciones = async (req, res) => {
+  try {
+    const [pedidosRes, stockRes, mensajesRes] = await Promise.all([
+      query(
+        "SELECT p.id, p.numero, p.total, p.created_at," +
+        " u.nombre || ' ' || u.apellidos AS cliente" +
+        " FROM pedidos p JOIN usuarios u ON u.id = p.usuario_id" +
+        " WHERE p.estado = 'nuevo' ORDER BY p.created_at DESC LIMIT 5"
+      ),
+      query(
+        "SELECT id, nombre, sku, stock_actual, stock_minimo" +
+        " FROM productos WHERE stock_actual <= stock_minimo AND estado = 'activo'" +
+        " ORDER BY stock_actual ASC LIMIT 5"
+      ),
+      query(
+        "SELECT id, nombre, asunto, created_at FROM mensajes_contacto" +
+        " WHERE leido = false ORDER BY created_at DESC LIMIT 5"
+      ).catch(() => ({ rows: [] })) // no-fatal si la tabla no existe
+    ]);
+
+    const grupos = [];
+
+    if (pedidosRes.rows.length) {
+      grupos.push({
+        tipo: 'pedidos',
+        icono: '🛒',
+        titulo: 'Pedidos nuevos',
+        count: pedidosRes.rows.length,
+        url: '/admin/pedidos.html',
+        items: pedidosRes.rows.map(p => ({
+          id: p.id,
+          texto: `${p.numero} — ${p.cliente}`,
+          subtexto: '$' + parseFloat(p.total).toLocaleString('es-MX', { minimumFractionDigits: 2 }),
+          created_at: p.created_at
+        }))
+      });
+    }
+
+    if (stockRes.rows.length) {
+      grupos.push({
+        tipo: 'stock',
+        icono: '📦',
+        titulo: 'Stock bajo',
+        count: stockRes.rows.length,
+        url: '/admin/inventario.html',
+        items: stockRes.rows.map(p => ({
+          id: p.id,
+          texto: p.nombre,
+          subtexto: `${p.stock_actual} uds (mín: ${p.stock_minimo})`,
+          created_at: null
+        }))
+      });
+    }
+
+    if (mensajesRes.rows.length) {
+      grupos.push({
+        tipo: 'mensajes',
+        icono: '✉️',
+        titulo: 'Mensajes sin leer',
+        count: mensajesRes.rows.length,
+        url: '/admin/mensajes.html',
+        items: mensajesRes.rows.map(m => ({
+          id: m.id,
+          texto: m.nombre,
+          subtexto: m.asunto,
+          created_at: m.created_at
+        }))
+      });
+    }
+
+    const total = grupos.reduce((s, g) => s + g.count, 0);
+    res.json({ ok: true, total, grupos });
+  } catch (err) {
+    console.error('notificaciones:', err.message);
+    res.status(500).json({ ok: false, total: 0, grupos: [] });
+  }
+};
+
 module.exports = {
   dashboard, listarClientes, toggleBloqueo,
-  listarPedidos, actualizarEstadoPedido,
+  kpisPedidos, listarPedidos, actualizarEstadoPedido,
   alertasInventario, ajustarStock, listarProductos, guardarProducto, toggleEstadoProducto,
   obtenerConfiguracion, guardarConfiguracion,
   detalleCliente, detallePedido,
@@ -835,5 +1110,7 @@ module.exports = {
   listarMetodosPago, toggleMetodoPago,
   guardarConfigNotif,
   listarMensajes, marcarMensajeLeido,
-  subirLogo
+  subirLogo,
+  notificaciones,
+  crearCategoria, crearMarca
 };

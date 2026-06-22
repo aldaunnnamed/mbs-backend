@@ -47,7 +47,7 @@
           ⬆ Importar CSV
           <input type="file" accept=".csv" style="display:none" onchange="importarCSV(this)">
         </label>
-        <button class="btn btn-gr btn-sm" onclick="exportarCSV()">⬇ Exportar</button>
+        <button class="btn btn-gr btn-sm" onclick="exportarCSV()">⬇ Exportar PDF</button>
         <button class="btn btn-p btn-sm" onclick="openModal()">+ Nuevo producto</button>
         <div class="ap-huser">
           <div class="ap-huser__av js-ini">MB</div>
@@ -126,15 +126,27 @@
           <div class="fg"><label class="flbl">Nombre del producto <span>*</span></label><input class="fi" id="f-nombre" placeholder="Ej. Cable FO SM SC/UPC 3mm Drop"></div>
           <div class="fg2">
             <div class="fg"><label class="flbl">SKU <span>*</span></label><input class="fi" id="f-sku" placeholder="FO-SM-SC-001"></div>
-            <div class="fg"><label class="flbl">Categoría <span>*</span></label>
-              <select class="fs" id="f-categoria"><option value="">Seleccionar...</option></select>
+            <div class="fg">
+              <label class="flbl">Categoría <span>*</span></label>
+              <div style="display:flex;gap:6px;align-items:center">
+                <select class="fs" id="f-categoria" style="flex:1" onchange="onCatChange(this)">
+                  <option value="">Seleccionar...</option>
+                </select>
+                <button type="button" class="btn btn-p btn-xs" title="Nueva categoría" onclick="abrirNuevoCat()" style="flex-shrink:0;padding:6px 10px;font-size:16px;line-height:1">＋</button>
+              </div>
             </div>
           </div>
           <div class="fg3">
             <div class="fg"><label class="flbl">Precio de venta <span>*</span></label><input class="fi" id="f-precio" type="number" step="0.01" placeholder="349.00"></div>
             <div class="fg"><label class="flbl">Precio anterior</label><input class="fi" id="f-precio-antes" type="number" step="0.01" placeholder="450.00"></div>
-            <div class="fg"><label class="flbl">Marca</label>
-              <select class="fs" id="f-marca"><option value="">Sin marca</option></select>
+            <div class="fg">
+              <label class="flbl">Marca</label>
+              <div style="display:flex;gap:6px;align-items:center">
+                <select class="fs" id="f-marca" style="flex:1" onchange="onMarcaChange(this)">
+                  <option value="">Sin marca</option>
+                </select>
+                <button type="button" class="btn btn-p btn-xs" title="Nueva marca" onclick="abrirNuevaMarca()" style="flex-shrink:0;padding:6px 10px;font-size:16px;line-height:1">＋</button>
+              </div>
             </div>
           </div>
           <div class="fg"><label class="flbl">Descripción corta</label><textarea class="fta" id="f-desc-corta" placeholder="Breve descripción visible en catálogo..."></textarea></div>
@@ -186,6 +198,49 @@
         <button class="btn btn-gr btn-sm" onclick="Mo.close('mo-producto')">Cancelar</button>
         <button class="btn btn-p btn-sm" id="btn-guardar-prod" onclick="guardarProducto()">Guardar cambios</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Sub-modal: Nueva Categoría / Nueva Marca ──────────────── -->
+<div class="mo" id="mo-nuevo-cat" style="z-index:700">
+  <div class="mo__box" style="max-width:380px">
+    <div class="mo__hd">
+      <span class="mo__title">Nueva categoría</span>
+      <span class="mo__close" onclick="Mo.close('mo-nuevo-cat')">✕</span>
+    </div>
+    <div class="mo__bd" style="padding:20px">
+      <div class="fg" style="margin-bottom:14px">
+        <label class="flbl">Nombre de la categoría <span>*</span></label>
+        <input class="fi" id="nuevo-cat-nombre" placeholder="Ej. Accesorios de fibra">
+      </div>
+      <div class="fg">
+        <label class="flbl">Icono (emoji opcional)</label>
+        <input class="fi" id="nuevo-cat-icono" placeholder="Ej. 📦" maxlength="10">
+      </div>
+    </div>
+    <div class="mo__ft" style="justify-content:flex-end;gap:8px">
+      <button class="btn btn-gr btn-sm" onclick="Mo.close('mo-nuevo-cat')">Cancelar</button>
+      <button class="btn btn-p btn-sm" id="btn-guardar-cat" onclick="guardarNuevaCategoria()">Guardar categoría</button>
+    </div>
+  </div>
+</div>
+
+<div class="mo" id="mo-nueva-marca" style="z-index:700">
+  <div class="mo__box" style="max-width:380px">
+    <div class="mo__hd">
+      <span class="mo__title">Nueva marca</span>
+      <span class="mo__close" onclick="Mo.close('mo-nueva-marca')">✕</span>
+    </div>
+    <div class="mo__bd" style="padding:20px">
+      <div class="fg">
+        <label class="flbl">Nombre de la marca <span>*</span></label>
+        <input class="fi" id="nueva-marca-nombre" placeholder="Ej. Corning, MBS, Panduit">
+      </div>
+    </div>
+    <div class="mo__ft" style="justify-content:flex-end;gap:8px">
+      <button class="btn btn-gr btn-sm" onclick="Mo.close('mo-nueva-marca')">Cancelar</button>
+      <button class="btn btn-p btn-sm" id="btn-guardar-marca" onclick="guardarNuevaMarca()">Guardar marca</button>
     </div>
   </div>
 </div>
@@ -417,20 +472,23 @@ function setMoTab(el, tab) {
 // ── Export / Import ──────────────────────────────────────────
 function exportarCSV() {
   const token = localStorage.getItem(typeof ADMIN_TOKEN_KEY !== 'undefined' ? ADMIN_TOKEN_KEY : 'mbs_admin_token');
-  const a = document.createElement('a');
-  a.href = '/api/admin/productos/export';
+  Toast.show('Generando PDF...', 'info');
   fetch('/api/admin/productos/export', {
     headers: { 'Authorization': 'Bearer ' + (token || '') }
   })
-  .then(r => r.blob())
+  .then(r => {
+    if (!r.ok) throw new Error('Error del servidor');
+    return r.blob();
+  })
   .then(blob => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'productos-mbs.csv';
+    a.href = url; a.download = 'productos-mbs.pdf';
     document.body.appendChild(a); a.click();
     document.body.removeChild(a); URL.revokeObjectURL(url);
+    Toast.show('PDF descargado correctamente', 'success');
   })
-  .catch(() => Toast.show('Error al exportar', 'error'));
+  .catch(() => Toast.show('Error al exportar PDF', 'error'));
 }
 
 async function importarCSV(input) {
@@ -498,6 +556,73 @@ async function eliminarImagen(imgId) {
   const r = await AdminAPI.del('/admin/productos/' + editId + '/imagenes/' + imgId);
   if (r.ok) { Toast.show('Imagen eliminada', 'success'); cargarImagenes(editId); }
   else Toast.show(r.mensaje || 'Error', 'error');
+}
+
+// ── Nueva categoría ───────────────────────────────────────────
+function onCatChange(sel) {
+  if (sel.value === '__new__') { sel.value = ''; abrirNuevoCat(); }
+}
+function abrirNuevoCat() {
+  document.getElementById('nuevo-cat-nombre').value = '';
+  document.getElementById('nuevo-cat-icono').value  = '';
+  Mo.open('mo-nuevo-cat');
+  setTimeout(() => document.getElementById('nuevo-cat-nombre').focus(), 80);
+}
+async function guardarNuevaCategoria() {
+  const nombre = document.getElementById('nuevo-cat-nombre').value.trim();
+  const icono  = document.getElementById('nuevo-cat-icono').value.trim();
+  if (!nombre) { Toast.show('Escribe un nombre para la categoría', 'error'); return; }
+
+  const btn = document.getElementById('btn-guardar-cat');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+
+  const r = await AdminAPI.post('/admin/categorias', { nombre, icono: icono || null });
+  btn.disabled = false; btn.textContent = 'Guardar categoría';
+
+  if (r.ok) {
+    Toast.show(`Categoría "${r.categoria.nombre}" creada`, 'success');
+    Mo.close('mo-nuevo-cat');
+    // Agregar opción a ambos selects y seleccionarla en el form
+    const opt = `<option value="${r.categoria.id}">${r.categoria.nombre}</option>`;
+    document.getElementById('cat-filter').insertAdjacentHTML('beforeend', opt);
+    const fsel = document.getElementById('f-categoria');
+    fsel.insertAdjacentHTML('beforeend', opt);
+    fsel.value = String(r.categoria.id);
+  } else {
+    Toast.show(r.mensaje || 'Error al crear categoría', 'error');
+  }
+}
+
+// ── Nueva marca ───────────────────────────────────────────────
+function onMarcaChange(sel) {
+  if (sel.value === '__new__') { sel.value = ''; abrirNuevaMarca(); }
+}
+function abrirNuevaMarca() {
+  document.getElementById('nueva-marca-nombre').value = '';
+  Mo.open('mo-nueva-marca');
+  setTimeout(() => document.getElementById('nueva-marca-nombre').focus(), 80);
+}
+async function guardarNuevaMarca() {
+  const nombre = document.getElementById('nueva-marca-nombre').value.trim();
+  if (!nombre) { Toast.show('Escribe un nombre para la marca', 'error'); return; }
+
+  const btn = document.getElementById('btn-guardar-marca');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+
+  const r = await AdminAPI.post('/admin/marcas', { nombre });
+  btn.disabled = false; btn.textContent = 'Guardar marca';
+
+  if (r.ok) {
+    Toast.show(`Marca "${r.marca.nombre}" creada`, 'success');
+    Mo.close('mo-nueva-marca');
+    // Agregar al select de marca y seleccionarla
+    const opt = `<option value="${r.marca.id}">${r.marca.nombre}</option>`;
+    const msel = document.getElementById('f-marca');
+    msel.insertAdjacentHTML('beforeend', opt);
+    msel.value = String(r.marca.id);
+  } else {
+    Toast.show(r.mensaje || 'Error al crear marca', 'error');
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => { loadCats(); loadProducts(); });

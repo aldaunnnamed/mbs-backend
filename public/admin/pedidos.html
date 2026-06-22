@@ -211,17 +211,23 @@ let currentPedidoId = null;
 let searchTimer;
 
 async function loadKpis() {
-  const r = await AdminAPI.get('/admin/dashboard');
+  const r = await AdminAPI.get('/admin/pedidos/kpis');
   if (!r.ok) return;
   const k = r.kpis || {};
-  document.getElementById('k-hoy').textContent       = fmt.num(k.pedidos_hoy || k.pedidos_nuevos || 0);
-  document.getElementById('k-sin-atender').textContent = (k.sin_atender||0) + ' sin atender';
-  document.getElementById('k-prep').textContent      = fmt.num(k.en_preparacion || 0);
-  document.getElementById('k-camino').textContent    = fmt.num(k.enviados || 0);
-  document.getElementById('k-entregados').textContent = fmt.num(k.entregados_hoy || 0);
-  const total = k.pedidos_hoy || k.pedidos_nuevos || 0;
+  const hoy        = parseInt(k.pedidos_hoy      || 0);
+  const sinAtender = parseInt(k.sin_atender      || 0);
+  const enPrep     = parseInt(k.en_preparacion   || 0);
+  const enviados   = parseInt(k.enviados         || 0);
+  const entregados = parseInt(k.entregados_hoy   || 0);
+  const total      = parseInt(k.total            || 0);
+
+  document.getElementById('k-hoy').textContent        = hoy;
+  document.getElementById('k-sin-atender').textContent = sinAtender + ' sin atender';
+  document.getElementById('k-prep').textContent        = enPrep;
+  document.getElementById('k-camino').textContent      = enviados;
+  document.getElementById('k-entregados').textContent  = entregados;
   document.getElementById('ped-sub').textContent =
-    `${total} pedidos activos · ${k.sin_atender||0} requieren atención`;
+    `${total} pedidos activos · ${sinAtender} requieren atención`;
 }
 
 async function loadPedidos() {
@@ -358,7 +364,14 @@ function onSearch(v) {
   }, 300);
 }
 
-document.addEventListener('DOMContentLoaded', () => { loadKpis(); loadPedidos(); });
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadKpis();
+  await loadPedidos();
+  // Auto-abrir pedido si viene desde el panel de notificaciones (?pedido=ID)
+  const params = new URLSearchParams(window.location.search);
+  const pedidoId = params.get('pedido');
+  if (pedidoId) verDetalle(parseInt(pedidoId));
+});
 </script>
 </body>
 </html>

@@ -44,7 +44,7 @@
         <div class="ap-header__sub" id="cli-sub">Cargando...</div>
       </div>
       <div class="ap-header__right">
-        <button class="btn btn-p btn-sm" onclick="exportarClientes()">⬇ Exportar clientes</button>
+        <button class="btn btn-p btn-sm" onclick="exportarClientes()">⬇ Exportar PDF</button>
         <div class="ap-huser"><div class="ap-huser__av js-ini">MB</div></div>
       </div>
     </header>
@@ -300,20 +300,25 @@ function onSearch(v) {
 function onFilter() { state.tipo = document.getElementById('tipo-filter').value; state.page = 1; loadClientes(); }
 
 function exportarClientes() {
-  const token = localStorage.getItem('mbs_token') || '';
-  const a = document.createElement('a');
-  a.href = '/api/admin/clientes/export';
-  // Trigger download with token via fetch → blob
+  const token = localStorage.getItem(typeof ADMIN_TOKEN_KEY !== 'undefined' ? ADMIN_TOKEN_KEY : 'mbs_admin_token') || '';
+  Toast.show('Generando PDF...', 'info');
   fetch('/api/admin/clientes/export', { headers: { 'Authorization': 'Bearer ' + token } })
-    .then(res => res.blob())
+    .then(res => {
+      if (!res.ok) throw new Error('Error del servidor');
+      return res.blob();
+    })
     .then(blob => {
       const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
       a.href = url;
-      a.download = 'clientes-mbs.csv';
+      a.download = 'clientes-mbs.pdf';
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      Toast.show('PDF descargado correctamente', 'success');
     })
-    .catch(() => Toast.show('Error al exportar', 'error'));
+    .catch(() => Toast.show('Error al exportar PDF', 'error'));
 }
 
 document.addEventListener('DOMContentLoaded', loadClientes);

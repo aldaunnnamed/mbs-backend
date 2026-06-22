@@ -54,6 +54,13 @@ pages.forEach(page => {
   });
 });
 
+// ── Ruta directa para notificaciones de pedidos del cliente ───
+// e.g. /mi-cuenta/pedidos/MBS-2026-000028  →  sirve mi-cuenta.html
+// (el JS de la página detecta el número y abre el detalle automáticamente)
+app.get('/mi-cuenta/pedidos/:numero', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/pages/mi-cuenta.html'));
+});
+
 // ── Rutas Admin ───────────────────────────────────────────────
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/admin/index.html'));

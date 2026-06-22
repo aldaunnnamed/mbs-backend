@@ -142,6 +142,124 @@ const Cart = (() => {
   return { updateBadge, add };
 })();
 
+/* ── Notificaciones del cliente (campana en navbar) ─────────── */
+const NavbarNotif = (() => {
+  let _open = false;
+  let _interval = null;
+
+  const ICONOS = {
+    pedido_confirmado:    '📦',
+    pedido_en_preparacion:'🔧',
+    pedido_listo:         '✅',
+    pedido_enviado:       '🚚',
+    pedido_entregado:     '🎉',
+    pedido_cancelado:     '❌',
+    pago_confirmado:      '💳',
+    soporte_enviado:      '📩',
+    soporte_pedido:       '🆘',
+  };
+
+  const timeAgo = (dateStr) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1)  return 'Ahora';
+    if (m < 60) return `Hace ${m} min`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `Hace ${h} h`;
+    return `Hace ${Math.floor(h / 24)} días`;
+  };
+
+  const load = async () => {
+    const badge = document.getElementById('navbar-notif-badge');
+    const body  = document.getElementById('navbar-notif-body');
+    if (!badge || !body) return;
+
+    try {
+      const data = await API.get('/usuarios/notificaciones');
+      if (!data.ok) return;
+
+      const notifs  = data.notificaciones || [];
+      const unread  = notifs.filter(n => !n.leida).length;
+
+      badge.textContent  = unread > 9 ? '9+' : unread;
+      badge.style.display = unread > 0 ? 'flex' : 'none';
+
+      if (!notifs.length) {
+        body.innerHTML = '<div class="nn-empty">Sin notificaciones</div>';
+        return;
+      }
+
+      body.innerHTML = notifs.map(n => `
+        <div class="nn-item${n.leida ? '' : ' unread'}"
+             onclick="NavbarNotif.markOne(${n.id}, this, '${(n.url || '').replace(/'/g, '')}')"
+             data-id="${n.id}">
+          <span class="nn-icon">${ICONOS[n.tipo] || '🔔'}</span>
+          <div class="nn-content">
+            <div class="nn-titulo">${n.titulo}</div>
+            ${n.mensaje ? `<div class="nn-msg">${n.mensaje}</div>` : ''}
+            <div class="nn-time">${timeAgo(n.created_at)}</div>
+          </div>
+          ${!n.leida ? '<span class="nn-dot"></span>' : ''}
+        </div>
+      `).join('');
+    } catch (_) {}
+  };
+
+  const toggle = () => {
+    const panel = document.getElementById('navbar-notif-panel');
+    if (!panel) return;
+    _open = !_open;
+    panel.style.display = _open ? 'flex' : 'none';
+    if (_open) load();
+  };
+
+  const markOne = async (id, el, url) => {
+    try {
+      await API.put(`/usuarios/notificaciones/${id}/leer`, {});
+      el.classList.remove('unread');
+      el.querySelector('.nn-dot')?.remove();
+      // decrementar badge
+      const badge = document.getElementById('navbar-notif-badge');
+      if (badge) {
+        const n = Math.max(0, (parseInt(badge.textContent) || 0) - 1);
+        badge.textContent  = n > 9 ? '9+' : n;
+        badge.style.display = n > 0 ? 'flex' : 'none';
+      }
+    } catch (_) {}
+    if (url && url !== 'undefined' && url !== '') window.location.href = url;
+  };
+
+  const markAll = async () => {
+    try {
+      await API.put('/usuarios/notificaciones/todas/leidas', {});
+      document.querySelectorAll('.nn-item.unread').forEach(el => {
+        el.classList.remove('unread');
+        el.querySelector('.nn-dot')?.remove();
+      });
+      const badge = document.getElementById('navbar-notif-badge');
+      if (badge) badge.style.display = 'none';
+    } catch (_) {}
+  };
+
+  const init = () => {
+    load();
+    if (_interval) clearInterval(_interval);
+    _interval = setInterval(load, 60000);
+
+    // Cerrar panel al hacer clic fuera
+    document.addEventListener('click', (e) => {
+      const wrap = document.getElementById('navbar-notif-wrap');
+      if (wrap && !wrap.contains(e.target) && _open) {
+        _open = false;
+        const panel = document.getElementById('navbar-notif-panel');
+        if (panel) panel.style.display = 'none';
+      }
+    });
+  };
+
+  return { init, toggle, markOne, markAll, load };
+})();
+
 /* ── Navbar dinámica ─────────────────────────────────────────── */
 const Navbar = (() => {
   const init = () => {
@@ -156,6 +274,20 @@ const Navbar = (() => {
           onclick="Currency.setMode(this.dataset.mode === 'MXN' ? 'USD' : 'MXN')">
           🇲🇽 MXN
         </button>
+        <div class="navbar__notif-wrap" id="navbar-notif-wrap">
+          <button class="navbar__notif-btn" id="navbar-notif-btn" onclick="NavbarNotif.toggle()" title="Notificaciones">
+            🔔<span class="navbar__notif-badge" id="navbar-notif-badge" style="display:none">0</span>
+          </button>
+          <div class="navbar__notif-panel" id="navbar-notif-panel" style="display:none">
+            <div class="navbar__notif-hd">
+              <span>Notificaciones</span>
+              <button class="navbar__notif-mark-all" onclick="NavbarNotif.markAll()">Marcar todas como leídas</button>
+            </div>
+            <div class="navbar__notif-body" id="navbar-notif-body">
+              <div class="nn-empty">Cargando...</div>
+            </div>
+          </div>
+        </div>
         <a href="/pages/carrito.html" class="navbar__cart" title="Carrito">
           🛒
           <span class="navbar__cart-badge" style="display:none">0</span>
@@ -173,6 +305,7 @@ const Navbar = (() => {
         </div>
       `;
       Cart.updateBadge();
+      NavbarNotif.init();
     } else {
       actionsEl.innerHTML = `
         <button id="currency-toggle" class="currency-toggle" data-mode="MXN"
@@ -237,6 +370,148 @@ const MobileMenu = (() => {
         }
       });
     }
+  };
+
+  return { init };
+})();
+
+/* ── Autocompletado de búsqueda en navbar ────────────────────── */
+const NavbarSearch = (() => {
+  const MIN_CHARS = 2;
+  const DELAY_MS  = 280;
+  let _timer = null;
+
+  /* Crea (o reutiliza) el panel dropdown dentro del .navbar__search */
+  const getDropdown = (input) => {
+    const wrap = input.closest('.navbar__search');
+    if (!wrap) return null;
+    let dd = wrap.querySelector('.ns-dropdown');
+    if (!dd) {
+      dd = document.createElement('div');
+      dd.className = 'ns-dropdown';
+      wrap.appendChild(dd);
+    }
+    return dd;
+  };
+
+  const closeAll = () => {
+    document.querySelectorAll('.ns-dropdown').forEach(d => {
+      d.style.display = 'none';
+      d.innerHTML = '';
+    });
+  };
+
+  /* Resalta el término buscado dentro del texto */
+  const hl = (text, q) => {
+    if (!q) return text;
+    const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+    return text.replace(re, '<mark class="ns-hl">$1</mark>');
+  };
+
+  const priceMXN = (n) =>
+    '$' + parseFloat(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 });
+
+  const render = (dd, productos, q) => {
+    if (!productos.length) {
+      dd.innerHTML = `<div class="ns-empty">Sin resultados para <strong>${q}</strong></div>`;
+      dd.style.display = 'block';
+      return;
+    }
+
+    const items = productos.map(p => {
+      const nombre = p.r_nombre || p.nombre || '';
+      const sku    = p.r_sku    || p.sku    || '';
+      const slug   = p.r_slug   || p.slug   || '';
+      const precio = p.r_precio_venta || p.precio_venta || 0;
+      const img    = p.r_imagen_principal || p.imagen_principal || p.r_imagen || '';
+      const cat    = p.r_categoria || p.r_categoria_nombre || p.categoria || '';
+
+      const imgHtml = img
+        ? `<img src="${img}" alt="${nombre}" class="ns-img">`
+        : `<div class="ns-img ns-img--ph">📦</div>`;
+
+      return `
+        <a class="ns-item" href="/pages/producto.html?slug=${encodeURIComponent(slug)}">
+          ${imgHtml}
+          <div class="ns-info">
+            <div class="ns-name">${hl(nombre, q)}</div>
+            <div class="ns-meta">${sku ? 'SKU: ' + sku : ''}${cat ? ' · ' + cat : ''}</div>
+          </div>
+          <div class="ns-price">${priceMXN(precio)}</div>
+        </a>`;
+    }).join('');
+
+    const footer = `
+      <a class="ns-ver-todos" href="/pages/catalogo.html?busqueda=${encodeURIComponent(q)}">
+        Ver todos los resultados para "<strong>${q}</strong>" →
+      </a>`;
+
+    dd.innerHTML = items + footer;
+    dd.style.display = 'block';
+  };
+
+  const search = async (q, input) => {
+    const dd = getDropdown(input);
+    if (!dd) return;
+
+    if (q.length < MIN_CHARS) { dd.style.display = 'none'; return; }
+
+    dd.innerHTML = '<div class="ns-loading"><span class="ns-spinner"></span> Buscando...</div>';
+    dd.style.display = 'block';
+
+    try {
+      const res  = await fetch('/api/productos?busqueda=' + encodeURIComponent(q) + '&por_pagina=6');
+      const data = await res.json();
+      if (data.ok) render(dd, data.productos || [], q);
+      else dd.style.display = 'none';
+    } catch (_) { dd.style.display = 'none'; }
+  };
+
+  const attachTo = (input) => {
+    if (!input) return;
+
+    input.addEventListener('input', (e) => {
+      clearTimeout(_timer);
+      const q = e.target.value.trim();
+      _timer = setTimeout(() => search(q, input), DELAY_MS);
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const q = input.value.trim();
+        closeAll();
+        if (q) window.location.href = '/pages/catalogo.html?busqueda=' + encodeURIComponent(q);
+        e.preventDefault();
+      }
+      if (e.key === 'Escape') { closeAll(); input.blur(); }
+    });
+
+    input.addEventListener('focus', (e) => {
+      const q = input.value.trim();
+      if (q.length >= MIN_CHARS) search(q, input);
+    });
+  };
+
+  /* Limpia un input y evita que el navegador lo autorrellene con valores guardados */
+  const clearAutofill = (input) => {
+    if (!input) return;
+    input.setAttribute('autocomplete', 'off');
+    input.setAttribute('readonly', 'readonly');
+    input.value = '';
+    setTimeout(() => { input.value = ''; input.removeAttribute('readonly'); }, 80);
+  };
+
+  const init = () => {
+    const inp1 = document.getElementById('navbar-search');
+    const inp2 = document.getElementById('navbar-search-mobile');
+    clearAutofill(inp1);
+    clearAutofill(inp2);
+    attachTo(inp1);
+    attachTo(inp2);
+    // Cerrar al hacer clic fuera
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.navbar__search')) closeAll();
+    });
   };
 
   return { init };
@@ -378,6 +653,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await Currency.init();
   Navbar.init();
   MobileMenu.init();
+  NavbarSearch.init();
   // Aplicar moneda guardada después de inicializar
   if (savedCurrency !== 'MXN') {
     Currency.setMode(savedCurrency);

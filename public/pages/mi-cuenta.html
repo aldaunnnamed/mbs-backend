@@ -92,16 +92,12 @@
 
         <!-- Mis pedidos -->
         <div class="account-panel active" id="panel-pedidos">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-            <h2 style="font-size:1.4rem">Mis pedidos</h2>
-            <input type="text" class="orders-search" placeholder="Buscar por # o producto" id="orders-search">
-          </div>
+          <h2 style="font-size:1.4rem;margin-bottom:20px">Mis pedidos</h2>
           <div class="orders-tabs">
             <button class="orders-tab active" onclick="filterOrders(null, this)">Todos</button>
             <button class="orders-tab" onclick="filterOrders('en_preparacion', this)">En proceso</button>
             <button class="orders-tab" onclick="filterOrders('enviado', this)">Enviados</button>
             <button class="orders-tab" onclick="filterOrders('entregado', this)">Entregados</button>
-            <button class="orders-tab" onclick="filterOrders('cancelado', this)">Cancelados</button>
           </div>
           <div id="orders-list">
             <div class="skeleton" style="height:140px;border-radius:12px;margin-bottom:12px"></div>
@@ -120,7 +116,7 @@
         <!-- Mis favoritos -->
         <div class="account-panel" id="panel-favoritos">
           <h2 style="font-size:1.4rem;margin-bottom:20px">Mis favoritos</h2>
-          <div class="products-catalog-grid" id="favoritos-grid" style="display:grid"></div>
+          <div class="products-catalog-grid" id="favoritos-grid"></div>
         </div>
 
         <!-- Mis direcciones -->
@@ -176,20 +172,6 @@
                 <div class="form-group">
                   <label class="form-label">Razón social <span style="color:var(--gray-400)">(para facturación)</span></label>
                   <input type="text" class="form-input" id="p-razon">
-                </div>
-              </div>
-              <div class="form-section-title">Seguridad</div>
-              <div class="form-grid-2">
-                <div class="form-group">
-                  <label class="form-label">Contraseña actual</label>
-                  <input type="password" class="form-input" id="p-pass-actual" placeholder="••••••••">
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Nueva contraseña</label>
-                  <input type="password" class="form-input" id="p-pass-nueva" placeholder="Mínimo 8 caracteres">
-                  <button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="cambiarPassword()">
-                    Cambiar contraseña
-                  </button>
                 </div>
               </div>
               <div class="form-actions">
@@ -358,9 +340,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('p-razon').value     = userData.r_razon_social || userData.razon_social || '';
   }
 
-  // Cargar panel por URL hash
-  const hash = window.location.hash.replace('#', '') || 'pedidos';
-  showPanel(hash);
+  // Detectar si viene desde una notificación: /mi-cuenta/pedidos/MBS-XXXX-XXXXXX
+  const pathParts = window.location.pathname.split('/').filter(Boolean);
+  // pathParts: ['mi-cuenta', 'pedidos', 'MBS-2026-000028']
+  if (pathParts[0] === 'mi-cuenta' && pathParts[1] === 'pedidos' && pathParts[2]) {
+    const targetNumero = decodeURIComponent(pathParts[2]);
+    showPanel('pedidos'); // muestra el panel y carga la lista
+    // Buscar el pedido por número y abrir su detalle
+    const data = await API.get('/pedidos');
+    if (data.ok && data.pedidos) {
+      const match = data.pedidos.find(p => (p.r_numero || p.numero) === targetNumero);
+      if (match) {
+        verDetallePedido(match.r_id || match.id);
+      } else {
+        Toast.show('Pedido ' + targetNumero + ' no encontrado', 'error');
+      }
+    }
+  } else {
+    // Cargar panel por URL hash (comportamiento normal)
+    const hash = window.location.hash.replace('#', '') || 'pedidos';
+    showPanel(hash);
+  }
 });
 
 window.showPanel = (panel, navItem = null) => {
@@ -549,12 +549,6 @@ window.verDetallePedido = async (id) => {
                 style="justify-content:center">
                 🛒 Volver a comprar
               </button>
-              ${cancelable ? `
-              <button class="btn btn-sm"
-                style="background:var(--red-lite);color:var(--red);justify-content:center"
-                onclick="solicitarCancelacion(${id}, '${numero}')">
-                ✕ Solicitar cancelacion
-              </button>` : ''}
               <button class="btn btn-sm"
                 style="background:var(--electric-lite);color:var(--navy);justify-content:center"
                 onclick="contactarSoporte(${id}, '${numero}')">
@@ -582,7 +576,7 @@ const loadFavorites = async () => {
     const precio = p.r_precio_venta||p.precio_venta;
     const slug   = p.r_slug||p.slug;
     const id     = p.r_id||p.id;
-    const imagen = p.r_imagen||p.imagen;
+    const imagen = p.r_imagen_principal || p.r_imagen || p.imagen;
     const imgHtml = imagen
       ? `<img src="${imagen}" alt="${nombre}" loading="lazy">`
       : `<div class="product-card__img-placeholder"><span style="font-size:2rem">📦</span></div>`;

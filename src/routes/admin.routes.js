@@ -9,6 +9,9 @@ router.use(verificarToken, soloAdmin);
 // Dashboard
 router.get('/dashboard',                    ctrl.dashboard);
 
+// Notificaciones admin
+router.get('/notificaciones',               ctrl.notificaciones);
+
 // Clientes
 router.get('/clientes/export',              ctrl.exportarClientes);
 router.get('/clientes',                     ctrl.listarClientes);
@@ -16,6 +19,7 @@ router.get('/clientes/:id',                 ctrl.detalleCliente);
 router.put('/clientes/:id/bloqueo',         ctrl.toggleBloqueo);
 
 // Pedidos
+router.get('/pedidos/kpis',                 ctrl.kpisPedidos);
 router.get('/pedidos',                      ctrl.listarPedidos);
 router.get('/pedidos/:id',                  ctrl.detallePedido);
 router.put('/pedidos/:id/estado',           ctrl.actualizarEstadoPedido);
@@ -23,6 +27,10 @@ router.put('/pedidos/:id/estado',           ctrl.actualizarEstadoPedido);
 // Inventario
 router.get('/inventario/alertas',           ctrl.alertasInventario);
 router.put('/inventario/:id/stock',         ctrl.ajustarStock);
+
+// Categorías y marcas (creación rápida desde modal de producto)
+router.post('/categorias',                  ctrl.crearCategoria);
+router.post('/marcas',                      ctrl.crearMarca);
 
 // Productos
 router.get ('/productos/top',               ctrl.topProductos);

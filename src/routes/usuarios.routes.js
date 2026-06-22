@@ -117,6 +117,19 @@ router.get('/notificaciones', verificarToken, async (req, res) => {
   }
 });
 
+router.put('/notificaciones/todas/leidas', verificarToken, async (req, res) => {
+  try {
+    await query(
+      'UPDATE notificaciones SET leida = TRUE WHERE usuario_id = $1',
+      [parseInt(req.usuario.id)]
+    );
+    res.json({ ok: true, mensaje: 'Todas las notificaciones marcadas como leídas' });
+  } catch (err) {
+    console.error('notif todas leidas:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error al actualizar notificaciones' });
+  }
+});
+
 router.put('/notificaciones/:id/leer', verificarToken, async (req, res) => {
   try {
     await query('UPDATE notificaciones SET leida = TRUE WHERE id = $1 AND usuario_id = $2',
