@@ -212,14 +212,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <button class="page-btn" onclick="changePage(${state.pagina+1})"
           ${state.pagina >= totalPags ? 'disabled' : ''}>›</button>
       </div>
-      <div class="pagination__perpage">
-        Mostrar:
-        <select onchange="changePerPage(this.value)">
-          ${[9,18,27,36].map(n =>
-            `<option value="${n}" ${n === state.por_pagina ? 'selected' : ''}>${n}</option>`
-          ).join('')}
-        </select>
-      </div>`;
+      `;
   };
 
   // ── Filtros activos (chips) ────────────────────────────────
