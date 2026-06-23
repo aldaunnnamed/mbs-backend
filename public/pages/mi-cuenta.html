@@ -308,8 +308,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // Cargar perfil
-  const perfil = await API.get('/auth/perfil');
+  // Cargar perfil y conteo de direcciones en paralelo
+  const [perfil, dirsInit] = await Promise.all([
+    API.get('/auth/perfil'),
+    API.get('/usuarios/direcciones')
+  ]);
+  if (dirsInit.ok && dirsInit.direcciones) {
+    document.getElementById('dirs-count').textContent =
+      dirsInit.direcciones.length + ' guardadas';
+  }
   if (perfil.ok) {
     userData = perfil.datos;
     const nombre    = userData.r_nombre    || userData.nombre;
@@ -457,7 +464,7 @@ window.verDetallePedido = async (id) => {
   const first = rows[0];
   const numero = first.r_pedido_numero || '';
   const estado = first.r_estado || '';
-  const total  = first.r_total  || 0;
+  const total  = parseFloat(first.r_total)  || 0;
 
   const statusSteps = ['nuevo','en_preparacion','enviado','en_camino','entregado'];
   const idx = Math.max(0, statusSteps.indexOf(estado));
@@ -473,6 +480,15 @@ window.verDetallePedido = async (id) => {
       uniqueItems.push(r);
     }
   });
+
+  // Calcular subtotales — fallback desde ítems si los campos del pedido son 0
+  let displaySubtotal  = parseFloat(first.r_subtotal)    || 0;
+  let displayEnvio     = parseFloat(first.r_costo_envio) || 0;
+  let displayIva       = parseFloat(first.r_iva)         || 0;
+  if (displaySubtotal === 0 && total > 0) {
+    displaySubtotal = uniqueItems.reduce((s, r) => s + (parseFloat(r.r_item_subtotal) || 0), 0);
+    displayIva      = Math.round((displaySubtotal + displayEnvio) * 0.16 * 100) / 100;
+  }
 
   document.getElementById('detalle-pedido-content').innerHTML = `
     <div class="order-detail">
@@ -512,13 +528,13 @@ window.verDetallePedido = async (id) => {
               </div>`).join('')}
             <div style="padding-top:14px">
               <div style="display:flex;justify-content:space-between;font-size:.85rem;color:var(--gray-600);margin-bottom:6px">
-                <span>Subtotal</span><span>${formatPrice(first.r_subtotal||0)}</span>
+                <span>Subtotal</span><span>${formatPrice(displaySubtotal)}</span>
               </div>
               <div style="display:flex;justify-content:space-between;font-size:.85rem;color:var(--gray-600);margin-bottom:6px">
-                <span>Envio</span><span>${formatPrice(first.r_costo_envio||0)}</span>
+                <span>Envio</span><span>${formatPrice(displayEnvio)}</span>
               </div>
               <div style="display:flex;justify-content:space-between;font-size:.85rem;color:var(--gray-600);margin-bottom:10px">
-                <span>IVA (16%)</span><span>${formatPrice(first.r_iva||0)}</span>
+                <span>IVA (16%)</span><span>${formatPrice(displayIva)}</span>
               </div>
               <div style="display:flex;justify-content:space-between;font-family:Rajdhani,sans-serif;font-size:1.1rem;font-weight:700;color:var(--navy)">
                 <span>TOTAL</span><span style="color:var(--orange)">${formatPrice(total)}</span>

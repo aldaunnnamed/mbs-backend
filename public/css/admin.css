@@ -113,15 +113,8 @@ input, select, textarea { font-family: inherit; font-size: 14px; }
 .sb-link.active { background: var(--ap); color: #fff; }
 .sb-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
 .sb-label { flex: 1; }
-.sb-badge {
-  background: var(--c-red);
-  color: #fff;
-  font-size: 10px; font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 10px;
-  min-width: 18px; text-align: center;
-}
-.sb-link.active .sb-badge { background: rgba(255,255,255,.25); }
+.sb-badge { display: none; }
+.sb-link.active .sb-badge { display: none; }
 .sb-divider { border: none; border-top: 1px solid rgba(255,255,255,.06); margin: 6px 0; }
 .sb-footer { padding: 10px 8px; border-top: 1px solid rgba(255,255,255,.06); }
 
@@ -622,13 +615,13 @@ input, select, textarea { font-family: inherit; font-size: 14px; }
 .tfa-ok {
   background: var(--c-green-bg); border: 1px solid #BBF7D0;
   border-radius: var(--r); padding: 12px 14px;
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  margin-bottom: 14px;
+  display: flex; align-items: center; justify-content: space-between; gap:
+/* ── Preview upload ──────────────────────────────────────────── */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
-.tfa-ok__lbl { font-size: 13px; font-weight: 600; color: var(--c-green-tx); }
-.tfa-ok__sub { font-size: 11px; color: var(--c-green-tx); margin-top: 2px; }
-.section-hd {
-  display: flex; align-items: center; justify-content: space-between;
+space-between;
   margin-bottom: 14px; gap: 10px;
 }
 .section-hd__tt  { font-size: 15px; font-weight: 700; }

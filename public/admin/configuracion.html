@@ -14,10 +14,6 @@
       <div class="sb-logo__mark">M</div>
       <div><div class="sb-logo__name">MBS Comunicaciones</div><div class="sb-logo__sub">Panel de Administración</div></div>
     </div>
-    <div class="sb-user">
-      <div class="sb-user__av js-ini">MB</div>
-      <div><div class="sb-user__name js-name">MBS Admin</div><div class="sb-user__email js-email">admin@mbs.mx</div></div>
-    </div>
     <ul class="sb-nav">
       <li><a href="/admin/index.html" class="sb-link"><span class="sb-icon">📊</span><span class="sb-label">Inicio</span></a></li>
       <li><a href="/admin/productos.html" class="sb-link"><span class="sb-icon">📦</span><span class="sb-label">Productos</span></a></li>
@@ -452,7 +448,7 @@ async function guardarAdmin() {
 
 async function loadPagoMetodos() {
   const r = await AdminAPI.get('/admin/pagos-metodos');
-  const metodos = r.metodos || [];
+  const metodos = (r.metodos || []).filter(m => m.clave !== 'cripto');
   document.getElementById('pagos-tbody').innerHTML = metodos.length
     ? metodos.map(m => `<tr>
         <td class="fw6">${m.nombre}</td>
@@ -628,7 +624,7 @@ async function actualizarPass() {
   if (r.ok) {
     document.getElementById('curr-pass').value    = '';
     document.getElementById('new-pass').value     = '';
-    document.getElementById('confirm-pass').value = '';
+    document.getElementById('confirm-pass').value =     '';
   }
 }
 </script>

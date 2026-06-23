@@ -14,10 +14,6 @@
       <div class="sb-logo__mark">M</div>
       <div><div class="sb-logo__name">MBS Comunicaciones</div><div class="sb-logo__sub">Panel de Administración</div></div>
     </div>
-    <div class="sb-user">
-      <div class="sb-user__av js-ini">MB</div>
-      <div><div class="sb-user__name js-name">MBS Admin</div><div class="sb-user__email js-email">admin@mbs.mx</div></div>
-    </div>
     <ul class="sb-nav">
       <li><a href="/admin/index.html" class="sb-link"><span class="sb-icon">📊</span><span class="sb-label">Inicio</span></a></li>
       <li><a href="/admin/productos.html" class="sb-link"><span class="sb-icon">📦</span><span class="sb-label">Productos</span></a></li>
@@ -174,10 +170,12 @@
       <div id="mo-tab-imagenes" style="display:none">
         <div id="imgs-aviso" class="tx-m fs12" style="margin-bottom:12px">Guarda el producto primero para poder subir imágenes.</div>
         <div id="imgs-grid" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px"></div>
-        <label id="imgs-upload-btn" style="display:none;cursor:pointer">
-          <div style="border:2px dashed var(--border);border-radius:var(--r);padding:20px;text-align:center;color:var(--muted)">
-            <div style="font-size:28px">🖼</div>
-            <div class="mt4 fw6 fs12">Seleccionar imagen</div>
+        <label id="imgs-upload-btn" style="display:none;cursor:pointer"
+          onmouseenter="this.querySelector('.imgs-drop-zone').style.borderColor='var(--c-orange)';this.querySelector('.imgs-drop-zone').style.background='rgba(249,115,22,.05)'"
+          onmouseleave="this.querySelector('.imgs-drop-zone').style.borderColor='var(--border)';this.querySelector('.imgs-drop-zone').style.background=''">
+          <div class="imgs-drop-zone" style="border:2px dashed var(--border);border-radius:var(--r);padding:24px 20px;text-align:center;color:var(--muted);transition:border-color .15s,background .15s">
+            <div style="font-size:32px">🖼️</div>
+            <div class="mt4 fw6 fs12" style="color:var(--c-orange)">Seleccionar imagen</div>
             <div class="mt4 fs11">JPG, PNG, WebP · máx. 2MB</div>
           </div>
           <input type="file" accept=".jpg,.jpeg,.png,.webp" style="display:none" onchange="subirImagen(this)">
@@ -300,7 +298,14 @@ function stockBadge(p) {
   const minimo = p.stock_minimo ?? p.r_stock_minimo ?? 5;
   if (stock === 0) return '<span class="bdg bdg--r">Sin stock</span>';
   if (stock <= minimo) return '<span class="bdg bdg--o">Stock bajo</span>';
-  return '<span class="bdg bdg--g">Activo</span>';
+  return '<span class="bdg bdg--g">OK</span>';
+}
+
+function estadoBadge(p) {
+  const estado = p.estado || p.r_estado || 'activo';
+  return estado === 'activo'
+    ? '<span class="bdg bdg--g">Activo</span>'
+    : '<span class="bdg bdg--gr">Inactivo</span>';
 }
 
 function renderTable(prods, total) {
@@ -313,7 +318,11 @@ function renderTable(prods, total) {
       <tr>
         <td>
           <div class="tbl__product">
-            <div class="tbl__img">img</div>
+            <div class="tbl__img" style="overflow:hidden;flex-shrink:0">
+              ${(p.r_imagen_principal || p.imagen_principal)
+                ? `<img src="${p.r_imagen_principal || p.imagen_principal}" alt="" style="width:100%;height:100%;object-fit:cover">`
+                : `<span style="font-size:18px;display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8">📦</span>`}
+            </div>
             <div>
               <div class="tbl__name">${p.nombre || p.r_nombre || '—'}</div>
               <div class="tbl__sub">${p.sku || p.r_sku || ''}</div>
@@ -323,7 +332,7 @@ function renderTable(prods, total) {
         <td class="tx-m">${p.categoria_nombre || p.r_categoria || '—'}</td>
         <td class="fw6">${fmt.money(p.precio_venta || p.r_precio_venta || 0)}</td>
         <td>${p.stock_actual ?? p.r_stock_actual ?? '—'}</td>
-        <td>${stockBadge(p)}</td>
+        <td>${estadoBadge(p)}</td>
         <td>
           <div style="display:flex;gap:6px">
             <button class="btn btn-b btn-xs" onclick="editProducto(${p.id || p.r_id})">Editar</button>
@@ -477,155 +486,166 @@ function exportarCSV() {
     headers: { 'Authorization': 'Bearer ' + (token || '') }
   })
   .then(r => {
-    if (!r.ok) throw new Error('Error del servidor');
+     if (!r.ok) throw new Error('Error');
     return r.blob();
   })
   .then(blob => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'productos-mbs.pdf';
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a); URL.revokeObjectURL(url);
-    Toast.show('PDF descargado correctamente', 'success');
+    a.href = url;
+    a.download = 'productos-mbs.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   })
-  .catch(() => Toast.show('Error al exportar PDF', 'error'));
+  .catch(() => Toast.show('Error al generar el PDF', 'error'));
 }
 
 async function importarCSV(input) {
   const file = input.files[0];
   if (!file) return;
-  const formData = new FormData();
-  formData.append('archivo', file);
+  const fd = new FormData();
+  fd.append('archivo', file);
+  const token = localStorage.getItem(typeof ADMIN_TOKEN_KEY !== 'undefined' ? ADMIN_TOKEN_KEY : 'mbs_admin_token');
   try {
-    const token = localStorage.getItem('mbs_token');
-    const r = await fetch('/api/admin/productos/import', {
+    const res = await fetch('/api/admin/productos/import', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + (token || '') },
-      body: formData
+      body: fd
     });
-    const data = await r.json();
-    Toast.show(data.mensaje || (data.ok ? 'Importado' : 'Error'), data.ok ? 'success' : 'error');
-    if (data.ok) loadProducts();
-  } catch { Toast.show('Error al importar', 'error'); }
+    const r = await res.json();
+    Toast.show(r.mensaje || (r.ok ? 'Importación completada' : 'Error'), r.ok ? 'success' : 'error');
+    if (r.ok) loadProducts();
+  } catch(e) {
+    Toast.show('Error de conexión al importar', 'error');
+  }
   input.value = '';
 }
 
-// ── Imágenes ─────────────────────────────────────────────────
 async function cargarImagenes(id) {
-  const grid = document.getElementById('imgs-grid');
-  const aviso = document.getElementById('imgs-aviso');
+  const grid  = document.getElementById('imgs-grid');
   const btn   = document.getElementById('imgs-upload-btn');
-  if (!id) { aviso.style.display = ''; btn.style.display = 'none'; return; }
-  aviso.style.display = 'none'; btn.style.display = '';
-  const r = await fetch('/api/productos/' + id, {
-    headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('mbs_token') || '') }
-  }).then(r => r.json()).catch(() => ({}));
-  const imgs = r.imagenes || [];
-  grid.innerHTML = imgs.map(img => `
-    <div style="position:relative;width:90px;height:90px">
-      <img src="${img.url}" style="width:90px;height:90px;object-fit:cover;border-radius:6px;border:2px solid ${img.es_principal?'var(--c-orange)':'var(--border)'}">
-      <button onclick="eliminarImagen(${img.id})" title="Eliminar"
-        style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:10px;line-height:1">✕</button>
-      ${img.es_principal ? '<div style="position:absolute;bottom:2px;left:2px;background:var(--c-orange);color:#fff;font-size:9px;padding:1px 4px;border-radius:3px">Principal</div>' : ''}
-    </div>`).join('');
+  const aviso = document.getElementById('imgs-aviso');
+  if (!id) { aviso.style.display = ''; btn.style.display = 'none'; grid.innerHTML = ''; return; }
+  aviso.style.display = 'none';
+  btn.style.display   = '';
+  grid.innerHTML = '<div class="tx-m fs12">Cargando...</div>';
+  const r = await AdminAPI.get('/admin/productos/' + id + '/imagenes');
+  const imgs = r.imagenes || r.images || [];
+  grid.innerHTML = imgs.length
+    ? imgs.map(img => `
+        <div style="position:relative;width:100px;height:100px;border-radius:8px;overflow:hidden;border:2px solid ${img.es_principal?'var(--c-orange)':'var(--border)'}">
+          <img src="${img.url}" style="width:100%;height:100%;object-fit:cover">
+          <button onclick="eliminarImagen(${img.id})"
+            style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:11px;line-height:1">✕</button>
+          ${!img.es_principal?`<button onclick="setPrincipal(${img.id})"
+            style="position:absolute;bottom:4px;left:4px;background:rgba(249,115,22,.8);color:#fff;border:none;border-radius:4px;padding:2px 5px;cursor:pointer;font-size:9px">★ principal</button>`:''}
+        </div>`).join('')
+    : '<div class="tx-m fs12" style="padding:16px 0">Sin imágenes cargadas.</div>';
 }
 
 async function subirImagen(input) {
   const file = input.files[0];
-  if (!file || !editId) return;
-  const formData = new FormData();
-  formData.append('imagen', file);
-  const esPrin = !document.getElementById('imgs-grid').innerHTML.trim();
-  if (esPrin) formData.append('es_principal', 'true');
+  if (!file) return;
+  if (!editId) { Toast.show('Guarda el producto primero', 'error'); return; }
+  const fd = new FormData();
+  fd.append('imagen', file);
+  const token = localStorage.getItem(typeof ADMIN_TOKEN_KEY !== 'undefined' ? ADMIN_TOKEN_KEY : 'mbs_admin_token');
   try {
-    const token = localStorage.getItem(typeof ADMIN_TOKEN_KEY !== 'undefined' ? ADMIN_TOKEN_KEY : 'mbs_admin_token');
-    const r = await fetch('/api/admin/productos/' + editId + '/imagenes', {
+    const res = await fetch('/api/admin/productos/' + editId + '/imagenes', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + (token || '') },
-      body: formData
+      body: fd
     });
-    const data = await r.json();
-    Toast.show(data.mensaje || (data.ok ? 'Imagen subida' : 'Error'), data.ok ? 'success' : 'error');
-    if (data.ok) cargarImagenes(editId);
-  } catch { Toast.show('Error al subir imagen', 'error'); }
+    const r = await res.json();
+    Toast.show(r.mensaje || (r.ok ? 'Imagen subida' : 'Error'), r.ok ? 'success' : 'error');
+    if (r.ok) cargarImagenes(editId);
+  } catch(e) {
+    Toast.show('Error de conexión', 'error');
+  }
   input.value = '';
 }
 
 async function eliminarImagen(imgId) {
   if (!confirm('¿Eliminar esta imagen?')) return;
-  const r = await AdminAPI.del('/admin/productos/' + editId + '/imagenes/' + imgId);
-  if (r.ok) { Toast.show('Imagen eliminada', 'success'); cargarImagenes(editId); }
-  else Toast.show(r.mensaje || 'Error', 'error');
+  const r = await AdminAPI.del('/admin/productos/imagenes/' + imgId);
+  Toast.show(r.ok ? 'Imagen eliminada' : (r.mensaje || 'Error'), r.ok ? 'success' : 'error');
+  if (r.ok) cargarImagenes(editId);
 }
 
-// ── Nueva categoría ───────────────────────────────────────────
+async function setPrincipal(imgId) {
+  const r = await AdminAPI.put('/admin/productos/imagenes/' + imgId + '/principal', {});
+  Toast.show(r.ok ? 'Imagen principal actualizada' : (r.mensaje || 'Error'), r.ok ? 'success' : 'error');
+  if (r.ok) cargarImagenes(editId);
+}
+
 function onCatChange(sel) {
   if (sel.value === '__new__') { sel.value = ''; abrirNuevoCat(); }
 }
+
+function onMarcaChange(sel) {
+  if (sel.value === '__new__') { sel.value = ''; abrirNuevaMarca(); }
+}
+
 function abrirNuevoCat() {
   document.getElementById('nuevo-cat-nombre').value = '';
   document.getElementById('nuevo-cat-icono').value  = '';
   Mo.open('mo-nuevo-cat');
-  setTimeout(() => document.getElementById('nuevo-cat-nombre').focus(), 80);
 }
+
 async function guardarNuevaCategoria() {
   const nombre = document.getElementById('nuevo-cat-nombre').value.trim();
   const icono  = document.getElementById('nuevo-cat-icono').value.trim();
-  if (!nombre) { Toast.show('Escribe un nombre para la categoría', 'error'); return; }
-
+  if (!nombre) { Toast.show('El nombre es obligatorio', 'error'); return; }
   const btn = document.getElementById('btn-guardar-cat');
-  btn.disabled = true; btn.textContent = 'Guardando...';
-
+  btn.disabled = true;
   const r = await AdminAPI.post('/admin/categorias', { nombre, icono: icono || null });
-  btn.disabled = false; btn.textContent = 'Guardar categoría';
-
+  btn.disabled = false;
   if (r.ok) {
-    Toast.show(`Categoría "${r.categoria.nombre}" creada`, 'success');
+    Toast.show('Categoría creada', 'success');
     Mo.close('mo-nuevo-cat');
-    // Agregar opción a ambos selects y seleccionarla en el form
-    const opt = `<option value="${r.categoria.id}">${r.categoria.nombre}</option>`;
-    document.getElementById('cat-filter').insertAdjacentHTML('beforeend', opt);
-    const fsel = document.getElementById('f-categoria');
-    fsel.insertAdjacentHTML('beforeend', opt);
-    fsel.value = String(r.categoria.id);
+    const newId = (r.categoria && r.categoria.id) || r.id;
+    if (newId) {
+      [document.getElementById('f-categoria'), document.getElementById('cat-filter')].forEach(s => {
+        s.insertAdjacentHTML('beforeend', `<option value="${newId}">${nombre}</option>`);
+      });
+      document.getElementById('f-categoria').value = newId;
+    }
   } else {
     Toast.show(r.mensaje || 'Error al crear categoría', 'error');
   }
 }
 
-// ── Nueva marca ───────────────────────────────────────────────
-function onMarcaChange(sel) {
-  if (sel.value === '__new__') { sel.value = ''; abrirNuevaMarca(); }
-}
 function abrirNuevaMarca() {
   document.getElementById('nueva-marca-nombre').value = '';
   Mo.open('mo-nueva-marca');
-  setTimeout(() => document.getElementById('nueva-marca-nombre').focus(), 80);
 }
+
 async function guardarNuevaMarca() {
   const nombre = document.getElementById('nueva-marca-nombre').value.trim();
-  if (!nombre) { Toast.show('Escribe un nombre para la marca', 'error'); return; }
-
+  if (!nombre) { Toast.show('El nombre es obligatorio', 'error'); return; }
   const btn = document.getElementById('btn-guardar-marca');
-  btn.disabled = true; btn.textContent = 'Guardando...';
-
+  btn.disabled = true;
   const r = await AdminAPI.post('/admin/marcas', { nombre });
-  btn.disabled = false; btn.textContent = 'Guardar marca';
-
+  btn.disabled = false;
   if (r.ok) {
-    Toast.show(`Marca "${r.marca.nombre}" creada`, 'success');
+    Toast.show('Marca creada', 'success');
     Mo.close('mo-nueva-marca');
-    // Agregar al select de marca y seleccionarla
-    const opt = `<option value="${r.marca.id}">${r.marca.nombre}</option>`;
-    const msel = document.getElementById('f-marca');
-    msel.insertAdjacentHTML('beforeend', opt);
-    msel.value = String(r.marca.id);
+    const newId = (r.marca && r.marca.id) || r.id;
+    if (newId) {
+      document.getElementById('f-marca').insertAdjacentHTML('beforeend', `<option value="${newId}">${nombre}</option>`);
+      document.getElementById('f-marca').value = newId;
+    }
   } else {
     Toast.show(r.mensaje || 'Error al crear marca', 'error');
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => { loadCats(); loadProducts(); });
+document.addEventListener('DOMContentLoaded', () => {
+  loadCats();
+  loadProducts();
+});
 </script>
 </body>
 </html>

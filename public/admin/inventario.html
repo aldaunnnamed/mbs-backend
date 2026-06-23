@@ -14,10 +14,6 @@
       <div class="sb-logo__mark">M</div>
       <div><div class="sb-logo__name">MBS Comunicaciones</div><div class="sb-logo__sub">Panel de Administración</div></div>
     </div>
-    <div class="sb-user">
-      <div class="sb-user__av js-ini">MB</div>
-      <div><div class="sb-user__name js-name">MBS Admin</div><div class="sb-user__email js-email">admin@mbs.mx</div></div>
-    </div>
     <ul class="sb-nav">
       <li><a href="/admin/index.html" class="sb-link"><span class="sb-icon">📊</span><span class="sb-label">Inicio</span></a></li>
       <li><a href="/admin/productos.html" class="sb-link"><span class="sb-icon">📦</span><span class="sb-label">Productos</span></a></li>
@@ -177,10 +173,13 @@ async function load() {
   allItems = items;
 
   const k = (dashboard.ok && dashboard.kpis) || {};
-  document.getElementById('k-total').textContent  = fmt.num(k.productos_activos || items.length);
-  document.getElementById('k-bajo').textContent   = items.filter(i=>i.r_nivel_alerta==='bajo'||i.r_nivel_alerta==='critico').length;
-  document.getElementById('k-cero').textContent   = items.filter(i=>i.r_nivel_alerta==='sin_stock').length;
-  document.getElementById('k-ok').textContent     = fmt.num((k.productos_activos||0) - items.length);
+  const totalActivos  = parseInt(k.productos_activos) || 0;
+  const sinStockCount = items.filter(i => parseInt(i.r_stock_actual) === 0).length;
+  const bajoCount     = items.filter(i => parseInt(i.r_stock_actual) > 0).length;
+  document.getElementById('k-total').textContent  = fmt.num(totalActivos || items.length);
+  document.getElementById('k-bajo').textContent   = bajoCount;
+  document.getElementById('k-cero').textContent   = sinStockCount;
+  document.getElementById('k-ok').textContent     = fmt.num(totalActivos - items.length);
 
   document.getElementById('inv-sub').textContent =
     `Control de stock · ${items.length} productos con alerta`;
@@ -255,10 +254,12 @@ function onSearch(v) {
 
 function onFilter() {
   const f = document.getElementById('alerta-filter').value;
-  renderTable(f ? allItems.filter(i => i.r_nivel_alerta === f) : allItems);
+  renderTable(f ? allItems.filter(i => i.r_nivel_alerta === f)    : allItems);
 }
 
-document.addEventListener('DOMContentLoaded', load);
+document.addEventListener('DOMContentLoaded', () => {
+  load();
+});
 </script>
 </body>
 </html>

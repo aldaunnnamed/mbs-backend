@@ -233,7 +233,10 @@ const listarProductos = async (req, res) => {
          p.stock_minimo  AS r_stock_minimo,
          p.estado        AS r_estado,
          p.badge         AS r_badge,
-         p.destacado     AS r_destacado
+         p.destacado     AS r_destacado,
+         (SELECT url FROM producto_imagenes
+          WHERE producto_id = p.id AND es_principal = TRUE
+          LIMIT 1) AS r_imagen_principal
        FROM productos p
        LEFT JOIN categorias c ON c.id = p.categoria_id
        LEFT JOIN marcas m ON m.id = p.marca_id
@@ -834,7 +837,14 @@ const subirImagenProducto = async (req, res) => {
     if (!req.file) return res.status(400).json({ ok: false, mensaje: 'Imagen requerida' });
     const productoId = parseInt(req.params.id);
     const url = '/uploads/productos/' + req.file.filename;
-    const esPrincipal = req.body.es_principal === 'true';
+
+    // Es principal si el cliente lo solicitó O si no hay ninguna principal todavía
+    const hayPrincipal = await query(
+      'SELECT 1 FROM producto_imagenes WHERE producto_id = $1 AND es_principal = TRUE LIMIT 1',
+      [productoId]
+    );
+    const esPrincipal = req.body.es_principal === 'true' || hayPrincipal.rows.length === 0;
+
     if (esPrincipal) {
       await query('UPDATE producto_imagenes SET es_principal = FALSE WHERE producto_id = $1', [productoId]);
     }
@@ -848,6 +858,36 @@ const subirImagenProducto = async (req, res) => {
   } catch (err) {
     console.error('subirImagenProducto:', err.message);
     res.status(500).json({ ok: false, mensaje: 'Error al subir imagen' });
+  }
+};
+
+const listarImagenesProducto = async (req, res) => {
+  try {
+    const r = await query(
+      'SELECT id, url, alt, orden, es_principal FROM producto_imagenes WHERE producto_id = $1 ORDER BY orden',
+      [parseInt(req.params.id)]
+    );
+    res.json({ ok: true, imagenes: r.rows });
+  } catch (err) {
+    console.error('listarImagenesProducto:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error al obtener imágenes' });
+  }
+};
+
+const marcarPrincipalImagen = async (req, res) => {
+  try {
+    const productoId = parseInt(req.params.id);
+    const imgId      = parseInt(req.params.img_id);
+    await query('UPDATE producto_imagenes SET es_principal = FALSE WHERE producto_id = $1', [productoId]);
+    const r = await query(
+      'UPDATE producto_imagenes SET es_principal = TRUE WHERE id = $1 AND producto_id = $2 RETURNING id',
+      [imgId, productoId]
+    );
+    if (!r.rows.length) return res.status(404).json({ ok: false, mensaje: 'Imagen no encontrada' });
+    res.json({ ok: true, mensaje: 'Imagen principal actualizada' });
+  } catch (err) {
+    console.error('marcarPrincipalImagen:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error al actualizar imagen principal' });
   }
 };
 
@@ -1104,7 +1144,7 @@ module.exports = {
   topProductos,
   listarMetodosEnvio, guardarMetodoEnvio, toggleMetodoEnvio,
   exportarProductos, importarProductos,
-  subirImagenProducto, eliminarImagenProducto,
+  listarImagenesProducto, subirImagenProducto, eliminarImagenProducto, marcarPrincipalImagen,
   exportarClientes,
   listarAdmins, crearAdmin,
   listarMetodosPago, toggleMetodoPago,

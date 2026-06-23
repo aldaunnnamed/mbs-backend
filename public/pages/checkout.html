@@ -334,6 +334,7 @@
 <script>
 let cartItems = [], shippingMethods = [], paymentMethods = [], selectedShipping = null, selectedPayment = 'tarjeta';
 let carritoId = null;
+let selectedAddressId = null;   // id de dirección guardada seleccionada (null = nueva)
 
 document.addEventListener('DOMContentLoaded', async () => {
 
@@ -414,6 +415,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-add-address')?.addEventListener('click', (e) => {
     e.preventDefault();
     document.querySelectorAll('.saved-address').forEach(el => el.classList.remove('selected'));
+    selectedAddressId = null;   // nueva dirección — no reusar ninguna guardada
     ['dir-nombre','dir-apellidos','dir-calle','dir-colonia','dir-cp','dir-estado','dir-ciudad'].forEach(id => {
       document.getElementById(id).value = '';
     });
@@ -452,9 +454,13 @@ const renderShippingMethods = () => {
 const renderSavedAddresses = (dirs) => {
   const c = document.getElementById('saved-addresses-container');
   c.style.display = 'block';
+  // Preseleccionar la dirección predeterminada (o la primera)
+  const defIdx = dirs.findIndex(d => d.es_predeterminada);
+  const preIdx = defIdx >= 0 ? defIdx : 0;
+  selectedAddressId = dirs[preIdx]?.id || null;
   c.innerHTML = dirs.map((d, i) => `
-    <div class="saved-address ${i===0?'selected':''}"
-      onclick="selectAddress(this, '${d.nombre}','${d.apellidos}','${d.calle_numero}','${d.colonia}','${d.cp}','${d.estado}','${d.ciudad}')">
+    <div class="saved-address ${i===preIdx?'selected':''}"
+      onclick="selectAddress(this, ${d.id}, '${d.nombre}','${d.apellidos}','${d.calle_numero}','${d.colonia}','${d.cp}','${d.estado}','${d.ciudad}')">
       <div>
         <div class="saved-address__alias">${d.alias || 'Dirección'}</div>
         <div class="saved-address__text">
@@ -501,9 +507,10 @@ window.selectShipping = (id, el, precio) => {
   calcTotals();
 };
 
-window.selectAddress = (el, nombre, apellidos, calle, colonia, cp, estado, ciudad) => {
+window.selectAddress = (el, id, nombre, apellidos, calle, colonia, cp, estado, ciudad) => {
   document.querySelectorAll('.saved-address').forEach(e => e.classList.remove('selected'));
   el.classList.add('selected');
+  selectedAddressId = id || null;
   document.getElementById('dir-nombre').value    = nombre    || '';
   document.getElementById('dir-apellidos').value = apellidos || '';
   document.getElementById('dir-calle').value     = calle     || '';
@@ -544,23 +551,26 @@ window.confirmarPedido = async () => {
   btn.textContent = '⏳ Procesando...';
 
   try {
-    // 1. Guardar/actualizar dirección
-    const dirRes = await API.post('/usuarios/direcciones', {
-      nombre:        document.getElementById('dir-nombre').value,
-      apellidos:     document.getElementById('dir-apellidos').value,
-      calle_numero:  document.getElementById('dir-calle').value,
-      colonia:       document.getElementById('dir-colonia').value,
-      cp:            document.getElementById('dir-cp').value,
-      estado:        document.getElementById('dir-estado').value,
-      ciudad:        document.getElementById('dir-ciudad').value,
-      es_predeterminada: true
-    });
-
-    if (!dirRes.ok || !dirRes.id) {
-      Toast.show('Error al guardar la dirección', 'error');
-      btn.disabled = false;
-      btn.innerHTML = '🔒 Confirmar y pagar ' + document.getElementById('confirm-total').textContent;
-      return;
+    // 1. Usar dirección guardada seleccionada o crear una nueva
+    let finalDirId = selectedAddressId;
+    if (!finalDirId) {
+      const dirRes = await API.post('/usuarios/direcciones', {
+        nombre:        document.getElementById('dir-nombre').value,
+        apellidos:     document.getElementById('dir-apellidos').value,
+        calle_numero:  document.getElementById('dir-calle').value,
+        colonia:       document.getElementById('dir-colonia').value,
+        cp:            document.getElementById('dir-cp').value,
+        estado:        document.getElementById('dir-estado').value,
+        ciudad:        document.getElementById('dir-ciudad').value,
+        es_predeterminada: true
+      });
+      if (!dirRes.ok || !dirRes.id) {
+        Toast.show('Error al guardar la dirección', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '🔒 Confirmar y pagar ' + document.getElementById('confirm-total').textContent;
+        return;
+      }
+      finalDirId = dirRes.id;
     }
 
     // 2. Obtener método de pago desde los ya cargados
@@ -585,7 +595,7 @@ window.confirmarPedido = async () => {
     // 4. Crear pedido
     const pedidoRes = await API.post('/pedidos', {
       carrito_id:      cid,
-      direccion_id:    dirRes.id,
+      direccion_id:    finalDirId,
       metodo_envio_id: selectedShipping?.id,
       metodo_pago_id:  metodoPago.id,
       notas_cliente:   document.getElementById('checkout-notas').value || null,

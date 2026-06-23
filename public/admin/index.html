@@ -18,17 +18,10 @@
         <div class="sb-logo__sub">Panel de Administración</div>
       </div>
     </div>
-    <div class="sb-user">
-      <div class="sb-user__av js-ini">MB</div>
-      <div>
-        <div class="sb-user__name js-name">MBS Admin</div>
-        <div class="sb-user__email js-email">admin@mbs.mx</div>
-      </div>
-    </div>
     <ul class="sb-nav">
       <li><a href="/admin/index.html" class="sb-link"><span class="sb-icon">📊</span><span class="sb-label">Inicio</span></a></li>
-      <li><a href="/admin/productos.html" class="sb-link"><span class="sb-icon">📦</span><span class="sb-label">Productos</span><span class="sb-badge" id="sb-n-productos">—</span></a></li>
-      <li><a href="/admin/pedidos.html" class="sb-link"><span class="sb-icon">🛒</span><span class="sb-label">Pedidos</span><span class="sb-badge" id="sb-n-pedidos">—</span></a></li>
+      <li><a href="/admin/productos.html" class="sb-link"><span class="sb-icon">📦</span><span class="sb-label">Productos</span></a></li>
+      <li><a href="/admin/pedidos.html" class="sb-link"><span class="sb-icon">🛒</span><span class="sb-label">Pedidos</span></a></li>
       <li><a href="/admin/clientes.html" class="sb-link"><span class="sb-icon">👥</span><span class="sb-label">Clientes</span></a></li>
       <li><a href="/admin/inventario.html" class="sb-link"><span class="sb-icon">🏪</span><span class="sb-label">Inventario</span></a></li>
       <li><a href="/admin/mensajes.html"      class="sb-link"><span class="sb-icon">✉️</span><span class="sb-label">Mensajes</span></a></li>
@@ -75,10 +68,6 @@
 
         <div class="ap-huser">
           <div class="ap-huser__av js-ini">MB</div>
-          <div class="hide-xs">
-            <div class="ap-huser__name js-name">MBS Admin</div>
-            <div class="ap-huser__role">Administrador</div>
-          </div>
         </div>
       </div>
     </header>
@@ -188,12 +177,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('k-productos').textContent   = fmt.num(k.productos_activos || 0);
     document.getElementById('k-stock-sub').textContent   = (k.productos_stock_bajo || 0) + ' con stock bajo';
 
-    // Sidebar badges
-    const sbPed = document.getElementById('sb-n-pedidos');
-    const sbPro = document.getElementById('sb-n-productos');
-    if (sbPed) sbPed.textContent = k.pedidos_sin_atender || 0;
-    if (sbPro) sbPro.textContent = k.productos_activos || 0;
-
     // Recent orders
     const rows = (dash.pedidos_recientes || []).map(p => `
       <tr>
@@ -249,27 +232,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
             <div class="tl-total">${fmt.money(t.total_vendido)}</div>
           </div>`).join('')
-      : '<div class="tx-m fs12" style="text-align:center;padding:16px">Sin ventas registradas aún</div>';
+        : '<div class="tx-m fs12" style="text-align:center;padding:16px">Sin ventas registradas aún</div>';
   }
 
   // Cargar notificaciones al iniciar
   cargarNotificaciones();
 });
 
-/* ── Notificaciones ────────────────────────────────────────── */
+/* ── Notificaciones ─────────────────────────────────────────── */
 let notifPanelAbierto = false;
 
 async function cargarNotificaciones() {
   const data = await AdminAPI.get('/admin/notificaciones');
   if (!data.ok) return;
 
-  // Filtrar ítems ya marcados como leídos (por timestamp guardado)
   const leidoHasta = parseInt(localStorage.getItem('mbs_admin_notif_leido_hasta') || '0');
-
   let totalVisible = 0;
   const grupos = (data.grupos || []).map(g => {
     const itemsFiltrados = g.items.filter(it => {
-      if (!it.created_at) return true; // stock bajo: siempre visible
+      if (!it.created_at) return true;
       return new Date(it.created_at).getTime() > leidoHasta;
     });
     totalVisible += itemsFiltrados.length;
@@ -288,29 +269,25 @@ async function cargarNotificaciones() {
 
   if (!body) return;
   if (!grupos.length) {
-    body.innerHTML = `<div class="notif-empty">✅ No hay notificaciones pendientes</div>`;
+    body.innerHTML = '<div class="notif-empty">✅ No hay notificaciones pendientes</div>';
     return;
   }
 
-  // Construir URL por ítem según el tipo de grupo
   const itemUrl = (g, it) => {
-    if (g.tipo === 'pedidos')  return `/admin/pedidos.html?pedido=${it.id}`;
-    if (g.tipo === 'mensajes') return `/admin/mensajes.html?mensaje=${it.id}`;
-    return g.url; // inventario: URL grupal
+    if (g.tipo === 'pedidos')  return '/admin/pedidos.html?pedido=' + it.id;
+    if (g.tipo === 'mensajes') return '/admin/mensajes.html?mensaje=' + it.id;
+    return g.url;
   };
 
-  body.innerHTML = grupos.map(g => `
-    <div class="notif-grupo">
-      <div class="notif-grupo__hd">
-        <span>${g.icono} ${g.titulo}</span>
-        <span class="notif-grupo__cnt">${g.count}</span>
-      </div>
-      ${g.items.map(it => `
-        <a href="${itemUrl(g, it)}" class="notif-item">
-          <div class="notif-item__txt">${it.texto}</div>
-          <div class="notif-item__sub">${it.subtexto}</div>
-        </a>`).join('')}
-    </div>`).join('');
+  body.innerHTML = grupos.map(g =>
+    '<div class="notif-grupo">' +
+    '<div class="notif-grupo__hd"><span>' + g.icono + ' ' + g.titulo + '</span><span class="notif-grupo__cnt">' + g.count + '</span></div>' +
+    g.items.map(it =>
+      '<a href="' + itemUrl(g, it) + '" class="notif-item">' +
+      '<div class="notif-item__txt">' + it.texto + '</div>' +
+      '<div class="notif-item__sub">' + it.subtexto + '</div>' +
+      '</a>').join('') +
+    '</div>').join('');
 }
 
 function marcarTodasLeidas() {
@@ -320,8 +297,7 @@ function marcarTodasLeidas() {
   const ttl = document.getElementById('notif-total');
   if (ttl) ttl.textContent = 'Al día ✓';
   const body = document.getElementById('notif-body');
-  if (body) body.innerHTML = `<div class="notif-empty">✅ No hay notificaciones pendientes</div>`;
-  // Cerrar panel
+  if (body) body.innerHTML = '<div class="notif-empty">✅ No hay notificaciones pendientes</div>';
   notifPanelAbierto = false;
   document.getElementById('notif-panel').style.display = 'none';
 }
@@ -333,8 +309,7 @@ function toggleNotifPanel() {
   if (notifPanelAbierto) cargarNotificaciones();
 }
 
-// Cerrar panel al hacer clic fuera
-document.addEventListener('click', (e) => {
+document.addEventListener('click', function(e) {
   const wrap = document.getElementById('notif-wrap');
   if (notifPanelAbierto && wrap && !wrap.contains(e.target)) {
     document.getElementById('notif-panel').style.display = 'none';

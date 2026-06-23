@@ -14,10 +14,6 @@
       <div class="sb-logo__mark">M</div>
       <div><div class="sb-logo__name">MBS Comunicaciones</div><div class="sb-logo__sub">Panel de Administración</div></div>
     </div>
-    <div class="sb-user">
-      <div class="sb-user__av js-ini">MB</div>
-      <div><div class="sb-user__name js-name">MBS Admin</div><div class="sb-user__email js-email">admin@mbs.mx</div></div>
-    </div>
     <ul class="sb-nav">
       <li><a href="/admin/index.html" class="sb-link"><span class="sb-icon">📊</span><span class="sb-label">Inicio</span></a></li>
       <li><a href="/admin/productos.html" class="sb-link"><span class="sb-icon">📦</span><span class="sb-label">Productos</span></a></li>
@@ -316,12 +312,13 @@ function exportarClientes() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      Toast.show('PDF descargado correctamente', 'success');
     })
-    .catch(() => Toast.show('Error al exportar PDF', 'error'));
+    .catch(e => Toast.show('Error al generar el PDF', 'error'));
 }
 
-document.addEventListener('DOMContentLoaded', loadClientes);
+document.addEventListener('DOMContentLoaded', () => {
+  loadClientes();
+});
 </script>
 </body>
 </html>

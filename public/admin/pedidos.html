@@ -14,10 +14,6 @@
       <div class="sb-logo__mark">M</div>
       <div><div class="sb-logo__name">MBS Comunicaciones</div><div class="sb-logo__sub">Panel de Administración</div></div>
     </div>
-    <div class="sb-user">
-      <div class="sb-user__av js-ini">MB</div>
-      <div><div class="sb-user__name js-name">MBS Admin</div><div class="sb-user__email js-email">admin@mbs.mx</div></div>
-    </div>
     <ul class="sb-nav">
       <li><a href="/admin/index.html" class="sb-link"><span class="sb-icon">📊</span><span class="sb-label">Inicio</span></a></li>
       <li><a href="/admin/productos.html" class="sb-link"><span class="sb-icon">📦</span><span class="sb-label">Productos</span></a></li>
@@ -125,7 +121,7 @@
                 <span class="card__title" id="det-numero">—</span>
                 <span id="det-estado-badge"></span>
               </div>
-              <button class="btn btn-gr btn-sm" onclick="window.print()">🖨 Imprimir</button>
+              <button class="btn btn-gr btn-sm" onclick="imprimirPedido()">🖨 Imprimir</button>
             </div>
             <div class="card__bd">
               <div class="det-sec">
@@ -308,47 +304,133 @@ async function verDetalle(id) {
   window.scrollTo(0,0);
 }
 
+function imprimirPedido() {
+  // Recolectar datos ya cargados en el DOM
+  const numero   = document.getElementById('det-numero').textContent;
+  const cliente  = document.getElementById('det-cliente').textContent;
+  const email    = document.getElementById('det-email').textContent;
+  const dir      = document.getElementById('det-dir').textContent;
+  const subtotal = document.getElementById('det-subtotal').textContent;
+  const envio    = document.getElementById('det-envio').textContent;
+  const iva      = document.getElementById('det-iva').textContent;
+  const total    = document.getElementById('det-total').textContent;
+  const pago     = document.getElementById('det-pago-metodo').textContent;
+  const fecha    = new Date().toLocaleDateString('es-MX', { year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit' });
+
+  // Capturar filas de la tabla de productos
+  const itemRows = Array.from(document.querySelectorAll('#det-items tr')).map(tr => tr.outerHTML).join('');
+
+  // Cupón (si existe)
+  const cuponRow = document.getElementById('det-cupon-row');
+  const cuponHtml = cuponRow && cuponRow.style.display !== 'none'
+    ? `<tr><td>${document.getElementById('det-cupon-lbl').textContent}</td><td style="color:#dc2626">${document.getElementById('det-cupon').textContent}</td></tr>`
+    : '';
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Pedido ${numero}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #1e293b; padding: 32px; max-width: 720px; margin: 0 auto; }
+
+    /* Encabezado */
+    .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 20px; border-bottom: 2px solid #0f172a; margin-bottom: 24px; }
+    .header__logo { font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; }
+    .header__logo span { color: #f97316; }
+    .header__meta { text-align: right; font-size: 11px; color: #64748b; line-height: 1.7; }
+    .header__meta strong { font-size: 15px; color: #0f172a; display: block; }
+
+    /* Badge de estado */
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+    .badge--nuevo   { background:#fef9c3; color:#ca8a04; }
+    .badge--prep    { background:#fff7ed; color:#c2410c; }
+    .badge--env     { background:#eff6ff; color:#1d4ed8; }
+    .badge--ok      { background:#f0fdf4; color:#15803d; }
+    .badge--cancel  { background:#f1f5f9; color:#64748b; }
+
+    .section { margin-bottom: 24px; }
+    .section__ttl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 10px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px; font-size: 12px; }
+    .info-row { display: flex; gap: 6px; }
+    .info-lbl { color: #64748b; min-width: 70px; }
+
+    table { width: 100%; border-collapse: collapse; margin-bottom: 0; font-size: 12px; }
+    thead th { background: #f8fafc; padding: 8px 10px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #64748b; border-bottom: 1px solid #e2e8f0; }
+    tbody td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+    tbody tr:last-child td { border-bottom: none; }
+
+    .costs { margin-left: auto; width: 260px; margin-top: 16px; }
+    .cost-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 12px; color: #475569; }
+    .cost-row.total { font-weight: 700; font-size: 14px; color: #0f172a; border-top: 2px solid #0f172a; padding-top: 10px; margin-top: 4px; }
+    .cost-disc { color: #dc2626; }
+
+    .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; text-align: center; }
+    @media print { body { padding: 16px; } button { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header__logo">MBS <span>Comunicaciones</span></div>
+    <div class="header__meta">
+      <strong>Comprobante de pedido</strong>
+      <span>Folio: ${numero}</span><br>
+      <span>${fecha}</span>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section__ttl">Datos del cliente</div>
+    <div class="info-grid">
+      <div class="info-row"><span class="info-lbl">Nombre:</span><span>${cliente}</span></div>
+      <div class="info-row"><span class="info-lbl">Email:</span><span>${email}</span></div>
+      <div class="info-row"><span class="info-lbl">Dirección:</span><span>${dir}</span></div>
+      <div class="info-row"><span class="info-lbl">Pago:</span><span>${pago}</span></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section__ttl">Productos</div>
+    <table>
+      <thead><tr><th>Producto</th><th>SKU</th><th>Cant.</th><th>Precio</th></tr></thead>
+      <tbody>${itemRows}</tbody>
+    </table>
+  </div>
+  <div class="costs">
+    <div class="cost-row"><span>Subtotal</span><span>${subtotal}</span></div>
+    ${cuponHtml}
+    <div class="cost-row"><span>Envío</span><span>${envio}</span></div>
+    <div class="cost-row"><span>IVA (16%)</span><span>${iva}</span></div>
+    <div class="cost-row total"><span>TOTAL</span><span>${total}</span></div>
+  </div>
+  <div class="footer">
+    MBS Comunicaciones · ventas@mbscomunicaciones.mx · +52 (771) 345-5929<br>
+    Gracias por su compra.
+  </div>
+  <script>window.onload = () => window.print();<\/script>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank', 'width=780,height=900');
+  if (!win) {
+    Toast.show('El navegador bloqueó la ventana emergente. Permite popups para imprimir.', 'warning');
+    return;
+  }
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+}
+
 function showList() {
   document.getElementById('det-view').style.display = 'none';
   document.getElementById('list-view').style.display = '';
+  currentPedidoId = null;
 }
-
-async function actualizarEstado() {
-  const estado = document.getElementById('det-nuevo-estado').value;
-  const notas  = document.getElementById('det-notas').value;
-  const r = await AdminAPI.put('/admin/pedidos/' + currentPedidoId + '/estado', { estado, notas });
-  if (r.ok) { Toast.show('Estado actualizado', 'success'); document.getElementById('det-estado-badge').innerHTML = badge(estado); }
-  else Toast.show(r.mensaje || 'Error', 'error');
-}
-
-async function confirmarEnvio() {
-  const paqueteria  = document.getElementById('det-paqueteria').value;
-  const numero_guia = document.getElementById('det-guia').value;
-  const r = await AdminAPI.put('/admin/pedidos/' + currentPedidoId + '/estado', { estado:'enviado', paqueteria, numero_guia });
-  if (r.ok) { Toast.show('Envío confirmado', 'success'); document.getElementById('det-estado-badge').innerHTML = badge('enviado'); }
-  else Toast.show(r.mensaje || 'Error', 'error');
-}
-
-async function guardarNotas() {
-  const notas = document.getElementById('det-notas').value;
-  const estado = document.getElementById('det-nuevo-estado').value;
-  const r = await AdminAPI.put('/admin/pedidos/' + currentPedidoId + '/estado', { estado, notas });
-  if (r.ok) Toast.show('Nota guardada', 'success');
-}
-
-async function cancelarPedido() {
-  if (!confirm('¿Cancelar este pedido?')) return;
-  const r = await AdminAPI.post('/pedidos/' + currentPedidoId + '/cancelar', { motivo: 'Cancelado por administrador' });
-  if (r.ok) { Toast.show('Pedido cancelado', 'success'); showList(); loadPedidos(); }
-  else Toast.show(r.mensaje || 'Error', 'error');
-}
-
-function abrirModal(id, estado) { verDetalle(id); }
 
 function setTab(el, estado) {
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
   el.classList.add('on');
-  state.estado = estado; state.page = 1;
+  state.estado = estado;
+  state.page = 1;
   loadPedidos();
 }
 
@@ -356,21 +438,71 @@ function onSearch(v) {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => {
     const q = v.toLowerCase();
-    const filtered = allPedidos.filter(p =>
+    const filtrados = allPedidos.filter(p =>
       (p.numero||'').toLowerCase().includes(q) ||
-      (p.cliente_nombre||'').toLowerCase().includes(q)
+      (p.cliente_nombre||p.usuario_nombre||'').toLowerCase().includes(q)
     );
-    renderPedidos(filtered);
+    renderPedidos(filtrados);
   }, 300);
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-  await loadKpis();
-  await loadPedidos();
-  // Auto-abrir pedido si viene desde el panel de notificaciones (?pedido=ID)
-  const params = new URLSearchParams(window.location.search);
-  const pedidoId = params.get('pedido');
-  if (pedidoId) verDetalle(parseInt(pedidoId));
+async function actualizarEstado() {
+  if (!currentPedidoId) return;
+  const estado = document.getElementById('det-nuevo-estado').value;
+  const r = await AdminAPI.put('/admin/pedidos/' + currentPedidoId + '/estado', { estado });
+  if (r.ok) {
+    Toast.show(r.mensaje || 'Estado actualizado', 'success');
+    document.getElementById('det-estado-badge').innerHTML = badge(estado);
+    loadPedidos();
+  } else {
+    Toast.show(r.mensaje || 'Error al actualizar', 'error');
+  }
+}
+
+async function confirmarEnvio() {
+  if (!currentPedidoId) return;
+  const paqueteria = document.getElementById('det-paqueteria').value;
+  const guia       = document.getElementById('det-guia').value.trim();
+  if (!guia) { Toast.show('Ingresa el número de guía', 'error'); return; }
+  const r = await AdminAPI.put('/admin/pedidos/' + currentPedidoId + '/envio', {
+    paqueteria, numero_guia: guia
+  });
+  if (r.ok) {
+    Toast.show(r.mensaje || 'Envío confirmado', 'success');
+    document.getElementById('det-nuevo-estado').value = 'enviado';
+    actualizarEstado();
+  } else {
+    Toast.show(r.mensaje || 'Error', 'error');
+  }
+}
+
+async function guardarNotas() {
+  if (!currentPedidoId) return;
+  const notas = document.getElementById('det-notas').value.trim();
+  const r = await AdminAPI.put('/admin/pedidos/' + currentPedidoId + '/notas', { notas });
+  Toast.show(r.ok ? 'Nota guardada' : (r.mensaje || 'Error'), r.ok ? 'success' : 'error');
+}
+
+async function cancelarPedido() {
+  if (!currentPedidoId) return;
+  if (!confirm('¿Cancelar este pedido? Esta acción no se puede deshacer.')) return;
+  const r = await AdminAPI.put('/admin/pedidos/' + currentPedidoId + '/estado', { estado: 'cancelado' });
+  if (r.ok) {
+    Toast.show('Pedido cancelado', 'success');
+    showList();
+    loadPedidos();
+  } else {
+    Toast.show(r.mensaje || 'Error al cancelar', 'error');
+  }
+}
+
+function abrirModal(id, estado) {
+  verDetalle(id);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadKpis();
+  loadPedidos();
 });
 </script>
 </body>

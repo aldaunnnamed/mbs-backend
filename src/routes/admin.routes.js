@@ -40,8 +40,10 @@ router.get ('/productos',                   ctrl.listarProductos);
 router.post('/productos',                   ctrl.guardarProducto);
 router.put ('/productos/:id',               ctrl.guardarProducto);
 router.put ('/productos/:id/estado',        ctrl.toggleEstadoProducto);
-router.post('/productos/:id/imagenes',      uploadImage.single('imagen'), ctrl.subirImagenProducto);
-router.delete('/productos/:id/imagenes/:img_id', ctrl.eliminarImagenProducto);
+router.get   ('/productos/:id/imagenes',                   ctrl.listarImagenesProducto);
+router.post  ('/productos/:id/imagenes',                   uploadImage.single('imagen'), ctrl.subirImagenProducto);
+router.put   ('/productos/:id/imagenes/:img_id/principal', ctrl.marcarPrincipalImagen);
+router.delete('/productos/:id/imagenes/:img_id',           ctrl.eliminarImagenProducto);
 
 // Métodos de envío
 router.get ('/envios',                      ctrl.listarMetodosEnvio);
