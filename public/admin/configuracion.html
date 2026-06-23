@@ -547,7 +547,16 @@ async function guardarNotif() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // panels load on demand via setPanel; nothing needed at startup
+  // Mostrar logo existente si ya fue subido
+  const logoBox = document.getElementById('logo-preview-box');
+  if (logoBox) {
+    const img = new Image();
+    img.onload = () => {
+      logoBox.innerHTML = '<img src="/uploads/logo/logo.png" style="max-width:100%;max-height:80px;object-fit:contain">';
+      document.getElementById('logo-info').textContent = '✓ Logo actual cargado';
+    };
+    img.src = '/uploads/logo/logo.png?' + Date.now();
+  }
 });
 
 async function subirLogo(input) {
@@ -568,7 +577,7 @@ async function subirLogo(input) {
   try {
     const r = await fetch('/api/admin/configuracion/logo', {
       method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('mbs_token') || '') },
+      headers: { 'Authorization': 'Bearer ' + (localStorage.getItem(typeof ADMIN_TOKEN_KEY !== 'undefined' ? ADMIN_TOKEN_KEY : 'mbs_admin_token') || '') },
       body: fd
     });
     const data = await r.json();

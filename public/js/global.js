@@ -419,96 +419,88 @@ const NavbarSearch = (() => {
     }
 
     const items = productos.map(p => {
-      const nombre = p.r_nombre || p.nombre || '';
-      const sku    = p.r_sku    || p.sku    || '';
-      const slug   = p.r_slug   || p.slug   || '';
+      const nombre = p.r_nombre       const nombre = p.r_nombre || p.nombre || '—';
       const precio = p.r_precio_venta || p.precio_venta || 0;
-      const img    = p.r_imagen_principal || p.imagen_principal || p.r_imagen || '';
-      const cat    = p.r_categoria || p.r_categoria_nombre || p.categoria || '';
-
-      const imgHtml = img
-        ? `<img src="${img}" alt="${nombre}" class="ns-img">`
-        : `<div class="ns-img ns-img--ph">📦</div>`;
+      const img    = p.r_imagen_principal || p.imagen_principal || '';
+      const cat    = p.r_categoria || p.categoria_nombre || '';
 
       return `
-        <a class="ns-item" href="/pages/producto.html?slug=${encodeURIComponent(slug)}">
-          ${imgHtml}
-          <div class="ns-info">
-            <div class="ns-name">${hl(nombre, q)}</div>
-            <div class="ns-meta">${sku ? 'SKU: ' + sku : ''}${cat ? ' · ' + cat : ''}</div>
+        <a class="ns-item" href="/pages/producto.html?id=${p.r_id || p.id}">
+          <div class="ns-item__img">
+            ${img
+              ? `<img src="${img}" alt="" loading="lazy">`
+              : '<span class="ns-item__ph">📦</span>'}
           </div>
-          <div class="ns-price">${priceMXN(precio)}</div>
+          <div class="ns-item__info">
+            <div class="ns-item__name">${hl(nombre, q)}</div>
+            <div class="ns-item__cat">${cat}</div>
+          </div>
+          <div class="ns-item__price">${priceMXN(precio)}</div>
         </a>`;
     }).join('');
 
-    const footer = `
-      <a class="ns-ver-todos" href="/pages/catalogo.html?busqueda=${encodeURIComponent(q)}">
-        Ver todos los resultados para "<strong>${q}</strong>" →
-      </a>`;
-
-    dd.innerHTML = items + footer;
+    dd.innerHTML = items +
+      `<a class="ns-footer" href="/pages/catalogo.html?busqueda=${encodeURIComponent(q)}">Ver todos los resultados →</a>`;
     dd.style.display = 'block';
   };
 
-  const search = async (q, input) => {
+  const search = async (input, q) => {
     const dd = getDropdown(input);
     if (!dd) return;
-
     if (q.length < MIN_CHARS) { dd.style.display = 'none'; return; }
-
-    dd.innerHTML = '<div class="ns-loading"><span class="ns-spinner"></span> Buscando...</div>';
+    dd.innerHTML = '<div class="ns-loading">Buscando...</div>';
     dd.style.display = 'block';
-
     try {
-      const res  = await fetch('/api/productos?busqueda=' + encodeURIComponent(q) + '&por_pagina=6');
-      const data = await res.json();
-      if (data.ok) render(dd, data.productos || [], q);
-      else dd.style.display = 'none';
-    } catch (_) { dd.style.display = 'none'; }
-  };
-
-  const attachTo = (input) => {
-    if (!input) return;
-
-    input.addEventListener('input', (e) => {
-      clearTimeout(_timer);
-      const q = e.target.value.trim();
-      _timer = setTimeout(() => search(q, input), DELAY_MS);
-    });
-
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        const q = input.value.trim();
-        closeAll();
-        if (q) window.location.href = '/pages/catalogo.html?busqueda=' + encodeURIComponent(q);
-        e.preventDefault();
-      }
-      if (e.key === 'Escape') { closeAll(); input.blur(); }
-    });
-
-    input.addEventListener('focus', (e) => {
-      const q = input.value.trim();
-      if (q.length >= MIN_CHARS) search(q, input);
-    });
-  };
-
-  /* Limpia un input y evita que el navegador lo autorrellene con valores guardados */
-  const clearAutofill = (input) => {
-    if (!input) return;
-    input.setAttribute('autocomplete', 'off');
-    input.setAttribute('readonly', 'readonly');
-    input.value = '';
-    setTimeout(() => { input.value = ''; input.removeAttribute('readonly'); }, 80);
+      const r = await API.get('/productos?busqueda=' + encodeURIComponent(q) + '&por_pagina=6');
+      render(dd, r.productos || [], q);
+    } catch { dd.style.display = 'none'; }
   };
 
   const init = () => {
-    const inp1 = document.getElementById('navbar-search');
-    const inp2 = document.getElementById('navbar-search-mobile');
-    clearAutofill(inp1);
-    clearAutofill(inp2);
-    attachTo(inp1);
-    attachTo(inp2);
-    // Cerrar al hacer clic fuera
+    const inputs = document.querySelectorAll('#navbar-search, #navbar-search-mobile');
+    inputs.forEach(input => {
+      input.addEventListener('input', e => {
+        clearTimeout(_timer);
+        const q = e.target.value.trim();
+        _timer = setTimeout(() => search(input, q), DELAY_MS);
+      });
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeAll();
+        if (e.key === 'Enter') {
+          const q = e.target.value.trim();
+          if (q) { closeAll(); window.location.href = '/pages/catalogo.html?busqueda=' + encodeURIComponent(q); }
+        }
+      });
+    });
+    document.addEventListener('click', e => {
+      if (!e.target.closest('.navbar__search')) closeAll();
+    });
+  };
+
+  return { init };
+})();
+
+/* ── Inicialización global ───────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  Navbar.init();
+  MobileMenu.init();
+  NavbarSearch.init();
+  Currency.init();
+
+  // Mostrar logo del sitio si fue subido desde el panel admin
+  const logoEls = document.querySelectorAll('.navbar__logo-text');
+  if (logoEls.length) {
+    const probe = new Image();
+    probe.onload = () => {
+      logoEls.forEach(el => {
+        el.outerHTML = '<img src="/uploads/logo/logo.png" class="navbar__logo-img" alt="MBS Comunicaciones" style="height:38px;object-fit:contain;max-width:140px;vertical-align:middle">';
+      });
+    };
+    // 5-min cache bust para que el cambio de logo se refleje rápido
+    probe.src = '/uploads/logo/logo.png?' + Math.floor(Date.now() / 300000);
+  }
+});
+era
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.navbar__search')) closeAll();
     });
