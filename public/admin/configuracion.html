@@ -173,6 +173,70 @@
                 <button class="btn btn-p btn-sm" onclick="guardarSpeiConfig()">Guardar datos SPEI</button>
               </div>
             </div>
+            <!-- Stripe -->
+            <div class="card mb16">
+              <div class="card__hd">
+                <div>
+                  <span class="card__title">⚡ Stripe — Tarjeta crédito/débito</span>
+                  <div class="fs11 tx-m mt4">Modo:
+                    <select class="fs" id="stripe-mode" style="display:inline;width:auto;margin-left:6px">
+                      <option value="sandbox">Sandbox (pruebas)</option>
+                      <option value="live">Live (producción)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="card__bd">
+                <div class="fs11 tx-m mb12">Ingresa las claves de tu cuenta Stripe. Las claves <em>test</em> empiezan con <code>pk_test_</code> / <code>sk_test_</code>.</div>
+                <div class="form-gap">
+                  <div class="fg2">
+                    <div class="fg"><label class="flbl">Publishable Key (test)</label><input class="fi" id="stripe-pk-test" placeholder="pk_test_..."></div>
+                    <div class="fg"><label class="flbl">Secret Key (test)</label><input class="fi" id="stripe-sk-test" type="password" placeholder="sk_test_..."></div>
+                  </div>
+                  <div class="fg"><label class="flbl">Webhook Signing Secret (test)</label><input class="fi" id="stripe-wh-test" type="password" placeholder="whsec_..."></div>
+                  <div class="fg2">
+                    <div class="fg"><label class="flbl">Publishable Key (live)</label><input class="fi" id="stripe-pk-live" placeholder="pk_live_..."></div>
+                    <div class="fg"><label class="flbl">Secret Key (live)</label><input class="fi" id="stripe-sk-live" type="password" placeholder="sk_live_..."></div>
+                  </div>
+                  <div class="fg"><label class="flbl">Webhook Signing Secret (live)</label><input class="fi" id="stripe-wh-live" type="password" placeholder="whsec_..."></div>
+                </div>
+              </div>
+              <div class="card__hd" style="border-top:1px solid var(--border);border-bottom:none">
+                <button class="btn btn-p btn-sm" onclick="guardarStripeConfig()">Guardar configuración Stripe</button>
+              </div>
+            </div>
+
+            <!-- Mercado Pago -->
+            <div class="card mb16">
+              <div class="card__hd">
+                <div>
+                  <span class="card__title">🏦 Mercado Pago</span>
+                  <div class="fs11 tx-m mt4">Modo:
+                    <select class="fs" id="mp-mode" style="display:inline;width:auto;margin-left:6px">
+                      <option value="sandbox">Sandbox (pruebas)</option>
+                      <option value="live">Live (producción)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="card__bd">
+                <div class="fs11 tx-m mb12">Obtén tus credenciales en <a href="https://www.mercadopago.com.mx/developers/es/docs" target="_blank" style="color:var(--c-blue)">mercadopago.com.mx/developers</a>.</div>
+                <div class="form-gap">
+                  <div class="fg2">
+                    <div class="fg"><label class="flbl">Public Key (test)</label><input class="fi" id="mp-pk-test" placeholder="TEST-..."></div>
+                    <div class="fg"><label class="flbl">Access Token (test)</label><input class="fi" id="mp-at-test" type="password" placeholder="TEST-..."></div>
+                  </div>
+                  <div class="fg2">
+                    <div class="fg"><label class="flbl">Public Key (live)</label><input class="fi" id="mp-pk-live" placeholder="APP_USR-..."></div>
+                    <div class="fg"><label class="flbl">Access Token (live)</label><input class="fi" id="mp-at-live" type="password" placeholder="APP_USR-..."></div>
+                  </div>
+                </div>
+              </div>
+              <div class="card__hd" style="border-top:1px solid var(--border);border-bottom:none">
+                <button class="btn btn-p btn-sm" onclick="guardarMPConfig()">Guardar configuración Mercado Pago</button>
+              </div>
+            </div>
+
             <div class="card">
               <div class="card__hd"><span class="card__title">💳 Métodos de pago</span></div>
               <div class="tbl-wrap">
@@ -474,10 +538,63 @@ async function togglePagoMetodo(id) {
 async function loadSpeiConfig() {
   const r = await AdminAPI.get('/admin/configuracion?seccion=pagos');
   const cfg = {};
-  (r.configuracion || []).forEach(c => { cfg[c.r_clave] = c.r_valor; });
+  (r.configuracion || []).forEach(c => { cfg[c.r_clave || c.clave] = c.r_valor || c.valor; });
   document.getElementById('cfg-spei-clabe').value        = cfg.spei_clabe || '';
   document.getElementById('cfg-spei-banco').value        = cfg.spei_banco || '';
   document.getElementById('cfg-spei-beneficiario').value = cfg.spei_beneficiario || '';
+
+  // Stripe
+  const smode = document.getElementById('stripe-mode');
+  if (smode) smode.value = cfg.stripe_mode || 'sandbox';
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+  setVal('stripe-pk-test', cfg.stripe_pk_test);
+  setVal('stripe-sk-test', cfg.stripe_sk_test);
+  setVal('stripe-wh-test', cfg.stripe_webhook_secret_test);
+  setVal('stripe-pk-live', cfg.stripe_pk_live);
+  setVal('stripe-sk-live', cfg.stripe_sk_live);
+  setVal('stripe-wh-live', cfg.stripe_webhook_secret_live);
+
+  // Mercado Pago
+  const mpmode = document.getElementById('mp-mode');
+  if (mpmode) mpmode.value = cfg.mp_mode || 'sandbox';
+  setVal('mp-pk-test', cfg.mp_public_key_test);
+  setVal('mp-at-test', cfg.mp_access_token_test);
+  setVal('mp-pk-live', cfg.mp_public_key_live);
+  setVal('mp-at-live', cfg.mp_access_token_live);
+}
+
+async function guardarStripeConfig() {
+  const campos = [
+    { clave: 'stripe_mode',                valor: document.getElementById('stripe-mode').value },
+    { clave: 'stripe_pk_test',             valor: document.getElementById('stripe-pk-test').value.trim() },
+    { clave: 'stripe_sk_test',             valor: document.getElementById('stripe-sk-test').value.trim() },
+    { clave: 'stripe_webhook_secret_test', valor: document.getElementById('stripe-wh-test').value.trim() },
+    { clave: 'stripe_pk_live',             valor: document.getElementById('stripe-pk-live').value.trim() },
+    { clave: 'stripe_sk_live',             valor: document.getElementById('stripe-sk-live').value.trim() },
+    { clave: 'stripe_webhook_secret_live', valor: document.getElementById('stripe-wh-live').value.trim() },
+  ];
+  let ok = true;
+  for (const c of campos) {
+    const r = await AdminAPI.post('/admin/configuracion', c);
+    if (!r.ok) { ok = false; }
+  }
+  Toast.show(ok ? 'Configuración de Stripe guardada' : 'Error al guardar algunos campos', ok ? 'success' : 'error');
+}
+
+async function guardarMPConfig() {
+  const campos = [
+    { clave: 'mp_mode',              valor: document.getElementById('mp-mode').value },
+    { clave: 'mp_public_key_test',   valor: document.getElementById('mp-pk-test').value.trim() },
+    { clave: 'mp_access_token_test', valor: document.getElementById('mp-at-test').value.trim() },
+    { clave: 'mp_public_key_live',   valor: document.getElementById('mp-pk-live').value.trim() },
+    { clave: 'mp_access_token_live', valor: document.getElementById('mp-at-live').value.trim() },
+  ];
+  let ok = true;
+  for (const c of campos) {
+    const r = await AdminAPI.post('/admin/configuracion', c);
+    if (!r.ok) { ok = false; }
+  }
+  Toast.show(ok ? 'Configuración de Mercado Pago guardada' : 'Error al guardar algunos campos', ok ? 'success' : 'error');
 }
 
 async function guardarSpeiConfig() {

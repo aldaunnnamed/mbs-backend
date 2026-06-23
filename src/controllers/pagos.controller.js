@@ -225,7 +225,126 @@ const webhookPaypal = async (req, res) => {
   }
 };
 
+
+// ── Stripe ────────────────────────────────────────────────────────
+const stripeSvc = require('../services/stripe.service');
+
+// POST /api/pagos/stripe/intent
+const crearIntentStripe = async (req, res) => {
+  try {
+    const { pedido_id } = req.body;
+    if (!pedido_id) return res.status(400).json({ ok: false, mensaje: 'pedido_id requerido' });
+
+    const pedidoRes = await query(
+      'SELECT id, total, estatus_pago FROM pedidos WHERE id=CAST($1 AS INTEGER) AND usuario_id=CAST($2 AS INTEGER)',
+      [parseInt(pedido_id), parseInt(req.usuario.id)]
+    );
+    if (!pedidoRes.rows.length) return res.status(404).json({ ok: false, mensaje: 'Pedido no encontrado' });
+    const pedido = pedidoRes.rows[0];
+    if (pedido.estatus_pago === 'pagado') return res.status(400).json({ ok: false, mensaje: 'Ya fue pagado' });
+
+    const { client_secret, payment_intent_id } = await stripeSvc.crearPaymentIntent({
+      monto_centavos: Math.round(parseFloat(pedido.total) * 100),
+      moneda: 'mxn',
+      metadata: { pedido_id: String(pedido_id) },
+    });
+
+    res.json({ ok: true, client_secret, payment_intent_id });
+  } catch (err) {
+    console.error('crearIntentStripe:', err.message);
+    res.status(500).json({ ok: false, mensaje: err.message });
+  }
+};
+
+// POST /api/pagos/stripe/webhook
+const webhookStripe = async (req, res) => {
+  try {
+    const sig = req.headers['stripe-signature'];
+    const evento = await stripeSvc.verificarWebhook(req.body, sig);
+
+    if (evento.type === 'payment_intent.succeeded') {
+      const pi = evento.data.object;
+      const pedidoId = pi.metadata?.pedido_id;
+      if (pedidoId) {
+        await query(
+          `UPDATE pedidos SET estatus_pago='pagado', fecha_pago=NOW() WHERE id=CAST($1 AS INTEGER)`,
+          [parseInt(pedidoId)]
+        );
+      }
+    }
+    res.json({ received: true });
+  } catch (err) {
+    console.error('webhookStripe:', err.message);
+    res.status(400).json({ ok: false, mensaje: err.message });
+  }
+};
+
+// ── Mercado Pago ──────────────────────────────────────────────────
+const mpSvc = require('../services/mercadopago.service');
+
+// POST /api/pagos/mp/preferencia
+const crearPreferenciaMP = async (req, res) => {
+  try {
+    const { pedido_id } = req.body;
+    if (!pedido_id) return res.status(400).json({ ok: false, mensaje: 'pedido_id requerido' });
+
+    const pedidoRes = await query(
+      `SELECT p.id, p.numero, p.total, p.estatus_pago,
+              json_agg(json_build_object('producto_id',pi.producto_id,'nombre',pr.nombre,
+                'cantidad',pi.cantidad,'precio_unitario',pi.precio_unitario)) as items
+       FROM pedidos p
+       JOIN pedido_items pi ON pi.pedido_id = p.id
+       JOIN productos pr    ON pr.id = pi.producto_id
+       WHERE p.id=CAST($1 AS INTEGER) AND p.usuario_id=CAST($2 AS INTEGER)
+       GROUP BY p.id`,
+      [parseInt(pedido_id), parseInt(req.usuario.id)]
+    );
+    if (!pedidoRes.rows.length) return res.status(404).json({ ok: false, mensaje: 'Pedido no encontrado' });
+    const pedido = pedidoRes.rows[0];
+    if (pedido.estatus_pago === 'pagado') return res.status(400).json({ ok: false, mensaje: 'Ya fue pagado' });
+
+    const appUrl = (process.env.APP_URL || (req.protocol + '://' + req.get('host'))).replace(/\/$/, '');
+    const notifUrl = appUrl + '/api/pagos/mp/webhook';
+
+    const result = await mpSvc.crearPreferencia({
+      pedido_id:        pedido.id,
+      items:            pedido.items,
+      notification_url: notifUrl,
+    });
+
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('crearPreferenciaMP:', err.message);
+    res.status(500).json({ ok: false, mensaje: err.message });
+  }
+};
+
+// POST /api/pagos/mp/webhook
+const webhookMP = async (req, res) => {
+  try {
+    const { type, data } = req.body;
+    if (type === 'payment' && data?.id) {
+      const pago = await mpSvc.consultarPago(data.id);
+      if (pago.status === 'approved') {
+        const pedidoId = pago.external_reference;
+        if (pedidoId) {
+          await query(
+            `UPDATE pedidos SET estatus_pago='pagado', fecha_pago=NOW() WHERE id=CAST($1 AS INTEGER)`,
+            [parseInt(pedidoId)]
+          );
+        }
+      }
+    }
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('webhookMP:', err.message);
+    res.sendStatus(200); // MP requiere 200 aunque haya error
+  }
+};
+
 module.exports = {
   estadoPago, crearReferenciaSpei, webhookSpei,
-  crearOrdenPaypal, capturarOrdenPaypal, webhookPaypal
+  crearOrdenPaypal, capturarOrdenPaypal, webhookPaypal,
+  crearIntentStripe, webhookStripe,
+  crearPreferenciaMP, webhookMP,
 };

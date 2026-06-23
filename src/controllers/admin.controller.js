@@ -816,341 +816,151 @@ const importarProductos = async (req, res) => {
              categoria_id,marca_id,precio_venta,precio_antes,stock_actual,stock_minimo,estado,badge)
              VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
             [row.sku, row.nombre, slug, row.descripcion_corta||null, row.descripcion_larga||null,
-             parseInt(row.categoria_id)||1, row.marca_id?parseInt(row.marca_id):null,
              parseFloat(row.precio_venta)||0, row.precio_antes?parseFloat(row.precio_antes):null,
              parseInt(row.stock_actual)||0, parseInt(row.stock_minimo)||5,
-             row.estado||'activo', row.badge||null]
+             row.estado||'activo', row.badge||null, row.sku]
           );
           creados++;
         }
-      } catch { errores++; }
+      } catch (rowErr) { errores++; }
     }
-    res.json({ ok: true, mensaje: `Importación completada: ${creados} creados, ${actualizados} actualizados, ${errores} errores` });
+    res.json({ ok: true, creados, actualizados, errores,
+      mensaje: `Importación: ${creados} creados, ${actualizados} actualizados, ${errores} errores` });
   } catch (err) {
     console.error('importarProductos:', err.message);
-    res.status(500).json({ ok: false, mensaje: 'Error al importar' });
+    res.status(500).json({ ok: false, mensaje: 'Error al importar CSV' });
   }
+};
+
+/* ── Notificaciones admin ────────────────────────────────────── */
+const notificaciones = async (req, res) => {
+  try {
+    const r = await query(
+      `SELECT id, tipo, titulo, mensaje, leida, created_at
+       FROM notificaciones WHERE usuario_id IS NULL
+       ORDER BY created_at DESC LIMIT 20`);
+    res.json({ ok: true, notificaciones: r.rows });
+  } catch (err) { res.status(500).json({ ok: false, mensaje: 'Error' }); }
+};
+
+/* ── Clientes (detalle) ──────────────────────────────────────── */
+const detalleCliente = async (req, res) => {
+  try {
+    const [c, p] = await Promise.all([
+      query('SELECT * FROM fn_detalle_cliente(CAST($1 AS INTEGER))', [parseInt(req.params.id)]),
+      query(`SELECT numero, estado, total, created_at FROM pedidos
+             WHERE usuario_id=$1 ORDER BY created_at DESC LIMIT 10`, [parseInt(req.params.id)]),
+    ]);
+    if (!c.rows.length) return res.status(404).json({ ok: false, mensaje: 'Cliente no encontrado' });
+    res.json({ ok: true, cliente: c.rows[0], pedidos_recientes: p.rows });
+  } catch (err) { res.status(500).json({ ok: false, mensaje: 'Error al obtener cliente' }); }
+};
+
+/* ── Pedidos (detalle) ───────────────────────────────────────── */
+const detallePedido = async (req, res) => {
+  try {
+    const r = await query('SELECT * FROM fn_detalle_pedido(CAST($1 AS INTEGER))',
+      [parseInt(req.params.id)]);
+    if (!r.rows.length) return res.status(404).json({ ok: false, mensaje: 'Pedido no encontrado' });
+    res.json({ ok: true, pedido: r.rows[0] });
+  } catch (err) { res.status(500).json({ ok: false, mensaje: 'Error al obtener pedido' }); }
+};
+
+/* ── Imágenes de producto ────────────────────────────────────── */
+const listarImagenesProducto = async (req, res) => {
+  try {
+    const r = await query(
+      'SELECT * FROM producto_imagenes WHERE producto_id=$1 ORDER BY es_principal DESC, id',
+      [parseInt(req.params.id)]);
+    res.json({ ok: true, imagenes: r.rows });
+  } catch (err) { res.status(500).json({ ok: false, mensaje: 'Error al listar imágenes' }); }
 };
 
 const subirImagenProducto = async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ ok: false, mensaje: 'Imagen requerida' });
-    const productoId = parseInt(req.params.id);
+    if (!req.file) return res.status(400).json({ ok: false, mensaje: 'Archivo requerido' });
     const url = '/uploads/productos/' + req.file.filename;
-
-    // Es principal si el cliente lo solicitó O si no hay ninguna principal todavía
-    const hayPrincipal = await query(
-      'SELECT 1 FROM producto_imagenes WHERE producto_id = $1 AND es_principal = TRUE LIMIT 1',
-      [productoId]
-    );
-    const esPrincipal = req.body.es_principal === 'true' || hayPrincipal.rows.length === 0;
-
-    if (esPrincipal) {
-      await query('UPDATE producto_imagenes SET es_principal = FALSE WHERE producto_id = $1', [productoId]);
-    }
     const r = await query(
-      'INSERT INTO producto_imagenes (producto_id, url, alt, orden, es_principal)' +
-      ' VALUES ($1,$2,$3,(SELECT COALESCE(MAX(orden),0)+1 FROM producto_imagenes WHERE producto_id=$1),$4)' +
-      ' RETURNING id',
-      [productoId, url, req.body.alt || null, esPrincipal]
-    );
-    res.status(201).json({ ok: true, mensaje: 'Imagen subida', id: r.rows[0].id, url });
-  } catch (err) {
-    console.error('subirImagenProducto:', err.message);
-    res.status(500).json({ ok: false, mensaje: 'Error al subir imagen' });
-  }
-};
-
-const listarImagenesProducto = async (req, res) => {
-  try {
-    const r = await query(
-      'SELECT id, url, alt, orden, es_principal FROM producto_imagenes WHERE producto_id = $1 ORDER BY orden',
-      [parseInt(req.params.id)]
-    );
-    res.json({ ok: true, imagenes: r.rows });
-  } catch (err) {
-    console.error('listarImagenesProducto:', err.message);
-    res.status(500).json({ ok: false, mensaje: 'Error al obtener imágenes' });
-  }
-};
-
-const marcarPrincipalImagen = async (req, res) => {
-  try {
-    const productoId = parseInt(req.params.id);
-    const imgId      = parseInt(req.params.img_id);
-    await query('UPDATE producto_imagenes SET es_principal = FALSE WHERE producto_id = $1', [productoId]);
-    const r = await query(
-      'UPDATE producto_imagenes SET es_principal = TRUE WHERE id = $1 AND producto_id = $2 RETURNING id',
-      [imgId, productoId]
-    );
-    if (!r.rows.length) return res.status(404).json({ ok: false, mensaje: 'Imagen no encontrada' });
-    res.json({ ok: true, mensaje: 'Imagen principal actualizada' });
-  } catch (err) {
-    console.error('marcarPrincipalImagen:', err.message);
-    res.status(500).json({ ok: false, mensaje: 'Error al actualizar imagen principal' });
-  }
+      'INSERT INTO producto_imagenes (producto_id, url, es_principal) VALUES ($1,$2,false) RETURNING *',
+      [parseInt(req.params.id), url]);
+    res.json({ ok: true, imagen: r.rows[0] });
+  } catch (err) { res.status(500).json({ ok: false, mensaje: 'Error al subir imagen' }); }
 };
 
 const eliminarImagenProducto = async (req, res) => {
   try {
-    const r = await query(
-      'DELETE FROM producto_imagenes WHERE id=$1 RETURNING url',
-      [parseInt(req.params.img_id)]
-    );
-    if (!r.rows.length) return res.status(404).json({ ok: false, mensaje: 'Imagen no encontrada' });
-    const fs = require('fs');
-    const path = require('path');
-    const filePath = path.join(__dirname, '../../public', r.rows[0].url);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    res.json({ ok: true, mensaje: 'Imagen eliminada' });
-  } catch (err) {
-    console.error('eliminarImagenProducto:', err.message);
-    res.status(500).json({ ok: false, mensaje: 'Error al eliminar imagen' });
-  }
-};
-
-const detalleCliente = async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const [perfil, pedidos] = await Promise.all([
-      query(
-        'SELECT * FROM fn_obtener_perfil_cliente(CAST($1 AS INTEGER))',
-        [id]
-      ),
-      query(
-        'SELECT id, numero, estado, total, created_at FROM pedidos' +
-        ' WHERE usuario_id = $1 ORDER BY created_at DESC LIMIT 10',
-        [id]
-      )
-    ]);
-    if (!perfil.rows.length) {
-      return res.status(404).json({ ok: false, mensaje: 'Cliente no encontrado' });
-    }
-    res.json({ ok: true, cliente: perfil.rows[0], pedidos_recientes: pedidos.rows });
-  } catch (err) {
-    console.error('detalleCliente:', err.message);
-    res.status(500).json({ ok: false, mensaje: 'Error al obtener cliente' });
-  }
-};
-
-const detallePedido = async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const [pedidoRes, itemsRes] = await Promise.all([
-      query(
-        'SELECT p.id, p.numero, p.estado, p.subtotal, p.costo_envio, p.iva,' +
-        ' p.total, p.notas_cliente, p.notas_internas,' +
-        ' p.paqueteria, p.numero_guia, p.requiere_factura, p.created_at,' +
-        " u.nombre || ' ' || u.apellidos AS cliente_nombre," +
-        ' u.email AS email_cliente, u.telefono,' +
-        ' me.nombre AS metodo_envio_nombre, mp.nombre AS metodo_pago_nombre,' +
-        " p.dir_calle || ', ' || p.dir_colonia || ', ' || p.dir_ciudad || ', ' || p.dir_estado_geo || ', CP ' || p.dir_cp AS direccion_entrega" +
-        ' FROM pedidos p' +
-        ' JOIN usuarios u ON u.id = p.usuario_id' +
-        ' LEFT JOIN metodos_envio me ON me.id = p.metodo_envio_id' +
-        ' JOIN metodos_pago mp ON mp.id = p.metodo_pago_id' +
-        ' WHERE p.id = $1',
-        [id]
-      ),
-      query(
-        'SELECT pi.cantidad, pi.precio_unitario, pi.subtotal,' +
-        ' pr.nombre AS nombre_producto, pr.sku' +
-        ' FROM pedido_items pi' +
-        ' JOIN productos pr ON pr.id = pi.producto_id' +
-        ' WHERE pi.pedido_id = $1',
-        [id]
-      )
-    ]);
-    if (!pedidoRes.rows.length) {
-      return res.status(404).json({ ok: false, mensaje: 'Pedido no encontrado' });
-    }
-    res.json({ ok: true, pedido: pedidoRes.rows[0], items: itemsRes.rows });
-  } catch (err) {
-    console.error('detallePedido:', err.message);
-    res.status(500).json({ ok: false, mensaje: 'Error al obtener pedido' });
-  }
-};
-
-const listarMensajes = async (req, res) => {
-  try {
-    const { leido, pagina = 1 } = req.query;
-    const limit = 20;
-    const offset = (parseInt(pagina) - 1) * limit;
-    let where = '';
-    const params = [];
-    if (leido === 'true')  { where = ' WHERE leido = true';  }
-    if (leido === 'false') { where = ' WHERE leido = false'; }
-    const [rows, cnt] = await Promise.all([
-      query(
-        'SELECT id, nombre, empresa, email, telefono, asunto, mensaje, leido, created_at' +
-        ' FROM mensajes_contacto' + where +
-        ' ORDER BY created_at DESC LIMIT $' + (params.length+1) + ' OFFSET $' + (params.length+2),
-        [...params, limit, offset]
-      ),
-      query('SELECT COUNT(*) AS total FROM mensajes_contacto' + where, params)
-    ]);
-    res.json({ ok: true, mensajes: rows.rows, total: parseInt(cnt.rows[0].total) });
-  } catch (err) {
-    if (err.code === '42P01') return res.json({ ok: true, mensajes: [], total: 0 });
-    console.error('listarMensajes:', err.message);
-    res.status(500).json({ ok: false, mensaje: 'Error al obtener mensajes' });
-  }
-};
-
-const marcarMensajeLeido = async (req, res) => {
-  try {
-    await query('UPDATE mensajes_contacto SET leido = true WHERE id = $1', [parseInt(req.params.id)]);
+    await query('DELETE FROM producto_imagenes WHERE id=$1 AND producto_id=$2',
+      [parseInt(req.params.imgId), parseInt(req.params.id)]);
     res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ ok: false, mensaje: 'Error al marcar mensaje' });
-  }
+  } catch (err) { res.status(500).json({ ok: false, mensaje: 'Error al eliminar' }); }
 };
 
-const subirLogo = async (req, res) => {
+const marcarPrincipalImagen = async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ ok: false, mensaje: 'No se recibió ningún archivo' });
-    const url = '/uploads/logo/' + req.file.filename;
-    res.json({ ok: true, mensaje: 'Logo actualizado correctamente', url });
-  } catch (err) {
-    console.error('subirLogo:', err.message);
-    res.status(500).json({ ok: false, mensaje: 'Error al subir logo' });
-  }
+    await query('UPDATE producto_imagenes SET es_principal=false WHERE producto_id=$1',
+      [parseInt(req.params.id)]);
+    await query('UPDATE producto_imagenes SET es_principal=true WHERE id=$1',
+      [parseInt(req.params.imgId)]);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ ok: false, mensaje: 'Error al marcar principal' }); }
 };
 
+/* ── Categorías y Marcas ─────────────────────────────────────── */
 const crearCategoria = async (req, res) => {
   try {
     const { nombre, descripcion, icono } = req.body;
-    if (!nombre || !nombre.trim()) {
-      return res.status(400).json({ ok: false, mensaje: 'El nombre de la categoría es obligatorio' });
-    }
-    const slug = nombre.trim().toLowerCase()
-      .normalize('NFD').replace(/[̀-ͯ]/g, '')
-      .replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '').replace(/-+/g, '-');
+    if (!nombre) return res.status(400).json({ ok: false, mensaje: 'Nombre requerido' });
+    const slug = nombre.toLowerCase().normalize('NFD')
+      .replace(/[̀-ͯ]/g, '').replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     const r = await query(
-      `INSERT INTO categorias (nombre, slug, descripcion, icono, activa)
-       VALUES ($1, $2, $3, $4, true) RETURNING id, nombre`,
-      [nombre.trim(), slug, descripcion || null, icono || null]
-    );
-    res.status(201).json({ ok: true, mensaje: 'Categoría creada', categoria: r.rows[0] });
-  } catch (err) {
-    if (err.code === '23505') return res.status(409).json({ ok: false, mensaje: 'Ya existe una categoría con ese nombre' });
-    console.error('crearCategoria:', err.message);
-    res.status(500).json({ ok: false, mensaje: 'Error al crear categoría: ' + err.message });
-  }
+      'INSERT INTO categorias (nombre,slug,descripcion,icono) VALUES ($1,$2,$3,$4) RETURNING *',
+      [nombre, slug, descripcion || null, icono || null]);
+    res.json({ ok: true, categoria: r.rows[0] });
+  } catch (err) { res.status(500).json({ ok: false, mensaje: 'Error al crear categoría' }); }
 };
 
 const crearMarca = async (req, res) => {
   try {
-    const { nombre } = req.body;
-    if (!nombre || !nombre.trim()) {
-      return res.status(400).json({ ok: false, mensaje: 'El nombre de la marca es obligatorio' });
-    }
+    const { nombre, descripcion } = req.body;
+    if (!nombre) return res.status(400).json({ ok: false, mensaje: 'Nombre requerido' });
+    const slug = nombre.toLowerCase().normalize('NFD')
+      .replace(/[̀-ͯ]/g, '').replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     const r = await query(
-      `INSERT INTO marcas (nombre, activa) VALUES ($1, true) RETURNING id, nombre`,
-      [nombre.trim()]
-    );
-    res.status(201).json({ ok: true, mensaje: 'Marca creada', marca: r.rows[0] });
-  } catch (err) {
-    if (err.code === '23505') return res.status(409).json({ ok: false, mensaje: 'Ya existe una marca con ese nombre' });
-    console.error('crearMarca:', err.message);
-    res.status(500).json({ ok: false, mensaje: 'Error al crear marca: ' + err.message });
-  }
+      'INSERT INTO marcas (nombre,slug,descripcion) VALUES ($1,$2,$3) RETURNING *',
+      [nombre, slug, descripcion || null]);
+    res.json({ ok: true, marca: r.rows[0] });
+  } catch (err) { res.status(500).json({ ok: false, mensaje: 'Error al crear marca' }); }
 };
 
-const notificaciones = async (req, res) => {
+/* ── Logo ────────────────────────────────────────────────────── */
+const subirLogo = async (req, res) => {
   try {
-    const [pedidosRes, stockRes, mensajesRes] = await Promise.all([
-      query(
-        "SELECT p.id, p.numero, p.total, p.created_at," +
-        " u.nombre || ' ' || u.apellidos AS cliente" +
-        " FROM pedidos p JOIN usuarios u ON u.id = p.usuario_id" +
-        " WHERE p.estado = 'nuevo' ORDER BY p.created_at DESC LIMIT 5"
-      ),
-      query(
-        "SELECT id, nombre, sku, stock_actual, stock_minimo" +
-        " FROM productos WHERE stock_actual <= stock_minimo AND estado = 'activo'" +
-        " ORDER BY stock_actual ASC LIMIT 5"
-      ),
-      query(
-        "SELECT id, nombre, asunto, created_at FROM mensajes_contacto" +
-        " WHERE leido = false ORDER BY created_at DESC LIMIT 5"
-      ).catch(() => ({ rows: [] })) // no-fatal si la tabla no existe
-    ]);
-
-    const grupos = [];
-
-    if (pedidosRes.rows.length) {
-      grupos.push({
-        tipo: 'pedidos',
-        icono: '🛒',
-        titulo: 'Pedidos nuevos',
-        count: pedidosRes.rows.length,
-        url: '/admin/pedidos.html',
-        items: pedidosRes.rows.map(p => ({
-          id: p.id,
-          texto: `${p.numero} — ${p.cliente}`,
-          subtexto: '$' + parseFloat(p.total).toLocaleString('es-MX', { minimumFractionDigits: 2 }),
-          created_at: p.created_at
-        }))
-      });
-    }
-
-    if (stockRes.rows.length) {
-      grupos.push({
-        tipo: 'stock',
-        icono: '📦',
-        titulo: 'Stock bajo',
-        count: stockRes.rows.length,
-        url: '/admin/inventario.html',
-        items: stockRes.rows.map(p => ({
-          id: p.id,
-          texto: p.nombre,
-          subtexto: `${p.stock_actual} uds (mín: ${p.stock_minimo})`,
-          created_at: null
-        }))
-      });
-    }
-
-    if (mensajesRes.rows.length) {
-      grupos.push({
-        tipo: 'mensajes',
-        icono: '✉️',
-        titulo: 'Mensajes sin leer',
-        count: mensajesRes.rows.length,
-        url: '/admin/mensajes.html',
-        items: mensajesRes.rows.map(m => ({
-          id: m.id,
-          texto: m.nombre,
-          subtexto: m.asunto,
-          created_at: m.created_at
-        }))
-      });
-    }
-
-    const total = grupos.reduce((s, g) => s + g.count, 0);
-    res.json({ ok: true, total, grupos });
-  } catch (err) {
-    console.error('notificaciones:', err.message);
-    res.status(500).json({ ok: false, total: 0, grupos: [] });
-  }
+    if (!req.file) return res.status(400).json({ ok: false, mensaje: 'Archivo requerido' });
+    res.json({ ok: true, url: '/uploads/logo/logo.png', mensaje: 'Logo actualizado correctamente' });
+  } catch (err) { res.status(500).json({ ok: false, mensaje: 'Error al subir logo' }); }
 };
 
+/* ── Mensajes de contacto ────────────────────────────────────── */
+const listarMensajes = async (req, res) => {
+  try {
+    const r = await query(`SELECT * FROM mensajes_contacto ORDER BY created_at DESC LIMIT 100`);
+    res.json({ ok: true, mensajes: r.rows });
+  } catch (err) { res.status(500).json({ ok: false, mensaje: 'Error al cargar mensajes' }); }
+};
+
+/* ── Exports ─────────────────────────────────────────────────── */
 module.exports = {
-  dashboard, listarClientes, toggleBloqueo,
-  kpisPedidos, listarPedidos, actualizarEstadoPedido,
-  alertasInventario, ajustarStock, listarProductos, guardarProducto, toggleEstadoProducto,
-  obtenerConfiguracion, guardarConfiguracion,
-  detalleCliente, detallePedido,
-  topProductos,
-  listarMetodosEnvio, guardarMetodoEnvio, toggleMetodoEnvio,
-  exportarProductos, importarProductos,
+  dashboard, kpisPedidos, notificaciones, topProductos,
+  listarClientes, detalleCliente, toggleBloqueo, exportarClientes,
+  listarPedidos, actualizarEstadoPedido, detallePedido,
+  listarProductos, guardarProducto, toggleEstadoProducto,
+  crearCategoria, crearMarca,
   listarImagenesProducto, subirImagenProducto, eliminarImagenProducto, marcarPrincipalImagen,
-  exportarClientes,
+  exportarProductos, importarProductos,
+  alertasInventario, ajustarStock,
+  obtenerConfiguracion, guardarConfiguracion, guardarConfigNotif, subirLogo,
   listarAdmins, crearAdmin,
   listarMetodosPago, toggleMetodoPago,
-  guardarConfigNotif,
-  listarMensajes, marcarMensajeLeido,
-  subirLogo,
-  notificaciones,
-  crearCategoria, crearMarca
+  listarMetodosEnvio, guardarMetodoEnvio, toggleMetodoEnvio,
+  listarMensajes,
 };
