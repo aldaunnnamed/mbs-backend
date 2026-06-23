@@ -296,7 +296,7 @@
   </div>
 </footer>
 
-<script src="/js/global.js"></script>
+<script src="/js/global.js?v=3"></script>
 <script>
 let currentOrderFilter = null;
 let userData = null;
@@ -1007,12 +1007,4 @@ window.enviarSoporte = async (id) => {
 
   const res = await API.post('/pedidos/' + id + '/soporte', { asunto, mensaje });
   if (res.ok) {
-    Toast.show('Mensaje enviado. Te responderemos pronto.', 'success');
-    document.getElementById('soporte-modal').remove();
-  } else {
-    Toast.show(res.mensaje || 'Error al enviar el mensaje', 'error');
-  }
-};
-</script>
-</body>
-</html>
+    Toast.show('Mensaje enviado. Te r

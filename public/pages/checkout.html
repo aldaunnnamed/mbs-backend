@@ -330,7 +330,7 @@
 
 <div id="toast-container"></div>
 
-<script src="/js/global.js"></script>
+<script src="/js/global.js?v=3"></script>
 <script>
 let cartItems = [], shippingMethods = [], paymentMethods = [], selectedShipping = null, selectedPayment = 'tarjeta';
 let carritoId = null;
@@ -644,20 +644,4 @@ window.confirmarPedido = async () => {
       document.getElementById('s-dir').textContent    =
         document.getElementById('dir-calle').value + ', ' + document.getElementById('dir-ciudad').value;
 
-      document.getElementById('checkout-form-page').style.display = 'none';
-      document.getElementById('success-page').style.display = 'flex';
-    } else {
-      Toast.show(pedidoRes.mensaje || 'Error al procesar el pedido', 'error');
-      btn.disabled = false;
-      btn.innerHTML = '🔒 Confirmar y pagar ' + document.getElementById('confirm-total').textContent;
-    }
-  } catch (err) {
-    console.error('Error checkout:', err);
-    Toast.show('Error de conexión. Intenta de nuevo.', 'error');
-    btn.disabled = false;
-    btn.innerHTML = '🔒 Confirmar y pagar ' + document.getElementById('confirm-total').textContent;
-  }
-};
-</script>
-</body>
-</html>
+      document.getElementById('checkout-form-page').style.display = 

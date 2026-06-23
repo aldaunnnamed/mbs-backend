@@ -260,6 +260,86 @@ const NavbarNotif = (() => {
   return { init, toggle, markOne, markAll, load };
 })();
 
+/* ── Formato de valores ──────────────────────────────────────── */
+const fmt = (() => {
+  const money = (n, symbol = '$') =>
+    symbol + parseFloat(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const num = (n) => parseInt(n || 0).toLocaleString('es-MX');
+
+  const date = (str) => {
+    if (!str) return '—';
+    const d = new Date(str);
+    return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  return { money, num, date };
+})();
+
+/* ── Moneda dual MXN / USD ───────────────────────────────────── */
+const Currency = (() => {
+  let _rate = null;   // MXN por 1 USD
+  let _mode = localStorage.getItem('mbs_currency') || 'MXN';
+
+  const fetchRate = async () => {
+    try {
+      const r = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+      const data = await r.json();
+      _rate = data.rates?.MXN || 17.5;
+    } catch (_) {
+      _rate = 17.5; // fallback
+    }
+  };
+
+  const format = (mxn) => {
+    const n = parseFloat(mxn || 0);
+    if (_mode === 'USD' && _rate) {
+      return 'US$' + (n / _rate).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    return '$' + n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const setMode = (mode) => {
+    _mode = mode === 'USD' ? 'USD' : 'MXN';
+    localStorage.setItem('mbs_currency', _mode);
+    // Actualizar todos los precios visibles
+    document.querySelectorAll('[data-mxn]').forEach(el => {
+      el.textContent = format(el.dataset.mxn);
+    });
+    // Actualizar el botón toggle
+    const btn = document.getElementById('currency-toggle');
+    if (btn) {
+      btn.dataset.mode = _mode;
+      btn.textContent = _mode === 'USD' ? '🇺🇸 USD' : '🇲🇽 MXN';
+    }
+  };
+
+  const init = async () => {
+    await fetchRate();
+    // Si ya estaba en USD, actualizar precios tras obtener la tasa
+    if (_mode === 'USD') setMode('USD');
+    const btn = document.getElementById('currency-toggle');
+    if (btn) {
+      btn.dataset.mode = _mode;
+      btn.textContent = _mode === 'USD' ? '🇺🇸 USD' : '🇲🇽 MXN';
+    }
+  };
+
+  return { format, setMode, init };
+})();
+
+/* ── Skeleton card (placeholder de carga) ────────────────────── */
+function skeletonCard() {
+  return `<div class="product-card product-card--skeleton">
+    <div class="pc__img sk"></div>
+    <div class="pc__body">
+      <div class="sk sk--line" style="width:60%;height:10px;margin-bottom:6px"></div>
+      <div class="sk sk--line" style="width:90%;height:14px;margin-bottom:8px"></div>
+      <div class="sk sk--line" style="width:40%;height:18px"></div>
+    </div>
+  </div>`;
+}
+
 /* ── Navbar dinámica ─────────────────────────────────────────── */
 const Navbar = (() => {
   const init = () => {
@@ -419,13 +499,14 @@ const NavbarSearch = (() => {
     }
 
     const items = productos.map(p => {
-      const nombre = p.r_nombre       const nombre = p.r_nombre || p.nombre || '—';
+      const nombre = p.r_nombre || p.nombre || '—';
       const precio = p.r_precio_venta || p.precio_venta || 0;
       const img    = p.r_imagen_principal || p.imagen_principal || '';
       const cat    = p.r_categoria || p.categoria_nombre || '';
+      const id     = p.r_id || p.id;
 
       return `
-        <a class="ns-item" href="/pages/producto.html?id=${p.r_id || p.id}">
+        <a class="ns-item" href="/pages/producto.html?id=${id}">
           <div class="ns-item__img">
             ${img
               ? `<img src="${img}" alt="" loading="lazy">`
@@ -433,32 +514,36 @@ const NavbarSearch = (() => {
           </div>
           <div class="ns-item__info">
             <div class="ns-item__name">${hl(nombre, q)}</div>
-            <div class="ns-item__cat">${cat}</div>
+            ${cat ? `<div class="ns-item__cat">${cat}</div>` : ''}
           </div>
           <div class="ns-item__price">${priceMXN(precio)}</div>
         </a>`;
-    }).join('');
+    });
 
-    dd.innerHTML = items +
-      `<a class="ns-footer" href="/pages/catalogo.html?busqueda=${encodeURIComponent(q)}">Ver todos los resultados →</a>`;
+    dd.innerHTML = items.join('') +
+      `<a class="ns-ver-todo" href="/pages/catalogo.html?busqueda=${encodeURIComponent(q)}">
+        Ver todos los resultados →
+      </a>`;
     dd.style.display = 'block';
   };
 
   const search = async (input, q) => {
+    if (q.length < MIN_CHARS) { closeAll(); return; }
     const dd = getDropdown(input);
     if (!dd) return;
-    if (q.length < MIN_CHARS) { dd.style.display = 'none'; return; }
     dd.innerHTML = '<div class="ns-loading">Buscando...</div>';
     dd.style.display = 'block';
     try {
-      const r = await API.get('/productos?busqueda=' + encodeURIComponent(q) + '&por_pagina=6');
-      render(dd, r.productos || [], q);
-    } catch { dd.style.display = 'none'; }
+      const data = await API.get('/productos?busqueda=' + encodeURIComponent(q) + '&limite=6');
+      const productos = data.productos || [];
+      render(dd, productos, q);
+    } catch (_) {
+      dd.innerHTML = '<div class="ns-empty">Error al buscar</div>';
+    }
   };
 
   const init = () => {
-    const inputs = document.querySelectorAll('#navbar-search, #navbar-search-mobile');
-    inputs.forEach(input => {
+    document.querySelectorAll('.navbar__search input').forEach(input => {
       input.addEventListener('input', e => {
         clearTimeout(_timer);
         const q = e.target.value.trim();
@@ -496,173 +581,6 @@ document.addEventListener('DOMContentLoaded', () => {
         el.outerHTML = '<img src="/uploads/logo/logo.png" class="navbar__logo-img" alt="MBS Comunicaciones" style="height:38px;object-fit:contain;max-width:140px;vertical-align:middle">';
       });
     };
-    // 5-min cache bust para que el cambio de logo se refleje rápido
     probe.src = '/uploads/logo/logo.png?' + Math.floor(Date.now() / 300000);
-  }
-});
-era
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.navbar__search')) closeAll();
-    });
-  };
-
-  return { init };
-})();
-
-/* ── Conversor de moneda MXN / USD ──────────────────────────── */
-const Currency = (() => {
-  let _rate = null;        // tipo de cambio USD→MXN
-  let _mode = 'MXN';       // moneda activa
-  const FALLBACK_RATE = 17.5; // respaldo si falla la API
-
-  const fetchRate = async () => {
-    try {
-      // API pública gratuita de tipo de cambio
-      const res = await fetch(
-        'https://api.exchangerate-api.com/v4/latest/USD',
-        { signal: AbortSignal.timeout(4000) }
-      );
-      const data = await res.json();
-      _rate = data.rates?.MXN || FALLBACK_RATE;
-    } catch (_) {
-      _rate = FALLBACK_RATE;
-    }
-  };
-
-  const init = async () => {
-    // Intentar desde localStorage primero (cache de 1 hora)
-    const cached = localStorage.getItem('mbs_fx');
-    if (cached) {
-      try {
-        const { rate, ts } = JSON.parse(cached);
-        if (Date.now() - ts < 3600000) { // 1 hora
-          _rate = rate;
-          return;
-        }
-      } catch (_) {}
-    }
-    await fetchRate();
-    if (_rate) {
-      localStorage.setItem('mbs_fx', JSON.stringify({ rate: _rate, ts: Date.now() }));
-    }
-  };
-
-  const format = (mxn) => {
-    const n = parseFloat(mxn) || 0;
-    if (_mode === 'USD' && _rate) {
-      const usd = n / _rate;
-      return 'USD $' + usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-    return '$' + n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
-
-  const setMode = (mode) => {
-    _mode = mode;
-    localStorage.setItem('mbs_currency', mode);
-    // Actualizar todos los precios visibles en la página
-    document.querySelectorAll('[data-mxn]').forEach(el => {
-      el.textContent = format(el.dataset.mxn);
-    });
-    // Actualizar el botón
-    const btn = document.getElementById('currency-toggle');
-    if (btn) {
-      btn.textContent  = _mode === 'MXN' ? '🇲🇽 MXN' : '🇺🇸 USD';
-      btn.dataset.mode = _mode;
-    }
-    // Disparar evento para que otras partes de la página puedan reaccionar
-    document.dispatchEvent(new CustomEvent('currencyChange', { detail: { mode: _mode, rate: _rate } }));
-  };
-
-  const getMode = () => _mode;
-  const getRate = () => _rate || FALLBACK_RATE;
-
-  return { init, format, setMode, getMode, getRate };
-})();
-
-/* ── Formato de precio ───────────────────────────────────────── */
-const formatPrice = (n) => Currency.format(n);
-
-/* ── Skeleton helpers ────────────────────────────────────────── */
-const skeletonCard = () => `
-  <div class="product-card">
-    <div class="product-card__img skeleton" style="aspect-ratio:1"></div>
-    <div class="product-card__body">
-      <div class="skeleton mb-8" style="height:12px;width:60%"></div>
-      <div class="skeleton mb-8" style="height:16px;width:90%"></div>
-      <div class="skeleton mb-8" style="height:12px;width:40%"></div>
-      <div class="skeleton mb-16" style="height:24px;width:50%"></div>
-      <div class="skeleton" style="height:40px;border-radius:6px"></div>
-    </div>
-  </div>`;
-
-/* ── Footer links resolver ───────────────────────────────────── */
-const FooterLinks = (() => {
-  const MAP = {
-    'Sobre MBS':               '/pages/sobre-nosotros.html',
-    'Preguntas frecuentes':    '/pages/faq.html',
-    'Política de envíos':      '/pages/politica-envios.html',
-    'Garantía y devoluciones': '/pages/garantia.html',
-    'Aviso de privacidad':     '/pages/privacidad.html',
-    'Términos':                '/pages/terminos.html',
-    'Términos y condiciones':  '/pages/terminos.html',
-    'Contacto':                '/pages/contacto.html',
-  };
-
-  const resolve = () => {
-    document.querySelectorAll('footer a[href="#"]').forEach(a => {
-      const key = a.textContent.trim();
-      if (MAP[key]) a.href = MAP[key];
-    });
-  };
-
-  const loadSocial = async () => {
-    try {
-      const r = await fetch('/api/config/publica').then(x => x.json()).catch(() => null);
-      if (!r?.ok) return;
-      const cfg = {};
-      (r.configuracion || []).forEach(c => { cfg[c.clave] = c.valor; });
-      document.querySelectorAll('footer .footer__social a').forEach(a => {
-        const title = a.title?.toLowerCase();
-        if (title === 'facebook'  && cfg.social_facebook)  { a.href = cfg.social_facebook;  a.target = '_blank'; }
-        if (title === 'instagram' && cfg.social_instagram) { a.href = cfg.social_instagram; a.target = '_blank'; }
-        if (title === 'linkedin'  && cfg.social_linkedin)  { a.href = cfg.social_linkedin;  a.target = '_blank'; }
-        if (title === 'whatsapp') {
-          const wa = cfg.contacto_whatsapp || '527713455929';
-          a.href = 'https://wa.me/' + wa.replace(/\D/g, '');
-          a.target = '_blank';
-        }
-      });
-    } catch (_) {}
-  };
-
-  return { resolve, loadSocial };
-})();
-
-/* ── Init global ─────────────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', async () => {
-  // Restaurar moneda guardada
-  const savedCurrency = localStorage.getItem('mbs_currency') || 'MXN';
-  await Currency.init();
-  Navbar.init();
-  MobileMenu.init();
-  NavbarSearch.init();
-  // Aplicar moneda guardada después de inicializar
-  if (savedCurrency !== 'MXN') {
-    Currency.setMode(savedCurrency);
-  }
-  // Resolver links del footer y redes sociales
-  FooterLinks.resolve();
-  FooterLinks.loadSocial();
-
-  // Hero search (homepage)
-  const heroSearch = document.getElementById('hero-search');
-  if (heroSearch) {
-    heroSearch.addEventListener('keydown', e => {
-      if (e.key === 'Enter') {
-        const q = e.target.value.trim();
-        if (q) window.location.href = '/pages/catalogo.html?busqueda=' + encodeURIComponent(q);
-      }
-    });
-    heroSearch.setAttribute('placeholder', 'Buscar producto o SKU... ↵');
   }
 });
