@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Configuración | MBS Admin</title>
@@ -173,6 +174,39 @@
                 <button class="btn btn-p btn-sm" onclick="guardarSpeiConfig()">Guardar datos SPEI</button>
               </div>
             </div>
+            <!-- PayPal -->
+            <div class="card mb16">
+              <div class="card__hd">
+                <div>
+                  <span class="card__title">🅿️ PayPal</span>
+                  <div class="fs11 tx-m mt4">Modo:
+                    <select class="fs" id="paypal-mode" style="display:inline;width:auto;margin-left:6px">
+                      <option value="sandbox">Sandbox (pruebas)</option>
+                      <option value="live">Live (producción)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="card__bd">
+                <div class="fs11 tx-m mb12">Obtén tus credenciales en <a href="https://developer.paypal.com/developer/applications" target="_blank" style="color:var(--c-blue)">developer.paypal.com</a>. Crea una app en Sandbox y otra en Live.</div>
+                <div class="form-gap">
+                  <div class="fg2">
+                    <div class="fg"><label class="flbl">Client ID (sandbox)</label><input class="fi" id="paypal-cid-test" placeholder="AYS..."></div>
+                    <div class="fg"><label class="flbl">Secret (sandbox)</label><input class="fi" id="paypal-sec-test" type="password" placeholder="EBW..."></div>
+                  </div>
+                  <div class="fg"><label class="flbl">Webhook ID (sandbox)</label><input class="fi" id="paypal-wh-test" placeholder="ID del webhook en el dashboard de PayPal"></div>
+                  <div class="fg2">
+                    <div class="fg"><label class="flbl">Client ID (live)</label><input class="fi" id="paypal-cid-live" placeholder="AYS..."></div>
+                    <div class="fg"><label class="flbl">Secret (live)</label><input class="fi" id="paypal-sec-live" type="password" placeholder="EBW..."></div>
+                  </div>
+                  <div class="fg"><label class="flbl">Webhook ID (live)</label><input class="fi" id="paypal-wh-live" placeholder="ID del webhook en el dashboard de PayPal"></div>
+                </div>
+              </div>
+              <div class="card__hd" style="border-top:1px solid var(--border);border-bottom:none">
+                <button class="btn btn-p btn-sm" onclick="guardarPayPalConfig()">Guardar configuración PayPal</button>
+              </div>
+            </div>
+
             <!-- Stripe -->
             <div class="card mb16">
               <div class="card__hd">
@@ -541,218 +575,4 @@ async function loadSpeiConfig() {
   (r.configuracion || []).forEach(c => { cfg[c.r_clave || c.clave] = c.r_valor || c.valor; });
   document.getElementById('cfg-spei-clabe').value        = cfg.spei_clabe || '';
   document.getElementById('cfg-spei-banco').value        = cfg.spei_banco || '';
-  document.getElementById('cfg-spei-beneficiario').value = cfg.spei_beneficiario || '';
-
-  // Stripe
-  const smode = document.getElementById('stripe-mode');
-  if (smode) smode.value = cfg.stripe_mode || 'sandbox';
-  const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
-  setVal('stripe-pk-test', cfg.stripe_pk_test);
-  setVal('stripe-sk-test', cfg.stripe_sk_test);
-  setVal('stripe-wh-test', cfg.stripe_webhook_secret_test);
-  setVal('stripe-pk-live', cfg.stripe_pk_live);
-  setVal('stripe-sk-live', cfg.stripe_sk_live);
-  setVal('stripe-wh-live', cfg.stripe_webhook_secret_live);
-
-  // Mercado Pago
-  const mpmode = document.getElementById('mp-mode');
-  if (mpmode) mpmode.value = cfg.mp_mode || 'sandbox';
-  setVal('mp-pk-test', cfg.mp_public_key_test);
-  setVal('mp-at-test', cfg.mp_access_token_test);
-  setVal('mp-pk-live', cfg.mp_public_key_live);
-  setVal('mp-at-live', cfg.mp_access_token_live);
-}
-
-async function guardarStripeConfig() {
-  const campos = [
-    { clave: 'stripe_mode',                valor: document.getElementById('stripe-mode').value },
-    { clave: 'stripe_pk_test',             valor: document.getElementById('stripe-pk-test').value.trim() },
-    { clave: 'stripe_sk_test',             valor: document.getElementById('stripe-sk-test').value.trim() },
-    { clave: 'stripe_webhook_secret_test', valor: document.getElementById('stripe-wh-test').value.trim() },
-    { clave: 'stripe_pk_live',             valor: document.getElementById('stripe-pk-live').value.trim() },
-    { clave: 'stripe_sk_live',             valor: document.getElementById('stripe-sk-live').value.trim() },
-    { clave: 'stripe_webhook_secret_live', valor: document.getElementById('stripe-wh-live').value.trim() },
-  ];
-  let ok = true;
-  for (const c of campos) {
-    const r = await AdminAPI.post('/admin/configuracion', c);
-    if (!r.ok) { ok = false; }
-  }
-  Toast.show(ok ? 'Configuración de Stripe guardada' : 'Error al guardar algunos campos', ok ? 'success' : 'error');
-}
-
-async function guardarMPConfig() {
-  const campos = [
-    { clave: 'mp_mode',              valor: document.getElementById('mp-mode').value },
-    { clave: 'mp_public_key_test',   valor: document.getElementById('mp-pk-test').value.trim() },
-    { clave: 'mp_access_token_test', valor: document.getElementById('mp-at-test').value.trim() },
-    { clave: 'mp_public_key_live',   valor: document.getElementById('mp-pk-live').value.trim() },
-    { clave: 'mp_access_token_live', valor: document.getElementById('mp-at-live').value.trim() },
-  ];
-  let ok = true;
-  for (const c of campos) {
-    const r = await AdminAPI.post('/admin/configuracion', c);
-    if (!r.ok) { ok = false; }
-  }
-  Toast.show(ok ? 'Configuración de Mercado Pago guardada' : 'Error al guardar algunos campos', ok ? 'success' : 'error');
-}
-
-async function guardarSpeiConfig() {
-  const clabe        = document.getElementById('cfg-spei-clabe').value.trim();
-  const banco        = document.getElementById('cfg-spei-banco').value.trim();
-  const beneficiario = document.getElementById('cfg-spei-beneficiario').value.trim();
-
-  if (clabe && !/^\d{18}$/.test(clabe)) {
-    Toast.show('La CLABE debe tener 18 dígitos', 'error');
-    return;
-  }
-
-  const campos = [
-    { clave: 'spei_clabe',        valor: clabe },
-    { clave: 'spei_banco',        valor: banco },
-    { clave: 'spei_beneficiario', valor: beneficiario },
-  ];
-  const errores = [];
-  for (const c of campos) {
-    const r = await AdminAPI.post('/admin/configuracion', c);
-    if (!r.ok) errores.push(c.clave);
-  }
-  Toast.show(
-    errores.length ? 'Error al guardar: ' + errores.join(', ') : 'Datos SPEI guardados correctamente',
-    errores.length ? 'error' : 'success'
-  );
-}
-
-const NOTIF_ADM = [
-  { clave:'notif_admin_nuevo_pedido',    name:'Nuevo pedido recibido',    sub:'Email inmediato' },
-  { clave:'notif_admin_pedido_cancelado',name:'Pedido cancelado',         sub:'Notificación email' },
-  { clave:'notif_admin_stock_bajo',      name:'Stock bajo (umbral)',       sub:'Alerta diaria' },
-  { clave:'notif_admin_nuevo_cliente',   name:'Nuevo cliente registrado', sub:'Resumen semanal' },
-];
-const NOTIF_CLI = [
-  { clave:'notif_cli_confirmacion', name:'Confirmación de pedido',      sub:'Email con detalle y # de orden' },
-  { clave:'notif_cli_estado',       name:'Cambio de estado del pedido', sub:'Prep. / Enviado / Entregado' },
-  { clave:'notif_cli_guia',         name:'Número de guía disponible',   sub:'Con link de rastreo' },
-];
-
-async function loadNotif() {
-  const r = await AdminAPI.get('/admin/configuracion');
-  const cfg = {};
-  (r.configuracion || []).forEach(c => { cfg[c.r_clave || c.clave] = c.r_valor || c.valor; });
-
-  const render = (list, container) => {
-    document.getElementById(container).innerHTML = list.map(n => {
-      const on = cfg[n.clave] !== undefined ? cfg[n.clave] !== '0' && cfg[n.clave] !== 'false' : true;
-      return `<div class="notif-row">
-        <div><div class="notif-name">${n.name}</div><div class="notif-sub">${n.sub}</div></div>
-        ${tog(n.clave, on)}
-      </div>`;
-    }).join('');
-  };
-  render(NOTIF_ADM, 'notif-admin');
-  render(NOTIF_CLI, 'notif-cliente');
-}
-
-async function guardarNotif() {
-  const all = [...NOTIF_ADM, ...NOTIF_CLI];
-  const configuraciones = all.map(n => {
-    const el = document.getElementById(n.clave);
-    return { clave: n.clave, valor: el ? (el.checked ? '1' : '0') : '1' };
-  });
-  const r = await AdminAPI.post('/admin/configuracion/notificaciones', { configuraciones });
-  Toast.show(r.mensaje || (r.ok ? 'Notificaciones guardadas' : 'Error'), r.ok ? 'success' : 'error');
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  // Mostrar logo existente si ya fue subido
-  const logoBox = document.getElementById('logo-preview-box');
-  if (logoBox) {
-    const img = new Image();
-    img.onload = () => {
-      logoBox.innerHTML = '<img src="/uploads/logo/logo.png" style="max-width:100%;max-height:80px;object-fit:contain">';
-      document.getElementById('logo-info').textContent = '✓ Logo actual cargado';
-    };
-    img.src = '/uploads/logo/logo.png?' + Date.now();
-  }
-});
-
-async function subirLogo(input) {
-  const file = input.files[0];
-  if (!file) return;
-
-  // Previsualizar
-  const reader = new FileReader();
-  reader.onload = e => {
-    const box = document.getElementById('logo-preview-box');
-    box.innerHTML = `<img src="${e.target.result}" style="max-width:100%;max-height:80px;object-fit:contain;">`;
-  };
-  reader.readAsDataURL(file);
-
-  // Subir al servidor
-  const fd = new FormData();
-  fd.append('logo', file);
-  try {
-    const r = await fetch('/api/admin/configuracion/logo', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + (localStorage.getItem(typeof ADMIN_TOKEN_KEY !== 'undefined' ? ADMIN_TOKEN_KEY : 'mbs_admin_token') || '') },
-      body: fd
-    });
-    const data = await r.json();
-    if (data.ok) {
-      document.getElementById('logo-info').textContent = '✓ Logo actualizado: ' + file.name;
-      Toast.show('Logo actualizado correctamente', 'success');
-    } else {
-      Toast.show(data.mensaje || 'Error al subir logo', 'error');
-    }
-  } catch(e) {
-    Toast.show('Error de conexión al subir logo', 'error');
-  }
-  input.value = '';
-}
-
-async function guardarConfig() {
-  const campos = [
-    { clave: 'sitio_nombre',       id: 'cfg-sitio-nombre' },
-    { clave: 'sitio_slogan',       id: 'cfg-slogan'       },
-    { clave: 'sitio_url',          id: 'cfg-url'          },
-    { clave: 'contacto_email',     id: 'cfg-email'        },
-    { clave: 'contacto_telefono',  id: 'cfg-tel'          },
-    { clave: 'contacto_whatsapp',  id: 'cfg-wa'           },
-    { clave: 'contacto_direccion', id: 'cfg-dir'          },
-    { clave: 'iva_porcentaje',     id: 'cfg-iva'          },
-    { clave: 'social_facebook',    id: 'cfg-facebook'     },
-    { clave: 'social_instagram',   id: 'cfg-instagram'    },
-    { clave: 'social_linkedin',    id: 'cfg-linkedin'     },
-  ];
-  const errores = [];
-  for (const c of campos) {
-    const el = document.getElementById(c.id);
-    if (!el) continue;
-    const r = await AdminAPI.post('/admin/configuracion', { clave: c.clave, valor: el.value });
-    if (!r.ok) errores.push(c.clave);
-  }
-  if (errores.length) {
-    Toast.show('Error al guardar: ' + errores.join(', '), 'error');
-  } else {
-    Toast.show('Configuración guardada correctamente', 'success');
-  }
-}
-
-async function actualizarPass() {
-  const actual  = document.getElementById('curr-pass').value;
-  const nueva   = document.getElementById('new-pass').value;
-  const confirm = document.getElementById('confirm-pass').value;
-  if (!actual || !nueva) { Toast.show('Completa todos los campos', 'error'); return; }
-  if (nueva.length < 8)  { Toast.show('La contraseña debe tener mínimo 8 caracteres', 'error'); return; }
-  if (nueva !== confirm)  { Toast.show('Las contraseñas no coinciden', 'error'); return; }
-  const r = await AdminAPI.put('/auth/password', { password_actual: actual, password_nueva: nueva });
-  Toast.show(r.mensaje || (r.ok ? 'Contraseña actualizada' : 'Error'), r.ok ? 'success' : 'error');
-  if (r.ok) {
-    document.getElementById('curr-pass').value    = '';
-    document.getElementById('new-pass').value     = '';
-    document.getElementById('confirm-pass').value =     '';
-  }
-}
-</script>
-</body>
-</html>
+  document.getElementById('cfg-spei-benefici

@@ -107,4 +107,22 @@ const actualizarCantidad = async (req, res) => {
   }
 };
 
-module.exports = { obtener, agregar, eliminarItem, actualizarCantidad };
+
+// POST /api/carrito/fusionar — fusiona carrito anónimo al usuario al hacer login
+const fusionar = async (req, res) => {
+  try {
+    const uid = parseInt(req.usuario?.id);
+    const sk  = req.headers['x-session-key'] || req.body.session_key;
+    if (!uid || !sk) return res.json({ ok: true, mensaje: 'Nada que fusionar' });
+    await query(
+      'SELECT fn_carrito_fusionar(CAST($1 AS INTEGER), CAST($2 AS CHARACTER VARYING))',
+      [uid, sk]
+    );
+    res.json({ ok: true, mensaje: 'Carrito fusionado' });
+  } catch (err) {
+    console.error('fusionar carrito:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error al fusionar carrito' });
+  }
+};
+
+module.exports = { obtener, agregar, eliminarItem, actualizarCantidad, fusionar };

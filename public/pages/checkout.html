@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Checkout — MBS Comunicaciones</title>
@@ -217,6 +218,7 @@
             </div>
 
             <div class="payment-panel active" id="panel-tarjeta">
+              <form id="card-form" autocomplete="on" onsubmit="return false;">
               <div class="msi-banner">
                 🏦 Meses sin intereses disponibles · 3, 6 y 12 MSI con tarjetas participantes ·
                 <a href="#" style="color:var(--navy);font-weight:700;margin-left:4px">Ver términos</a>
@@ -253,6 +255,7 @@
                 <input type="checkbox" id="save-card">
                 Guardar tarjeta para futuras compras (encriptado con SSL)
               </label>
+              </form>
             </div>
 
             <div class="payment-panel" id="panel-spei">
@@ -330,20 +333,25 @@
 
 <div id="toast-container"></div>
 
-<script src="/js/global.js?v=3"></script>
+<script src="/js/global.js?v=4"></script>
 <script>
 let cartItems = [], shippingMethods = [], paymentMethods = [], selectedShipping = null, selectedPayment = 'tarjeta';
 let carritoId = null;
 let selectedAddressId = null;   // id de dirección guardada seleccionada (null = nueva)
 
 document.addEventListener('DOMContentLoaded', async () => {
+  try {
 
   // 1. Cargar carrito y obtener el carrito_id real
   const cartData = await API.get('/carrito');
   cartItems = cartData.items || [];
 
+  console.log('[checkout] cartData:', cartData);
+  console.log('[checkout] cartItems.length:', cartItems.length);
+
   if (!cartItems.length) {
-    window.location.href = '/pages/carrito.html';
+    Toast.show('Tu carrito está vacío. Agrega productos antes de continuar.', 'info');
+    setTimeout(() => { window.location.href = '/pages/carrito.html'; }, 1500);
     return;
   }
 
@@ -421,6 +429,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     document.getElementById('dir-nombre').focus();
   });
+
+  } catch (err) {
+    console.error('[checkout] Error al cargar:', err);
+    Toast.show('Error al cargar el checkout. Verifica tu carrito.', 'error');
+    setTimeout(() => { window.location.href = '/pages/carrito.html'; }, 2000);
+  }
 });
 
 const renderShippingMethods = () => {
@@ -482,7 +496,7 @@ const renderSidebar = () => {
         <span class="checkout-item__qty">${i.r_cantidad||i.cantidad}</span>
       </div>
       <span class="checkout-item__name">${i.r_nombre||i.nombre}</span>
-      <span class="checkout-item__price">${formatPrice(i.r_subtotal||i.subtotal)}</span>
+      <span class="checkout-item__price">${Currency.format(i.r_subtotal||i.subtotal)}</span>
     </div>`).join('');
 };
 
@@ -493,11 +507,11 @@ const calcTotals = () => {
   const iva   = (subtotal + envioFinal) * 0.16;
   const total = subtotal + envioFinal + iva;
 
-  document.getElementById('sb-subtotal').textContent = formatPrice(subtotal);
-  document.getElementById('sb-envio').textContent    = envioFinal === 0 ? 'GRATIS' : formatPrice(envioFinal);
-  document.getElementById('sb-iva').textContent      = formatPrice(iva);
-  document.getElementById('sb-total').textContent    = formatPrice(total);
-  document.getElementById('confirm-total').textContent = formatPrice(total);
+  document.getElementById('sb-subtotal').textContent = Currency.format(subtotal);
+  document.getElementById('sb-envio').textContent    = envioFinal === 0 ? 'GRATIS' : Currency.format(envioFinal);
+  document.getElementById('sb-iva').textContent      = Currency.format(iva);
+  document.getElementById('sb-total').textContent    = Currency.format(total);
+  document.getElementById('confirm-total').textContent = Currency.format(total);
 };
 
 window.selectShipping = (id, el, precio) => {
@@ -640,8 +654,31 @@ window.confirmarPedido = async () => {
         'Gracias por tu compra. Te enviaremos la confirmación a ' + email;
       document.getElementById('s-total').textContent  = document.getElementById('sb-total').textContent;
       document.getElementById('s-pago').textContent   = metodoPago.nombre;
-      document.getElementById('s-envio').textContent  = shippingMethods.find(m => m.id === selectedShipping?.id)?.nombre || '';
+      document.getElementById('s-envio').textContent  = selectedShipping?.nombre || 'Estándar';
       document.getElementById('s-dir').textContent    =
-        document.getElementById('dir-calle').value + ', ' + document.getElementById('dir-ciudad').value;
+        (document.getElementById('dir-calle').value || '') + ', ' +
+        (document.getElementById('dir-ciudad').value || '');
 
-      document.getElementById('checkout-form-page').style.display = 
+      document.getElementById('checkout-form-page').style.display = 'none';
+      document.getElementById('success-page').style.display = 'flex';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      Cart.updateBadge();
+
+    }  // end if (pedidoRes.ok)
+
+  } catch (err) {
+    console.error('[checkout] confirmarPedido error:', err);
+    const btn2 = document.getElementById('btn-confirm');
+    if (btn2) { btn2.disabled = false; btn2.textContent = 'Confirmar pedido →'; }
+    Toast.show(err.message || 'Error al procesar el pedido', 'error');
+  }
+};
+
+// Recalcular precios cuando el usuario cambie divisa
+window.addEventListener('mbs:currency', () => {
+  if (cartItems.length) calcTotals();
+});
+
+</script>
+</body>
+</html>

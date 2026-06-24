@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mi carrito — MBS Comunicaciones</title>
@@ -252,7 +253,7 @@
   </div>
 </footer>
 
-<script src="/js/global.js?v=3"></script>
+<script src="/js/global.js?v=4"></script>
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
   let items = [];
@@ -314,7 +315,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
         </div>
         <div>
-          <div class="cart-item__price">${formatPrice(precio)}</div>
+          <div class="cart-item__price">${Currency.format(precio)}</div>
         </div>
         <div class="cart-item__qty">
           <button class="qty-btn" onclick="updateQty(${id}, ${cantidad-1})">−</button>
@@ -322,7 +323,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             onchange="updateQty(${id}, this.value)">
           <button class="qty-btn" onclick="updateQty(${id}, ${cantidad+1})">+</button>
         </div>
-        <div class="cart-item__subtotal">${formatPrice(subtotal)}</div>
+        <div class="cart-item__subtotal">${Currency.format(subtotal)}</div>
         <div class="cart-item__actions">
           <button class="cart-item__action-btn fav" title="Guardar en favoritos"
             onclick="toggleFavItem(${item.r_producto_id || item.producto_id}, this)">♡</button>
@@ -340,18 +341,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     const total    = subtotal + envio + iva;
 
     document.getElementById('subtotal-label').textContent  = `Subtotal (${items.length} producto${items.length!==1?'s':''})`;
-    document.getElementById('subtotal-amount').textContent = formatPrice(subtotal);
-    document.getElementById('iva-amount').textContent      = formatPrice(iva);
-    document.getElementById('total-amount').textContent    = formatPrice(total);
+    document.getElementById('subtotal-amount').textContent = Currency.format(subtotal);
+    document.getElementById('iva-amount').textContent      = Currency.format(iva);
+    document.getElementById('total-amount').textContent    = Currency.format(total);
 
     const envioEl = document.getElementById('envio-select');
-    envioEl.textContent = envio === 0 ? 'GRATIS' : `Estándar (3-5 días) · ${formatPrice(envio)}`;
+    envioEl.textContent = envio === 0 ? 'GRATIS' : `Estándar (3-5 días) · ${Currency.format(envio)}`;
 
     // Summary items
     document.getElementById('summary-items').innerHTML = items.map(i => `
       <div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:8px;color:rgba(255,255,255,.7)">
         <span>${i.r_nombre||i.nombre} ×${i.r_cantidad||i.cantidad}</span>
-        <span>${formatPrice(i.r_subtotal||i.subtotal)}</span>
+        <span>${Currency.format(i.r_subtotal||i.subtotal)}</span>
       </div>`).join('');
   };
 
@@ -380,7 +381,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <div class="product-card__cat">${p.r_categoria||p.categoria||''}</div>
           <a href="/pages/producto.html?slug=${slug}"><div class="product-card__name">${nombre}</div></a>
           <div class="product-card__sku">SKU: ${p.r_sku||p.sku}</div>
-          <div class="product-card__price">${formatPrice(precio)}</div>
+          <div class="product-card__price">${Currency.format(precio)}</div>
           <button class="btn btn-primary btn-full" onclick="Cart.add(${id},null,1)">+ Añadir</button>
         </div>
       </div>`;
@@ -466,8 +467,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   await render();
+
+  // Recalcular precios cuando el usuario cambie de divisa
+  window.addEventListener('mbs:currency', () => {
+    if (items.length) {
+      renderItems();
+      calcTotals();
+    }
+  });
 });
 </script>
-
 </body>
 </html>

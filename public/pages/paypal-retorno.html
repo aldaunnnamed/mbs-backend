@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pago con PayPal — MBS Comunicaciones</title>
@@ -51,7 +52,7 @@
 </div>
 
 <div id="toast-container"></div>
-<script src="/js/global.js?v=3"></script>
+<script src="/js/global.js?v=4"></script>
 <script>
 const params    = new URLSearchParams(window.location.search);
 const pedidoId  = params.get('pedido_id');
@@ -98,7 +99,7 @@ const mostrarExito = (pago) => {
   document.getElementById('pp-desc').textContent = 'Tu pago con PayPal se procesó correctamente.';
 
   document.getElementById('pp-pedido').textContent = pago.r_pedido_numero || '—';
-  document.getElementById('pp-total').textContent  = formatPrice(pago.r_total || 0);
+  document.getElementById('pp-total').textContent  = Currency.format(pago.r_total || 0);
   document.getElementById('pp-estado').textContent = pago.r_estatus_pago === 'pagado' ? 'Pagado' : (pago.r_paypal_estado || pago.r_proveedor_estado || '—');
   document.getElementById('pp-detail').style.display = 'block';
 

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mi cuenta — MBS Comunicaciones</title>
@@ -141,37 +142,37 @@
                 <div>
                   <div style="font-weight:600;color:var(--navy)" id="personal-name">Carlos Mendez</div>
                   <div class="personal-avatar__change" onclick="document.getElementById('foto-input').click()" style="cursor:pointer">Cambiar foto</div>
-                  <input type="file" id="foto-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="subirFoto(this)">
+                  <input type="file" id="foto-input" accept="image/jpeg,image/png,image/webp" style="display:none" aria-label="Subir foto de perfil" onchange="subirFoto(this)">
                 </div>
               </div>
               <div class="form-grid-2">
                 <div class="form-group">
-                  <label class="form-label">Nombre <span class="req">*</span></label>
-                  <input type="text" class="form-input" id="p-nombre">
+                  <label class="form-label" for="p-nombre">Nombre <span class="req">*</span></label>
+                  <input type="text" class="form-input" id="p-nombre" aria-label="Nombre">
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Apellidos <span class="req">*</span></label>
-                  <input type="text" class="form-input" id="p-apellidos">
-                </div>
-              </div>
-              <div class="form-grid-2">
-                <div class="form-group">
-                  <label class="form-label">Correo electrónico</label>
-                  <input type="email" class="form-input" id="p-email" disabled style="background:var(--gray-50)">
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Teléfono</label>
-                  <input type="tel" class="form-input" id="p-telefono">
+                  <label class="form-label" for="p-apellidos">Apellidos <span class="req">*</span></label>
+                  <input type="text" class="form-input" id="p-apellidos" aria-label="Apellidos">
                 </div>
               </div>
               <div class="form-grid-2">
                 <div class="form-group">
-                  <label class="form-label">RFC <span style="color:var(--gray-400)">(para facturación)</span></label>
-                  <input type="text" class="form-input" id="p-rfc" maxlength="13">
+                  <label class="form-label" for="p-email">Correo electrónico</label>
+                  <input type="email" class="form-input" id="p-email" disabled style="background:var(--gray-50)" aria-label="Correo electrónico">
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Razón social <span style="color:var(--gray-400)">(para facturación)</span></label>
-                  <input type="text" class="form-input" id="p-razon">
+                  <label class="form-label" for="p-telefono">Teléfono</label>
+                  <input type="tel" class="form-input" id="p-telefono" aria-label="Teléfono">
+                </div>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label" for="p-rfc">RFC <span style="color:var(--gray-400)">(para facturación)</span></label>
+                  <input type="text" class="form-input" id="p-rfc" maxlength="13" aria-label="RFC">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="p-razon">Razón social <span style="color:var(--gray-400)">(para facturación)</span></label>
+                  <input type="text" class="form-input" id="p-razon" aria-label="Razón social">
                 </div>
               </div>
               <div class="form-actions">
@@ -189,15 +190,15 @@
             <div class="personal-data-form__header">Contraseña y acceso</div>
             <div class="personal-data-form__body">
               <div class="form-group">
-                <label class="form-label">Contraseña actual</label>
+                <label class="form-label" for="seg-pass-actual">Contraseña actual</label>
                 <input type="password" class="form-input" id="seg-pass-actual" placeholder="••••••••">
               </div>
               <div class="form-group">
-                <label class="form-label">Nueva contraseña</label>
+                <label class="form-label" for="seg-pass-nueva">Nueva contraseña</label>
                 <input type="password" class="form-input" id="seg-pass-nueva" placeholder="Mínimo 8 caracteres">
               </div>
               <div class="form-group">
-                <label class="form-label">Confirmar nueva contraseña</label>
+                <label class="form-label" for="seg-pass-confirm">Confirmar nueva contraseña</label>
                 <input type="password" class="form-input" id="seg-pass-confirm" placeholder="Repite la contraseña">
               </div>
               <div class="form-actions">
@@ -296,7 +297,7 @@
   </div>
 </footer>
 
-<script src="/js/global.js?v=3"></script>
+<script src="/js/global.js?v=4"></script>
 <script>
 let currentOrderFilter = null;
 let userData = null;
@@ -317,11 +318,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('dirs-count').textContent =
       dirsInit.direcciones.length + ' guardadas';
   }
-  if (perfil.ok) {
+  // Usar datos del localStorage como base inmediata (mientras carga la API)
+  const localUser = Session.getUser() || {};
+  {
+    const _n = localUser.nombre || ''; const _ap = localUser.apellidos || '';
+    const _ini = ((_n[0]||'') + (_ap[0]||'')).toUpperCase() || '?';
+    const _el = id => document.getElementById(id);
+    if (_el('account-avatar'))       _el('account-avatar').textContent = _ini;
+    if (_el('account-name'))         _el('account-name').textContent   = (_n + ' ' + _ap).trim() || 'Mi cuenta';
+    if (_el('account-email'))        _el('account-email').textContent  = localUser.email || '';
+    if (_el('personal-avatar-text')) _el('personal-avatar-text').textContent = _ini;
+    if (_el('personal-name'))        _el('personal-name').textContent  = (_n + ' ' + _ap).trim();
+    if (_el('p-nombre'))    _el('p-nombre').value    = _n;
+    if (_el('p-apellidos')) _el('p-apellidos').value = _ap;
+    if (_el('p-email'))     _el('p-email').value     = localUser.email || '';
+  }
+  if (perfil.ok && perfil.datos) {
     userData = perfil.datos;
-    const nombre    = userData.r_nombre    || userData.nombre;
-    const apellidos = userData.r_apellidos || userData.apellidos;
-    const email     = userData.r_email     || userData.email;
+    const nombre    = userData.r_nombre    || userData.nombre    || localUser.nombre    || '';
+    const apellidos = userData.r_apellidos || userData.apellidos || localUser.apellidos || '';
+    const email     = userData.r_email     || userData.email     || localUser.email     || '';
     const initials  = (nombre[0] + (apellidos?.[0]||'')).toUpperCase();
 
     const avatarUrl = userData.r_avatar_url || userData.avatar_url;
@@ -524,20 +540,20 @@ window.verDetallePedido = async (id) => {
                   <div style="font-weight:600;font-size:.9rem;color:var(--navy)">${r.r_item_nombre||''}</div>
                   <div style="font-size:.75rem;color:var(--gray-400)">SKU: ${r.r_item_sku||''} · ×${r.r_item_cantidad||1}</div>
                 </div>
-                <div style="font-weight:700;color:var(--orange)">${formatPrice(r.r_item_subtotal||0)}</div>
+                <div style="font-weight:700;color:var(--orange)" data-mxn="${r.r_item_subtotal||0}">${Currency.format(r.r_item_subtotal||0)}</div>
               </div>`).join('')}
             <div style="padding-top:14px">
               <div style="display:flex;justify-content:space-between;font-size:.85rem;color:var(--gray-600);margin-bottom:6px">
-                <span>Subtotal</span><span>${formatPrice(displaySubtotal)}</span>
+                <span>Subtotal</span><span data-mxn="${displaySubtotal}">${Currency.format(displaySubtotal)}</span>
               </div>
               <div style="display:flex;justify-content:space-between;font-size:.85rem;color:var(--gray-600);margin-bottom:6px">
-                <span>Envio</span><span>${formatPrice(displayEnvio)}</span>
+                <span>Envio</span><span data-mxn="${displayEnvio}">${Currency.format(displayEnvio)}</span>
               </div>
               <div style="display:flex;justify-content:space-between;font-size:.85rem;color:var(--gray-600);margin-bottom:10px">
-                <span>IVA (16%)</span><span>${formatPrice(displayIva)}</span>
+                <span>IVA (16%)</span><span data-mxn="${displayIva}">${Currency.format(displayIva)}</span>
               </div>
               <div style="display:flex;justify-content:space-between;font-family:Rajdhani,sans-serif;font-size:1.1rem;font-weight:700;color:var(--navy)">
-                <span>TOTAL</span><span style="color:var(--orange)">${formatPrice(total)}</span>
+                <span>TOTAL</span><span style="color:var(--orange)" data-mxn="${total}">${Currency.format(total)}</span>
               </div>
             </div>
           </div>
@@ -607,7 +623,7 @@ const loadFavorites = async () => {
       </a>
       <div class="product-card__body">
         <div class="product-card__name">${nombre}</div>
-        <div class="product-card__price">${formatPrice(precio)}</div>
+        <div class="product-card__price" data-mxn="${precio}">${Currency.format(precio)}</div>
         <button class="btn btn-primary btn-full btn-add-cart" data-id="${id}"
           onclick="Cart.add(${id},null,1)">Añadir al carrito</button>
       </div>
@@ -678,39 +694,39 @@ window.abrirModalDireccion = (d) => {
       </h3>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
         <div style="grid-column:1/-1">
-          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px">Alias (ej. Casa, Oficina)</label>
+          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px" for="dir-alias">Alias (ej. Casa, Oficina)</label>
           <input id="dir-alias" class="form-input" style="width:100%;padding:9px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem" value="${v('alias')}">
         </div>
         <div>
-          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px">Nombre *</label>
+          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px" for="dir-nombre">Nombre *</label>
           <input id="dir-nombre" class="form-input" style="width:100%;padding:9px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem" value="${v('nombre')}">
         </div>
         <div>
-          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px">Apellidos *</label>
+          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px" for="dir-apellidos">Apellidos *</label>
           <input id="dir-apellidos" class="form-input" style="width:100%;padding:9px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem" value="${v('apellidos')}">
         </div>
         <div style="grid-column:1/-1">
-          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px">Calle y número *</label>
+          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px" for="dir-calle">Calle y número *</label>
           <input id="dir-calle" class="form-input" style="width:100%;padding:9px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem" value="${v('calle_numero')}">
         </div>
         <div>
-          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px">Colonia *</label>
+          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px" for="dir-colonia">Colonia *</label>
           <input id="dir-colonia" class="form-input" style="width:100%;padding:9px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem" value="${v('colonia')}">
         </div>
         <div>
-          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px">Ciudad *</label>
+          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px" for="dir-ciudad">Ciudad *</label>
           <input id="dir-ciudad" class="form-input" style="width:100%;padding:9px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem" value="${v('ciudad')}">
         </div>
         <div>
-          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px">Estado *</label>
+          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px" for="dir-estado">Estado *</label>
           <input id="dir-estado" class="form-input" style="width:100%;padding:9px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem" value="${v('estado')}">
         </div>
         <div>
-          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px">Código postal *</label>
+          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px" for="dir-cp">Código postal *</label>
           <input id="dir-cp" class="form-input" style="width:100%;padding:9px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem" maxlength="5" value="${v('cp')}">
         </div>
         <div>
-          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px">Teléfono</label>
+          <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px" for="dir-telefono">Teléfono</label>
           <input id="dir-telefono" class="form-input" style="width:100%;padding:9px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem" value="${v('telefono')}">
         </div>
         <div style="grid-column:1/-1;display:flex;align-items:center;gap:8px">
@@ -952,7 +968,7 @@ window.contactarSoporte = (id, numero) => {
       <p style="font-size:.85rem;color:#546E7A;margin-bottom:20px">Pedido: ${numero}</p>
 
       <div style="margin-bottom:14px">
-        <label style="display:block;font-size:.85rem;font-weight:600;color:#0B1E3D;margin-bottom:5px">Asunto *</label>
+        <label style="display:block;font-size:.85rem;font-weight:600;color:#0B1E3D;margin-bottom:5px" for="soporte-asunto">Asunto *</label>
         <select id="soporte-asunto" style="width:100%;padding:10px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem">
           <option value="">Selecciona el motivo</option>
           <option value="Producto dañado">Producto dañado o incorrecto</option>
@@ -964,7 +980,7 @@ window.contactarSoporte = (id, numero) => {
       </div>
 
       <div style="margin-bottom:20px">
-        <label style="display:block;font-size:.85rem;font-weight:600;color:#0B1E3D;margin-bottom:5px">Mensaje *</label>
+        <label style="display:block;font-size:.85rem;font-weight:600;color:#0B1E3D;margin-bottom:5px" for="soporte-mensaje">Mensaje *</label>
         <textarea id="soporte-mensaje" rows="4"
           placeholder="Describe tu problema con el mayor detalle posible..."
           style="width:100%;padding:10px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem;resize:vertical"></textarea>
@@ -1007,4 +1023,14 @@ window.enviarSoporte = async (id) => {
 
   const res = await API.post('/pedidos/' + id + '/soporte', { asunto, mensaje });
   if (res.ok) {
-    Toast.show('Mensaje enviado. Te r
+    Toast.show('Mensaje enviado. Te responderemos pronto.', 'success');
+    document.getElementById('soporte-asunto').value = '';
+    document.getElementById('soporte-mensaje').value = '';
+  } else {
+    Toast.show(res.mensaje || 'Error al enviar mensaje', 'error');
+  }
+};
+
+</script>
+</body>
+</html>

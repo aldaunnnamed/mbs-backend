@@ -73,6 +73,15 @@ const Session = (() => {
   const login = (token, user) => {
     localStorage.setItem(KEY_TOKEN, token);
     localStorage.setItem(KEY_USER, JSON.stringify(user));
+    // Fusionar carrito anónimo al carrito del usuario
+    fetch('/api/carrito/fusionar', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'x-session-key': sessionStorage.getItem(KEY_SESSION) || '',
+        'Content-Type': 'application/json',
+      },
+    }).catch(() => {});
   };
 
   const logout = () => {
@@ -302,7 +311,7 @@ const Currency = (() => {
   const setMode = (mode) => {
     _mode = mode === 'USD' ? 'USD' : 'MXN';
     localStorage.setItem('mbs_currency', _mode);
-    // Actualizar todos los precios visibles
+    // Actualizar todos los precios visibles con data-mxn
     document.querySelectorAll('[data-mxn]').forEach(el => {
       el.textContent = format(el.dataset.mxn);
     });
@@ -312,6 +321,8 @@ const Currency = (() => {
       btn.dataset.mode = _mode;
       btn.textContent = _mode === 'USD' ? '🇺🇸 USD' : '🇲🇽 MXN';
     }
+    // Disparar evento para que páginas con lógica compleja recalculen
+    window.dispatchEvent(new CustomEvent('mbs:currency', { detail: { mode: _mode } }));
   };
 
   const init = async () => {
@@ -581,6 +592,8 @@ document.addEventListener('DOMContentLoaded', () => {
         el.outerHTML = '<img src="/uploads/logo/logo.png" class="navbar__logo-img" alt="MBS Comunicaciones" style="height:38px;object-fit:contain;max-width:140px;vertical-align:middle">';
       });
     };
-    probe.src = '/uploads/logo/logo.png?' + Math.floor(Date.now() / 300000);
+    probe.src = '/uploads/logo/logo.png';
   }
+
+  NavbarNotif.init();
 });

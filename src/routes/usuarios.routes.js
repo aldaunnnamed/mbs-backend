@@ -130,13 +130,17 @@ router.put('/notificaciones/todas/leidas', verificarToken, async (req, res) => {
   }
 });
 
+// PUT /api/usuarios/notificaciones/:id/leer — marcar una notificación como leída
 router.put('/notificaciones/:id/leer', verificarToken, async (req, res) => {
   try {
-    await query('UPDATE notificaciones SET leida = TRUE WHERE id = $1 AND usuario_id = $2',
-      [parseInt(req.params.id), parseInt(req.usuario.id)]);
-    res.json({ ok: true, mensaje: 'Notificacion marcada como leida' });
+    await query(
+      'UPDATE notificaciones SET leida = TRUE WHERE id = $1 AND usuario_id = $2',
+      [parseInt(req.params.id), parseInt(req.usuario.id)]
+    );
+    res.json({ ok: true, mensaje: 'Notificación marcada como leída' });
   } catch (err) {
-    res.status(500).json({ ok: false, mensaje: 'Error al actualizar notificacion' });
+    console.error('notif leer:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error al marcar notificación' });
   }
 });
 

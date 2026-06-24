@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const ctrl   = require('../controllers/carrito.controller');
-const { tokenOpcional } = require('../middlewares/auth');
+const { tokenOpcional, verificarToken } = require('../middlewares/auth');
 
 router.get ('/',              tokenOpcional, ctrl.obtener);
 router.post('/agregar',       tokenOpcional, ctrl.agregar);
@@ -31,5 +31,7 @@ router.get('/id', tokenOpcional, async (req, res) => {
     res.status(500).json({ ok: false, carrito_id: null });
   }
 });
+
+router.post('/fusionar', verificarToken, ctrl.fusionar);
 
 module.exports = router;

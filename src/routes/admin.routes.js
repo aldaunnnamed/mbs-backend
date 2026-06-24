@@ -57,16 +57,15 @@ router.post('/configuracion',               ctrl.guardarConfiguracion);
 router.post('/configuracion/notificaciones', ctrl.guardarConfigNotif);
 router.post('/configuracion/logo',          uploadLogo.single('logo'), ctrl.subirLogo);
 
+// Métodos de pago
+router.get('/pagos-metodos',                ctrl.listarMetodosPago);
+router.put('/pagos-metodos/:id/activo',     ctrl.toggleMetodoPago);
+
 // Admins
 router.get ('/admins',                      ctrl.listarAdmins);
 router.post('/admins',                      ctrl.crearAdmin);
 
-// Métodos de pago
-router.get ('/pagos-metodos',               ctrl.listarMetodosPago);
-router.put ('/pagos-metodos/:id/activo',    ctrl.toggleMetodoPago);
-
 // Mensajes de contacto
-router.get ('/mensajes',                    ctrl.listarMensajes);
-router.put ('/mensajes/:id/leido',          ctrl.marcarMensajeLeido);
+router.get('/mensajes',                     ctrl.listarMensajes);
 
 module.exports = router;
