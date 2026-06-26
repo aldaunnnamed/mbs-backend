@@ -78,10 +78,10 @@ const webhookSpei = async (req, res) => {
 // POST /api/pagos/paypal/orden
 const crearOrdenPaypal = async (req, res) => {
   try {
-    if (!paypal.credencialesConfiguradas()) {
+    if (!(await paypal.credencialesConfiguradas())) {
       return res.status(503).json({
         ok: false,
-        mensaje: 'PayPal no está configurado. Define PAYPAL_CLIENT_ID y PAYPAL_SECRET en .env'
+        mensaje: 'PayPal no está configurado. Ingresa las credenciales en Admin → Configuración → Pagos'
       });
     }
 
@@ -229,6 +229,17 @@ const webhookPaypal = async (req, res) => {
 // ── Stripe ────────────────────────────────────────────────────────
 const stripeSvc = require('../services/stripe.service');
 
+// GET /api/pagos/stripe/public-key  (sin auth — publishable key)
+const getStripePublicKey = async (req, res) => {
+  try {
+    const pk = await stripeSvc.getPublicKey();
+    if (!pk) return res.status(503).json({ ok: false, mensaje: 'Stripe no configurado' });
+    res.json({ ok: true, public_key: pk });
+  } catch (err) {
+    res.status(500).json({ ok: false, mensaje: err.message });
+  }
+};
+
 // POST /api/pagos/stripe/intent
 const crearIntentStripe = async (req, res) => {
   try {
@@ -249,7 +260,8 @@ const crearIntentStripe = async (req, res) => {
       metadata: { pedido_id: String(pedido_id) },
     });
 
-    res.json({ ok: true, client_secret, payment_intent_id });
+    const pk = await stripeSvc.getPublicKey();
+    res.json({ ok: true, client_secret, payment_intent_id, public_key: pk });
   } catch (err) {
     console.error('crearIntentStripe:', err.message);
     res.status(500).json({ ok: false, mensaje: err.message });
@@ -304,18 +316,84 @@ const crearPreferenciaMP = async (req, res) => {
     if (pedido.estatus_pago === 'pagado') return res.status(400).json({ ok: false, mensaje: 'Ya fue pagado' });
 
     const appUrl = (process.env.APP_URL || (req.protocol + '://' + req.get('host'))).replace(/\/$/, '');
-    const notifUrl = appUrl + '/api/pagos/mp/webhook';
+    // MP rechaza notification_url con localhost; solo enviarla en producción (HTTPS)
+    const notifUrl = appUrl.startsWith('https://') ? appUrl + '/api/pagos/mp/webhook' : undefined;
 
     const result = await mpSvc.crearPreferencia({
       pedido_id:        pedido.id,
       items:            pedido.items,
       notification_url: notifUrl,
+      back_urls: {
+        success: appUrl + '/pages/mp-retorno.html?pedido_id=' + pedido.id + '&status=success',
+        failure: appUrl + '/pages/mp-retorno.html?pedido_id=' + pedido.id + '&status=failure',
+        pending: appUrl + '/pages/mp-retorno.html?pedido_id=' + pedido.id + '&status=pending',
+      },
     });
 
     res.json({ ok: true, ...result });
   } catch (err) {
     console.error('crearPreferenciaMP:', err.message);
     res.status(500).json({ ok: false, mensaje: err.message });
+  }
+};
+
+// GET /api/pagos/mp/public-key  (sin auth — publishable key)
+const getMPPublicKey = async (req, res) => {
+  try {
+    const pk = await mpSvc.getPublicKey();
+    if (!pk) return res.status(503).json({ ok: false, mensaje: 'Mercado Pago no configurado' });
+    res.json({ ok: true, public_key: pk });
+  } catch (err) {
+    res.status(500).json({ ok: false, mensaje: err.message });
+  }
+};
+
+// POST /api/pagos/mp/pago  — pago directo con token de tarjeta (Checkout Bricks)
+const crearPagoMP = async (req, res) => {
+  try {
+    const { pedido_id, token, installments, payment_method_id, issuer_id, payer } = req.body;
+    if (!pedido_id || !token) {
+      return res.status(400).json({ ok: false, mensaje: 'Faltan parámetros: pedido_id y token son requeridos' });
+    }
+
+    const pedidoRes = await query(
+      'SELECT id, total, estatus_pago FROM pedidos WHERE id=CAST($1 AS INTEGER) AND usuario_id=CAST($2 AS INTEGER)',
+      [parseInt(pedido_id), parseInt(req.usuario.id)]
+    );
+    if (!pedidoRes.rows.length) return res.status(404).json({ ok: false, mensaje: 'Pedido no encontrado' });
+    const pedido = pedidoRes.rows[0];
+    if (pedido.estatus_pago === 'pagado') return res.status(400).json({ ok: false, mensaje: 'Este pedido ya fue pagado' });
+
+    const pago = await mpSvc.crearPago({
+      token,
+      installments,
+      payment_method_id,
+      issuer_id,
+      payer,
+      amount:    parseFloat(pedido.total),
+      pedido_id: pedido.id,
+    });
+
+    console.log('crearPagoMP:', pago.status, pago.status_detail, 'pedido:', pedido.id);
+
+    if (pago.status === 'approved') {
+      await query(
+        `UPDATE pedidos SET estatus_pago='pagado', fecha_pago=NOW() WHERE id=CAST($1 AS INTEGER)`,
+        [pedido.id]
+      );
+    }
+
+    res.json({
+      ok:            pago.status === 'approved',
+      status:        pago.status,
+      status_detail: pago.status_detail,
+      payment_id:    pago.id,
+      mensaje:       pago.status !== 'approved' ? (pago.status_detail || 'Pago no aprobado') : undefined,
+    });
+  } catch (err) {
+    console.error('crearPagoMP:', err.message, err.mpBody || '');
+    const status = err.mpStatus && err.mpStatus >= 400 && err.mpStatus < 600 ? err.mpStatus : 500;
+    res.status(status).json({ ok: false, mensaje: err.message, mp_detail: err.mpBody || undefined });
   }
 };
 
@@ -345,6 +423,6 @@ const webhookMP = async (req, res) => {
 module.exports = {
   estadoPago, crearReferenciaSpei, webhookSpei,
   crearOrdenPaypal, capturarOrdenPaypal, webhookPaypal,
-  crearIntentStripe, webhookStripe,
-  crearPreferenciaMP, webhookMP,
+  getStripePublicKey, crearIntentStripe, webhookStripe,
+  getMPPublicKey, crearPreferenciaMP, crearPagoMP, webhookMP,
 };
