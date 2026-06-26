@@ -67,5 +67,6 @@ router.post('/admins',                      ctrl.crearAdmin);
 
 // Mensajes de contacto
 router.get('/mensajes',                     ctrl.listarMensajes);
+router.put('/mensajes/:id/leido',           ctrl.marcarMensajeLeido);
 
 module.exports = router;

@@ -238,7 +238,7 @@
         <div class="footer__social">
           <a href="#" title="LinkedIn">in</a>
           <a href="#" title="Facebook">f</a>
-          <a href="#" title="WhatsApp">w</a>
+          <a href="#" title="Instagram">ig</a>
         </div>
       </div>
 
@@ -838,13 +838,27 @@ window.subirFoto = async (input) => {
   }).then(r => r.json()).catch(() => ({ ok: false, mensaje: 'Error de conexión' }));
 
   if (res.ok) {
+    const url = res.avatar_url;
+    // Actualizar imagen en la sección de datos personales
     const img = document.getElementById('personal-avatar-img');
     const txt = document.getElementById('personal-avatar-text');
-    img.src = res.avatar_url + '?t=' + Date.now();
-    img.style.display = 'block';
+    if (img) { img.src = url + '?t=' + Date.now(); img.style.display = 'block'; }
     if (txt) txt.style.display = 'none';
+    // Actualizar avatar del sidebar
     const accAv = document.getElementById('account-avatar');
-    if (accAv) { accAv.style.backgroundImage = `url(${res.avatar_url})`; accAv.style.backgroundSize = 'cover'; accAv.textContent = ''; }
+    if (accAv) { accAv.style.backgroundImage = `url(${url})`; accAv.style.backgroundSize = 'cover'; accAv.textContent = ''; }
+    // Actualizar avatar del navbar (header)
+    const navAv = document.getElementById('navbar-avatar');
+    if (navAv) {
+      navAv.style.padding = '0';
+      navAv.style.overflow = 'hidden';
+      navAv.innerHTML = `<img src="${url}?t=${Date.now()}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="foto">`;
+    }
+    // Guardar foto_url en localStorage para que persista en otras páginas
+    try {
+      const stored = JSON.parse(localStorage.getItem('mbs_user') || 'null');
+      if (stored) { stored.foto_url = url; localStorage.setItem('mbs_user', JSON.stringify(stored)); }
+    } catch (_) {}
     Toast.show('Foto actualizada correctamente', 'success');
   } else {
     Toast.show(res.mensaje || 'Error al subir la foto', 'error');

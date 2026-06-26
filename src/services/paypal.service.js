@@ -48,8 +48,13 @@ const getCfg = async () => {
   }
 };
 
-const credencialesConfiguradas = () =>
-  !!(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_SECRET);
+const credencialesConfiguradas = async () => {
+  if (process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_SECRET) return true;
+  try {
+    const cfg = await getCfg();
+    return !!(cfg.client_id && cfg.secret);
+  } catch (_) { return false; }
+};
 
 const obtenerAccessToken = async () => {
   if (cachedToken && Date.now() < cachedTokenExp) return cachedToken;

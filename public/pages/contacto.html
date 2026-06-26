@@ -205,8 +205,8 @@
         <div>
           <div class="contact-card__title">Dirección</div>
           <div class="contact-card__text">
-            Hidalgo, México<br>
-            Lunes a Viernes · 9:00 AM – 7:00 PM
+            <span id="contact-direccion">Hidalgo, México</span><br>
+            <span id="contact-horario-dir">Lunes a Viernes · 9:00 AM – 7:00 PM</span>
           </div>
         </div>
       </div>
@@ -216,8 +216,8 @@
         <div>
           <div class="contact-card__title">Teléfono</div>
           <div class="contact-card__text">
-            <a href="tel:+527713455929">+52 (771) 345-5929</a><br>
-            <span style="font-size:.8rem">Lun–Vie 9AM–7PM · Sáb 9AM–2PM</span>
+            <a href="tel:+527713455929" id="contact-tel-link">+52 (771) 345-5929</a><br>
+            <span id="contact-horario-tel" style="font-size:.8rem">Lun–Vie 9AM–7PM · Sáb 9AM–2PM</span>
           </div>
         </div>
       </div>
@@ -227,14 +227,14 @@
         <div>
           <div class="contact-card__title">Correo electrónico</div>
           <div class="contact-card__text">
-            <a href="mailto:ventas@mbscomunicaciones.mx">ventas@mbscomunicaciones.mx</a><br>
+            <a href="mailto:ventas@mbscomunicaciones.mx" id="contact-email-link">ventas@mbscomunicaciones.mx</a><br>
             <span style="font-size:.8rem">Respondemos en menos de 24 horas</span>
           </div>
         </div>
       </div>
 
       <a href="https://wa.me/527713455929?text=Hola, necesito información sobre sus productos"
-         class="contact-whatsapp" target="_blank">
+         class="contact-whatsapp" id="contact-wa-btn" target="_blank">
         💬 Escribir por WhatsApp
       </a>
 
@@ -303,15 +303,15 @@
   <div class="hours-grid">
     <div class="hours-card">
       <div class="hours-card__day">Lunes – Viernes</div>
-      <div class="hours-card__time">9:00 AM – 7:00 PM</div>
+      <div class="hours-card__time" id="contact-hours-lv">9:00 AM – 7:00 PM</div>
     </div>
     <div class="hours-card">
       <div class="hours-card__day">Sábado</div>
-      <div class="hours-card__time">9:00 AM – 2:00 PM</div>
+      <div class="hours-card__time" id="contact-hours-sab">9:00 AM – 2:00 PM</div>
     </div>
     <div class="hours-card">
       <div class="hours-card__day">Domingo</div>
-      <div class="hours-card__time hours-card__closed">Cerrado</div>
+      <div class="hours-card__time hours-card__closed" id="contact-hours-dom">Cerrado</div>
     </div>
   </div>
 
@@ -333,7 +333,7 @@
         <div class="footer__social">
           <a href="#" title="LinkedIn">in</a>
           <a href="#" title="Facebook">f</a>
-          <a href="#" title="WhatsApp">w</a>
+          <a href="#" title="Instagram">ig</a>
         </div>
       </div>
 
@@ -394,11 +394,75 @@
 </footer>
 
 <div id="toast-container"></div>
-<a href="https://wa.me/527713455929" class="whatsapp-fab" target="_blank"
+<a href="https://wa.me/527713455929" class="whatsapp-fab" id="contact-wa-fab" target="_blank"
   style="position:fixed;bottom:28px;right:28px;width:52px;height:52px;background:#25D366;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;box-shadow:0 4px 16px rgba(0,0,0,.2);cursor:pointer;z-index:500;text-decoration:none;transition:transform .2s ease">💬</a>
 
 <script src="/js/global.js?v=4"></script>
 <script>
+  // Cargar datos de contacto dinámicamente desde /api/config/publica
+  (async () => {
+    try {
+      const r = await fetch('/api/config/publica').then(x => x.json());
+      if (!r.ok || !r.configuracion) return;
+      const cfg = {};
+      r.configuracion.forEach(c => { cfg[c.clave] = c.valor; });
+
+      // Dirección
+      if (cfg.direccion) {
+        document.getElementById('contact-direccion').textContent = cfg.direccion;
+      }
+      // Horario en dirección
+      if (cfg.horario_lv) {
+        document.getElementById('contact-horario-dir').textContent = 'Lunes a Viernes · ' + cfg.horario_lv;
+      }
+
+      // Teléfono
+      if (cfg.telefono) {
+        const telLink = document.getElementById('contact-tel-link');
+        const telNum  = cfg.telefono.replace(/\D/g, '');
+        telLink.textContent = cfg.telefono;
+        telLink.href = 'tel:+' + telNum;
+      }
+      // Horario en teléfono
+      if (cfg.horario_lv || cfg.horario_sab) {
+        const parts = [];
+        if (cfg.horario_lv)  parts.push('Lun–Vie ' + cfg.horario_lv);
+        if (cfg.horario_sab) parts.push('Sáb ' + cfg.horario_sab);
+        if (parts.length) document.getElementById('contact-horario-tel').textContent = parts.join(' · ');
+      }
+
+      // Email
+      if (cfg.email) {
+        const el = document.getElementById('contact-email-link');
+        el.textContent = cfg.email;
+        el.href = 'mailto:' + cfg.email;
+      }
+
+      // WhatsApp botón y FAB
+      if (cfg.whatsapp) {
+        const num = cfg.whatsapp.replace(/\D/g, '');
+        const waUrl = 'https://wa.me/' + num + '?text=Hola, necesito información sobre sus productos';
+        const btn = document.getElementById('contact-wa-btn');
+        const fab = document.getElementById('contact-wa-fab');
+        if (btn) btn.href = waUrl;
+        if (fab) fab.href = 'https://wa.me/' + num;
+      }
+
+      // Horarios
+      if (cfg.horario_lv)  document.getElementById('contact-hours-lv').textContent  = cfg.horario_lv;
+      if (cfg.horario_sab) document.getElementById('contact-hours-sab').textContent = cfg.horario_sab;
+      if (cfg.horario_dom) {
+        const domEl = document.getElementById('contact-hours-dom');
+        domEl.textContent = cfg.horario_dom;
+        if (cfg.horario_dom.toLowerCase().includes('cerrado')) {
+          domEl.classList.add('hours-card__closed');
+        } else {
+          domEl.classList.remove('hours-card__closed');
+        }
+      }
+    } catch (_) {}
+  })();
+
   document.getElementById('navbar-search')?.addEventListener('keydown', e => {
     if (e.key === 'Enter') {
       const q = e.target.value.trim();

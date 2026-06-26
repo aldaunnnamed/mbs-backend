@@ -53,7 +53,7 @@ const login = async (req, res) => {
       return res.status(400).json({ ok: false, mensaje: 'Email y contrasena requeridos' });
     }
     const result = await query(
-      'SELECT id, nombre, apellidos, email, password_hash, rol, activo, bloqueado FROM usuarios WHERE email = $1',
+      'SELECT id, nombre, apellidos, email, password_hash, rol, activo, bloqueado, avatar_url FROM usuarios WHERE email = $1',
       [email]
     );
     if (!result.rows.length) {
@@ -72,7 +72,7 @@ const login = async (req, res) => {
     );
     res.json({
       ok: true, mensaje: 'Login exitoso', token,
-      usuario: { id: u.id, nombre: u.nombre, apellidos: u.apellidos, email: u.email, rol: u.rol }
+      usuario: { id: u.id, nombre: u.nombre, apellidos: u.apellidos, email: u.email, rol: u.rol, foto_url: u.avatar_url || null }
     });
   } catch (err) {
     console.error('login:', err.message);

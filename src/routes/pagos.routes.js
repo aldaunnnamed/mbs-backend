@@ -14,12 +14,15 @@ router.post('/paypal/orden',      verificarToken, ctrl.crearOrdenPaypal);
 router.post('/paypal/capturar',   verificarToken, ctrl.capturarOrdenPaypal);
 router.post('/paypal/webhook',                    ctrl.webhookPaypal);
 
-module.exports = router;
-
 // Stripe
+router.get('/stripe/public-key',                  ctrl.getStripePublicKey);
 router.post('/stripe/intent',     verificarToken, ctrl.crearIntentStripe);
 router.post('/stripe/webhook',                    ctrl.webhookStripe);
 
 // Mercado Pago
+router.get ('/mp/public-key',                     ctrl.getMPPublicKey);
+router.post('/mp/pago',           verificarToken, ctrl.crearPagoMP);
 router.post('/mp/preferencia',    verificarToken, ctrl.crearPreferenciaMP);
 router.post('/mp/webhook',                        ctrl.webhookMP);
+
+module.exports = router;

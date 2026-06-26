@@ -32,7 +32,10 @@ if (!fs.existsSync(logoDir)) fs.mkdirSync(logoDir, { recursive: true });
 
 const logoStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, logoDir),
-  filename:    (req, file, cb) => cb(null, 'logo.png')   // URL siempre predecible
+  filename:    (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || '.png';
+    cb(null, 'logo' + ext);
+  }
 });
 
 const uploadLogo = multer({

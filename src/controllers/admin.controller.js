@@ -589,16 +589,16 @@ const guardarConfigNotif = async (req, res) => {
 const topProductos = async (req, res) => {
   try {
     const result = await query(
-      'SELECT p.id, p.nombre, p.sku,' +
-      ' SUM(pi.cantidad) AS unidades_vendidas,' +
-      ' SUM(pi.subtotal) AS total_vendido' +
-      ' FROM pedido_items pi' +
-      ' JOIN productos p ON p.id = pi.producto_id' +
-      ' JOIN pedidos pe ON pe.id = pi.pedido_id' +
-      " WHERE pe.estatus_pago = 'pagado'" +
-      ' GROUP BY p.id, p.nombre, p.sku' +
-      ' ORDER BY unidades_vendidas DESC' +
-      ' LIMIT 5'
+      `SELECT p.id, p.nombre, p.sku,
+              SUM(pi.cantidad)  AS unidades_vendidas,
+              SUM(pi.subtotal)  AS total_vendido
+         FROM pedido_items pi
+         JOIN productos p  ON p.id  = pi.producto_id
+         JOIN pedidos pe   ON pe.id = pi.pedido_id
+        WHERE pe.estado NOT IN ('cancelado', 'devolucion')
+        GROUP BY p.id, p.nombre, p.sku
+        ORDER BY unidades_vendidas DESC
+        LIMIT 5`
     );
     res.json({ ok: true, productos: result.rows });
   } catch (err) {
@@ -835,12 +835,60 @@ const importarProductos = async (req, res) => {
 /* ── Notificaciones admin ────────────────────────────────────── */
 const notificaciones = async (req, res) => {
   try {
-    const r = await query(
-      `SELECT id, tipo, titulo, mensaje, leida, created_at
-       FROM notificaciones WHERE usuario_id IS NULL
-       ORDER BY created_at DESC LIMIT 20`);
-    res.json({ ok: true, notificaciones: r.rows });
-  } catch (err) { res.status(500).json({ ok: false, mensaje: 'Error' }); }
+    const grupos = [];
+
+    // Pedidos sin atender (estado 'nuevo')
+    const pedidosR = await query(
+      `SELECT p.id, p.numero, p.total, p.created_at,
+              u.nombre || ' ' || u.apellidos AS cliente_nombre
+       FROM pedidos p
+       JOIN usuarios u ON u.id = p.usuario_id
+       WHERE p.estado = 'nuevo'
+       ORDER BY p.created_at DESC LIMIT 15`
+    );
+    if (pedidosR.rows.length) {
+      grupos.push({
+        tipo: 'pedidos',
+        icono: '🛒',
+        titulo: 'Pedidos sin atender',
+        url: '/admin/pedidos.html',
+        count: pedidosR.rows.length,
+        items: pedidosR.rows.map(p => ({
+          id: p.id,
+          texto: p.numero + ' — ' + p.cliente_nombre,
+          subtexto: '$' + parseFloat(p.total).toFixed(2) + ' · ' + new Date(p.created_at).toLocaleDateString('es-MX'),
+          created_at: p.created_at,
+        })),
+      });
+    }
+
+    // Mensajes de contacto sin leer
+    const mensajesR = await query(
+      `SELECT id, nombre, asunto, created_at
+       FROM mensajes_contacto WHERE leido = FALSE
+       ORDER BY created_at DESC LIMIT 10`
+    );
+    if (mensajesR.rows.length) {
+      grupos.push({
+        tipo: 'mensajes',
+        icono: '✉️',
+        titulo: 'Mensajes sin leer',
+        url: '/admin/mensajes.html',
+        count: mensajesR.rows.length,
+        items: mensajesR.rows.map(m => ({
+          id: m.id,
+          texto: m.asunto || 'Sin asunto',
+          subtexto: m.nombre + ' · ' + new Date(m.created_at).toLocaleDateString('es-MX'),
+          created_at: m.created_at,
+        })),
+      });
+    }
+
+    res.json({ ok: true, grupos });
+  } catch (err) {
+    console.error('notificaciones:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error al obtener notificaciones' });
+  }
 };
 
 /* ── Clientes (detalle) ──────────────────────────────────────── */
@@ -859,11 +907,48 @@ const detalleCliente = async (req, res) => {
 /* ── Pedidos (detalle) ───────────────────────────────────────── */
 const detallePedido = async (req, res) => {
   try {
-    const r = await query('SELECT * FROM fn_detalle_pedido(CAST($1 AS INTEGER))',
-      [parseInt(req.params.id)]);
-    if (!r.rows.length) return res.status(404).json({ ok: false, mensaje: 'Pedido no encontrado' });
-    res.json({ ok: true, pedido: r.rows[0] });
-  } catch (err) { res.status(500).json({ ok: false, mensaje: 'Error al obtener pedido' }); }
+    const id = parseInt(req.params.id);
+
+    // Pedido + cliente + métodos
+    const pedidoRes = await query(
+      `SELECT
+         p.id, p.numero, p.estado, p.estatus_pago,
+         p.subtotal, p.costo_envio, p.iva, p.total,
+         p.notas_internas, p.notas_cliente,
+         p.paqueteria, p.numero_guia,
+         p.dir_nombre || ' ' || p.dir_apellidos                      AS dir_receptor,
+         p.dir_calle  || ', ' || p.dir_colonia || ', ' ||
+         p.dir_ciudad || ', ' || p.dir_estado_geo || ' ' || p.dir_cp AS direccion_entrega,
+         u.nombre || ' ' || u.apellidos  AS cliente_nombre,
+         u.email                          AS email_cliente,
+         u.telefono                       AS telefono_cliente,
+         me.nombre                        AS metodo_envio_nombre,
+         mp.nombre                        AS metodo_pago_nombre,
+         p.created_at
+       FROM pedidos p
+       JOIN usuarios u       ON u.id  = p.usuario_id
+       JOIN metodos_envio me ON me.id = p.metodo_envio_id
+       JOIN metodos_pago  mp ON mp.id = p.metodo_pago_id
+       WHERE p.id = $1`,
+      [id]
+    );
+
+    if (!pedidoRes.rows.length) {
+      return res.status(404).json({ ok: false, mensaje: 'Pedido no encontrado' });
+    }
+
+    // Items del pedido
+    const itemsRes = await query(
+      `SELECT nombre AS nombre_producto, sku, cantidad, precio_unitario, subtotal
+       FROM pedido_items WHERE pedido_id = $1 ORDER BY id`,
+      [id]
+    );
+
+    res.json({ ok: true, pedido: pedidoRes.rows[0], items: itemsRes.rows });
+  } catch (err) {
+    console.error('detallePedido:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error al obtener pedido' });
+  }
 };
 
 /* ── Imágenes de producto ────────────────────────────────────── */
@@ -936,19 +1021,65 @@ const crearMarca = async (req, res) => {
 const subirLogo = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ ok: false, mensaje: 'Archivo requerido' });
-    res.json({ ok: true, url: '/uploads/logo/logo.png', mensaje: 'Logo actualizado correctamente' });
-  } catch (err) { res.status(500).json({ ok: false, mensaje: 'Error al subir logo' }); }
+    // El middleware guarda siempre como logo.png; construimos la URL pública
+    const ext = require('path').extname(req.file.originalname).toLowerCase() || '.png';
+    const logoUrl = '/uploads/logo/logo' + ext;
+    // Guardar la URL en la tabla configuracion para que /api/config/publica la devuelva
+    await query(
+      'SELECT fn_guardar_configuracion(CAST($1 AS CHARACTER VARYING), CAST($2 AS TEXT), CAST($3 AS INTEGER))',
+      ['logo_url', logoUrl, parseInt(req.usuario.id)]
+    );
+    res.json({ ok: true, url: logoUrl, mensaje: 'Logo actualizado correctamente' });
+  } catch (err) {
+    console.error('subirLogo:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error al subir logo' });
+  }
 };
 
 /* ── Mensajes de contacto ────────────────────────────────────── */
 const listarMensajes = async (req, res) => {
   try {
-    const r = await query(`SELECT * FROM mensajes_contacto ORDER BY created_at DESC LIMIT 100`);
-    res.json({ ok: true, mensajes: r.rows });
-  } catch (err) { res.status(500).json({ ok: false, mensaje: 'Error al cargar mensajes' }); }
+    const pagina    = Math.max(1, parseInt(req.query.pagina) || 1);
+    const porPagina = 20;
+    const offset    = (pagina - 1) * porPagina;
+
+    let filtroWhere = '';
+    if (req.query.leido === 'true')  filtroWhere = 'WHERE leido = TRUE';
+    if (req.query.leido === 'false') filtroWhere = 'WHERE leido = FALSE';
+
+    const countRes = await query(
+      `SELECT COUNT(*) AS total FROM mensajes_contacto ${filtroWhere}`
+    );
+    const total = parseInt(countRes.rows[0].total);
+
+    const dataRes = await query(
+      `SELECT id, nombre, empresa, email, telefono, asunto, mensaje, leido, created_at
+         FROM mensajes_contacto
+         ${filtroWhere}
+         ORDER BY created_at DESC
+         LIMIT $1 OFFSET $2`,
+      [porPagina, offset]
+    );
+
+    res.json({ ok: true, mensajes: dataRes.rows, total, pagina, porPagina });
+  } catch (err) {
+    console.error('listarMensajes:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error al cargar mensajes' });
+  }
 };
 
-/* ── Exports ─────────────────────────────────────────────────── */
+const marcarMensajeLeido = async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await query('UPDATE mensajes_contacto SET leido = TRUE WHERE id = $1', [id]);
+    res.json({ ok: true, mensaje: 'Mensaje marcado como leído' });
+  } catch (err) {
+    console.error('marcarMensajeLeido:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error al marcar mensaje' });
+  }
+};
+
+/* -- Exports -- */
 module.exports = {
   dashboard, kpisPedidos, notificaciones, topProductos,
   listarClientes, detalleCliente, toggleBloqueo, exportarClientes,
@@ -962,5 +1093,5 @@ module.exports = {
   listarAdmins, crearAdmin,
   listarMetodosPago, toggleMetodoPago,
   listarMetodosEnvio, guardarMetodoEnvio, toggleMetodoEnvio,
-  listarMensajes,
+  listarMensajes, marcarMensajeLeido,
 };

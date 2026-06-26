@@ -61,4 +61,16 @@ const verificarWebhook = async (rawBody, signature) => {
   return stripe.webhooks.constructEvent(rawBody, signature, secret);
 };
 
-module.exports = { crearPaymentIntent, verificarWebhook };
+// Devuelve la Publishable Key (para el frontend)
+const getPublicKey = async () => {
+  const res = await query(
+    `SELECT clave, valor FROM configuracion WHERE clave IN ('stripe_mode','stripe_pk_test','stripe_pk_live')`,
+    []
+  );
+  const cfg = {};
+  res.rows.forEach(r => { cfg[r.clave] = r.valor; });
+  const mode = cfg.stripe_mode || 'sandbox';
+  return mode === 'live' ? (cfg.stripe_pk_live || '') : (cfg.stripe_pk_test || '');
+};
+
+module.exports = { crearPaymentIntent, verificarWebhook, getPublicKey };

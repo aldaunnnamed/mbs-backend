@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pago en proceso — MBS Comunicaciones</title>
+  <link rel="stylesheet" href="/css/global.css">
+  <link rel="stylesheet" href="/css/navbar.css">
+  <style>
+    .status-page{min-height:80vh;display:flex;align-items:center;justify-content:center;padding:40px 16px}
+    .status-card{background:var(--white);border:1px solid var(--gray-100);border-radius:var(--radius-md);padding:48px 40px;max-width:460px;width:100%;box-shadow:var(--shadow-md);text-align:center}
+    .status-icon{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:2rem;background:#fff8e1;color:#f9a825}
+    .status-card h1{font-size:1.5rem;color:var(--navy);margin-bottom:10px}
+    .status-card p{color:var(--gray-600);font-size:.92rem;line-height:1.6;margin-bottom:28px}
+    .status-note{background:var(--gray-50);border-radius:var(--radius-sm);padding:14px 16px;font-size:.83rem;color:var(--gray-600);margin-bottom:28px;text-align:left;line-height:1.6}
+    .status-btns{display:flex;flex-direction:column;gap:10px}
+  </style>
+</head>
+<body>
+<nav class="navbar">
+  <div class="container">
+    <div class="navbar__inner">
+      <a href="/" class="navbar__logo"><span class="navbar__logo-text">MBS</span></a>
+      <div class="navbar__actions" id="navbar-actions"></div>
+    </div>
+  </div>
+</nav>
+
+<div class="status-page">
+  <div class="status-card">
+    <div class="status-icon">⏳</div>
+    <h1>Pago en proceso</h1>
+    <p>Tu pago está siendo verificado. Este proceso puede tomar unos minutos.</p>
+    <div class="status-note">
+      📧 Recibirás una notificación por correo electrónico en cuanto se confirme tu pago.<br><br>
+      Puedes revisar el estado de tu pedido en cualquier momento desde <strong>Mis pedidos</strong>.
+    </div>
+    <div class="status-btns">
+      <a href="/pages/mis-pedidos.html" class="btn btn-primary">Ver mis pedidos</a>
+      <a href="/" class="btn btn-outline">Regresar al inicio</a>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="/js/global.js?v=4"></script>
+</body>
+</html>

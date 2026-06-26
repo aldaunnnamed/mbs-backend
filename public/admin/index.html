@@ -188,22 +188,34 @@ document.addEventListener('DOMContentLoaded', async () => {
       </tr>`).join('');
     document.getElementById('pedidos-tbody').innerHTML = rows || '<tr><td colspan="4" class="tx-m" style="text-align:center;padding:16px">Sin pedidos</td></tr>';
 
-    // Bar chart
-    const ventas = dash.ventas_semana || [];
-    if (ventas.length) {
-      const days = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-      const vals = ventas.map(v => parseFloat(v.total_ventas || 0));
-      const lbls = ventas.map(v => v.dia ? days[new Date(v.dia).getDay()] : '');
-      const canvas = document.getElementById('ventas-chart');
-      if (canvas) {
-        // Wait for layout
-        requestAnimationFrame(() => drawBarChart(canvas, vals, lbls));
+    // Bar chart — semana actual (Lun–Dom), ceros para días sin ventas
+    const ventasData = dash.ventas_semana || [];
+    const dayNames = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    // Construir mapa fecha→total de los datos reales
+    const ventasMap = {};
+    ventasData.forEach(v => {
+      if (v.dia) {
+        const key = v.dia.substring(0, 10); // "YYYY-MM-DD"
+        ventasMap[key] = parseFloat(v.total_ventas || 0);
       }
-    } else {
-      // fallback demo data
-      const canvas = document.getElementById('ventas-chart');
-      if (canvas) requestAnimationFrame(() => drawBarChart(canvas,[6000,8000,5000,10000,7000,11000,8000],['Lun','Mar','Mié','Jue','Vie','Sáb','Dom']));
+    });
+    // Encontrar el lunes de la semana actual
+    const hoy = new Date();
+    const diaSemana = hoy.getDay(); // 0=Dom, 1=Lun, …, 6=Sáb
+    const offsetLunes = diaSemana === 0 ? -6 : 1 - diaSemana; // días hasta el lunes
+    const lunes = new Date(hoy);
+    lunes.setDate(hoy.getDate() + offsetLunes);
+    // Generar Lun→Dom (7 días)
+    const lblsSem = [], valsSem = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(lunes);
+      d.setDate(lunes.getDate() + i);
+      const key = d.toISOString().substring(0, 10);
+      lblsSem.push(dayNames[d.getDay()]);
+      valsSem.push(ventasMap[key] || 0);
     }
+    const canvas = document.getElementById('ventas-chart');
+    if (canvas) requestAnimationFrame(() => drawBarChart(canvas, valsSem, lblsSem));
   }
 
   // Stock alerts
@@ -247,16 +259,8 @@ async function cargarNotificaciones() {
   const data = await AdminAPI.get('/admin/notificaciones');
   if (!data.ok) return;
 
-  const leidoHasta = parseInt(localStorage.getItem('mbs_admin_notif_leido_hasta') || '0');
-  let totalVisible = 0;
-  const grupos = (data.grupos || []).map(g => {
-    const itemsFiltrados = g.items.filter(it => {
-      if (!it.created_at) return true;
-      return new Date(it.created_at).getTime() > leidoHasta;
-    });
-    totalVisible += itemsFiltrados.length;
-    return { ...g, items: itemsFiltrados, count: itemsFiltrados.length };
-  }).filter(g => g.items.length > 0);
+  const grupos = data.grupos || [];
+  const totalVisible = grupos.reduce((s, g) => s + g.count, 0);
 
   const dot = document.getElementById('bell-count');
   if (dot) {
@@ -277,7 +281,7 @@ async function cargarNotificaciones() {
   const itemUrl = (g, it) => {
     if (g.tipo === 'pedidos')  return '/admin/pedidos.html?pedido=' + it.id;
     if (g.tipo === 'mensajes') return '/admin/mensajes.html?mensaje=' + it.id;
-    return g.url;
+    return g.url || '#';
   };
 
   body.innerHTML = grupos.map(g =>
@@ -292,13 +296,8 @@ async function cargarNotificaciones() {
 }
 
 function marcarTodasLeidas() {
-  localStorage.setItem('mbs_admin_notif_leido_hasta', Date.now().toString());
-  const dot = document.getElementById('bell-count');
-  if (dot) dot.style.display = 'none';
-  const ttl = document.getElementById('notif-total');
-  if (ttl) ttl.textContent = 'Al día ✓';
-  const body = document.getElementById('notif-body');
-  if (body) body.innerHTML = '<div class="notif-empty">✅ No hay notificaciones pendientes</div>';
+  // No aplica en admin — las notificaciones son pedidos reales pendientes
+  // Solo cierra el panel
   notifPanelAbierto = false;
   document.getElementById('notif-panel').style.display = 'none';
 }

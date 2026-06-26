@@ -141,7 +141,7 @@ async function cargar() {
           </div>
           <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
             <button class="btn btn-b btn-xs" onclick="verMensaje(${m.id})">Ver completo</button>
-            <a href="mailto:${esc(m.email)}?subject=Re: ${esc(m.asunto)}" class="btn btn-p btn-xs" style="text-align:center">Responder</a>
+            <button class="btn btn-p btn-xs" onclick="abrirResponder(${m.id})">Responder</button>
             ${!m.leido ? `<button class="btn btn-gr btn-xs" onclick="marcarLeido(${m.id}, this)">✓ Leído</button>` : ''}
           </div>
         </div>
@@ -203,15 +203,100 @@ function verMensaje(id) {
       </div>
       <div style="font-size:.92rem;line-height:1.8;white-space:pre-line;color:var(--c-tx);margin-bottom:20px">${esc(mensaje)}</div>
       <div style="display:flex;gap:8px">
-        <a href="mailto:${esc(email)}?subject=Re: ${esc(asunto)}" class="btn btn-p btn-sm" style="flex:1;text-align:center">
-          📧 Responder por email
-        </a>
+        <button class="btn btn-p btn-sm" style="flex:1" onclick="document.getElementById('msg-modal').style.display='none';abrirResponder(${m.id})">
+          📧 Responder
+        </button>
         <button class="btn btn-gr btn-sm" onclick="document.getElementById('msg-modal').style.display='none'">
           Cerrar
         </button>
       </div>
     </div>`;
   modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
+}
+
+function abrirResponder(id) {
+  const m = mensajesCache.find(x => x.id === id);
+  if (!m) { Toast.show('Mensaje no encontrado', 'error'); return; }
+
+  const existente = document.getElementById('reply-modal');
+  if (existente) existente.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'reply-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px';
+
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:28px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <span class="fw6 fs14">📧 Responder mensaje</span>
+        <span style="cursor:pointer;font-size:1.1rem" onclick="document.getElementById('reply-modal').remove()">✕</span>
+      </div>
+
+      <div style="background:var(--c-bg-2);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:.85rem">
+        <div><strong>Para:</strong>
+          <span id="reply-email-show">${esc(m.email)}</span>
+          <button onclick="copiarEmail('${esc(m.email)}')" class="btn btn-gr btn-xs" style="margin-left:8px">Copiar</button>
+        </div>
+        <div style="margin-top:4px"><strong>Asunto:</strong> Re: ${esc(m.asunto || '(sin asunto)')}</div>
+      </div>
+
+      <div class="fg" style="margin-bottom:16px">
+        <label class="flbl">Cuerpo del mensaje</label>
+        <textarea id="reply-body" class="fi" rows="7"
+          style="resize:vertical;font-family:inherit"
+          placeholder="Escribe tu respuesta aquí..."></textarea>
+      </div>
+
+      <div style="background:var(--c-bg-2);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:.8rem;color:var(--c-tx-sub)">
+        💡 Al hacer clic en <strong>Abrir en correo</strong> se abrirá tu cliente de email con el mensaje pre-redactado.
+        Si no abre automáticamente, usa el botón <strong>Copiar email</strong> y escribe desde tu correo manualmente.
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-p btn-sm" style="flex:1;min-width:160px" onclick="enviarMailto('${esc(m.email)}', '${esc(m.asunto || '')}')">
+          📨 Abrir en correo
+        </button>
+        <button class="btn btn-b btn-sm" onclick="copiarEmail('${esc(m.email)}')" style="min-width:120px">
+          📋 Copiar email
+        </button>
+        <button class="btn btn-gr btn-sm" onclick="document.getElementById('reply-modal').remove()">
+          Cancelar
+        </button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+  // Marcar como leído automáticamente al abrir respuesta
+  if (!m.leido) {
+    AdminAPI.put('/admin/mensajes/' + id + '/leido', {}).then(r => {
+      if (r.ok) { m.leido = true; }
+    });
+  }
+}
+
+function enviarMailto(email, asunto) {
+  const cuerpo = document.getElementById('reply-body')?.value || '';
+  const subject = encodeURIComponent('Re: ' + asunto);
+  const body    = encodeURIComponent(cuerpo);
+  const link    = 'mailto:' + encodeURIComponent(email) + '?subject=' + subject + '&body=' + body;
+  window.location.href = link;
+}
+
+function copiarEmail(email) {
+  navigator.clipboard.writeText(email)
+    .then(() => Toast.show('Email copiado: ' + email, 'success'))
+    .catch(() => {
+      // fallback para navegadores sin clipboard API
+      const el = document.createElement('input');
+      el.value = email;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      el.remove();
+      Toast.show('Email copiado: ' + email, 'success');
+    });
 }
 </script>
 </body>

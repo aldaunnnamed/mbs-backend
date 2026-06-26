@@ -6,9 +6,24 @@ const path    = require('path');
 
 const app = express();
 
+// ── Proxy trust (ngrok, Render, Railway, etc.) ────────────────
+// Permite que req.protocol devuelva 'https' cuando el servidor está
+// detrás de un reverse proxy que termina SSL (ngrok, load balancers).
+app.set('trust proxy', 1);
+
 // ── Middlewares globales ──────────────────────────────────────
 app.use(cors());
 app.use(morgan('dev'));
+
+// ── Bypass ngrok browser warning para páginas HTML ───────────
+// ngrok muestra una advertencia en el primer acceso de cada sesión.
+// Enviar este header en todas las respuestas lo omite automáticamente.
+app.use((req, res, next) => {
+  res.setHeader('ngrok-skip-browser-warning', 'true');
+  next();
+});
+// Stripe webhook necesita body raw para verificar la firma — va ANTES de express.json()
+app.use('/api/pagos/stripe/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -30,8 +45,9 @@ app.use('/api/contacto',  require('./routes/contacto.routes'));
 app.get('/api/config/publica', async (req, res) => {
   try {
     const { query } = require('./config/db');
-    const claves = ['sitio_nombre','contacto_whatsapp','contacto_telefono','contacto_email',
-                    'social_facebook','social_instagram','social_linkedin'];
+    const claves = ['sitio_nombre','slogan','telefono','whatsapp','email',
+                    'direccion','facebook','instagram','linkedin','logo_url',
+                    'horario_lv','horario_sab','horario_dom'];
     const result = await query(
       'SELECT clave, valor FROM configuracion WHERE clave = ANY($1::varchar[])',
       [claves]
@@ -46,7 +62,8 @@ const pages = [
   'checkout', 'mi-cuenta', 'mis-pedidos',
   'login', 'registro', 'contacto', 'recuperar-password',
   'sobre-nosotros', 'faq', 'politica-envios', 'garantia', 'privacidad', 'terminos',
-  'reset-password', 'paypal-retorno'
+  'reset-password', 'paypal-retorno', 'mp-retorno',
+  'checkout-ok', 'checkout-error', 'checkout-pendiente'
 ];
 pages.forEach(page => {
   app.get('/pages/' + page + '.html', (req, res) => {
@@ -104,7 +121,9 @@ app.use((err, req, res, next) => {
 if (require.main === module) {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
+    const appUrl = process.env.APP_URL || ('http://localhost:' + PORT);
     console.log('Servidor MBS corriendo en http://localhost:' + PORT);
+    if (process.env.APP_URL) console.log('URL pública (ngrok/producción):', appUrl);
     console.log('Entorno:', process.env.NODE_ENV || 'development');
   });
 }

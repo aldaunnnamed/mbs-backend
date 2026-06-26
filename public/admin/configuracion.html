@@ -111,6 +111,14 @@
                     <div class="fg"><label class="flbl">Instagram</label><input class="fi" id="cfg-instagram" placeholder="https://instagram.com/mbs..."></div>
                   </div>
                   <div class="fg"><label class="flbl">LinkedIn</label><input class="fi" id="cfg-linkedin" placeholder="https://linkedin.com/company/mbs..."></div>
+
+                  <hr style="border:none;border-top:1px solid var(--border);margin:8px 0">
+                  <div class="fs11 tx-m mb4" style="font-weight:600">Horarios de atención (página de Contacto)</div>
+                  <div class="fg2">
+                    <div class="fg"><label class="flbl">Lunes – Viernes</label><input class="fi" id="cfg-horario-lv" placeholder="9:00 AM – 7:00 PM"></div>
+                    <div class="fg"><label class="flbl">Sábado</label><input class="fi" id="cfg-horario-sab" placeholder="9:00 AM – 2:00 PM"></div>
+                  </div>
+                  <div class="fg"><label class="flbl">Domingo</label><input class="fi" id="cfg-horario-dom" placeholder="Cerrado"></div>
                 </div>
               </div>
               <div class="card__hd" style="border-top:1px solid var(--border);border-bottom:none">
@@ -294,11 +302,25 @@
               <div class="card__bd">
                 <div class="notif-grp">
                   <div class="notif-grp__ttl">Al administrador</div>
-                  <div id="notif-admin"></div>
+                  <label style="display:flex;align-items:center;gap:10px;padding:8px 0;cursor:pointer">
+                    <input type="checkbox" id="notif-admin" style="width:16px;height:16px">
+                    <span>Notificar cuando se recibe un pedido nuevo</span>
+                  </label>
+                  <label style="display:flex;align-items:center;gap:10px;padding:8px 0;cursor:pointer">
+                    <input type="checkbox" id="notif-admin-contacto" style="width:16px;height:16px">
+                    <span>Notificar cuando llega un mensaje de contacto</span>
+                  </label>
                 </div>
                 <div class="notif-grp">
                   <div class="notif-grp__ttl">Al cliente (automáticas)</div>
-                  <div id="notif-cliente"></div>
+                  <label style="display:flex;align-items:center;gap:10px;padding:8px 0;cursor:pointer">
+                    <input type="checkbox" id="notif-cliente" style="width:16px;height:16px">
+                    <span>Confirmación de pedido al realizar la compra</span>
+                  </label>
+                  <label style="display:flex;align-items:center;gap:10px;padding:8px 0;cursor:pointer">
+                    <input type="checkbox" id="notif-cliente-envio" style="width:16px;height:16px">
+                    <span>Aviso cuando el pedido es enviado (con guía)</span>
+                  </label>
                 </div>
               </div>
               <div class="card__hd" style="border-top:1px solid var(--border);border-bottom:none">
@@ -570,9 +592,248 @@ async function togglePagoMetodo(id) {
 }
 
 async function loadSpeiConfig() {
-  const r = await AdminAPI.get('/admin/configuracion?seccion=pagos');
+  const r = await AdminAPI.get('/admin/configuracion');
   const cfg = {};
   (r.configuracion || []).forEach(c => { cfg[c.r_clave || c.clave] = c.r_valor || c.valor; });
   document.getElementById('cfg-spei-clabe').value        = cfg.spei_clabe || '';
   document.getElementById('cfg-spei-banco').value        = cfg.spei_banco || '';
-  document.getElementById('cfg-spei-benefici
+  document.getElementById('cfg-spei-beneficiario').value = cfg.spei_beneficiario || '';
+}
+
+async function guardarSpeiConfig() {
+  const claves = {
+    spei_clabe:        document.getElementById('cfg-spei-clabe').value.trim(),
+    spei_banco:        document.getElementById('cfg-spei-banco').value.trim(),
+    spei_beneficiario: document.getElementById('cfg-spei-beneficiario').value.trim(),
+  };
+  for (const [clave, valor] of Object.entries(claves)) {
+    await AdminAPI.post('/admin/configuracion', { clave, valor });
+  }
+  Toast.show('Configuración SPEI guardada', 'success');
+}
+
+async function loadPayPalConfig() {
+  const r = await AdminAPI.get('/admin/configuracion');
+  const cfg = {};
+  (r.configuracion || []).forEach(c => { cfg[c.r_clave || c.clave] = c.r_valor || c.valor; });
+  document.getElementById('paypal-mode').value     = cfg.paypal_mode || 'sandbox';
+  document.getElementById('paypal-cid-test').value = cfg.paypal_client_id_test || '';
+  document.getElementById('paypal-sec-test').value = cfg.paypal_secret_test || '';
+  document.getElementById('paypal-wh-test').value  = cfg.paypal_webhook_test || '';
+  document.getElementById('paypal-cid-live').value = cfg.paypal_client_id_live || '';
+  document.getElementById('paypal-sec-live').value = cfg.paypal_secret_live || '';
+  document.getElementById('paypal-wh-live').value  = cfg.paypal_webhook_live || '';
+}
+
+async function guardarPayPalConfig() {
+  const claves = {
+    paypal_mode:           document.getElementById('paypal-mode').value,
+    paypal_client_id_test: document.getElementById('paypal-cid-test').value.trim(),
+    paypal_secret_test:    document.getElementById('paypal-sec-test').value.trim(),
+    paypal_webhook_test:   document.getElementById('paypal-wh-test').value.trim(),
+    paypal_client_id_live: document.getElementById('paypal-cid-live').value.trim(),
+    paypal_secret_live:    document.getElementById('paypal-sec-live').value.trim(),
+    paypal_webhook_live:   document.getElementById('paypal-wh-live').value.trim(),
+  };
+  for (const [clave, valor] of Object.entries(claves)) {
+    await AdminAPI.post('/admin/configuracion', { clave, valor });
+  }
+  Toast.show('Configuración PayPal guardada', 'success');
+}
+
+async function loadStripeConfig() {
+  const r = await AdminAPI.get('/admin/configuracion');
+  const cfg = {};
+  (r.configuracion || []).forEach(c => { cfg[c.r_clave || c.clave] = c.r_valor || c.valor; });
+  document.getElementById('stripe-mode').value    = cfg.stripe_mode || 'test';
+  document.getElementById('stripe-pk-test').value = cfg.stripe_pk_test || '';
+  document.getElementById('stripe-sk-test').value = cfg.stripe_sk_test || '';
+  document.getElementById('stripe-wh-test').value = cfg.stripe_wh_test || '';
+  document.getElementById('stripe-pk-live').value = cfg.stripe_pk_live || '';
+  document.getElementById('stripe-sk-live').value = cfg.stripe_sk_live || '';
+  document.getElementById('stripe-wh-live').value = cfg.stripe_wh_live || '';
+}
+
+async function guardarStripeConfig() {
+  const claves = {
+    stripe_mode:    document.getElementById('stripe-mode').value,
+    stripe_pk_test: document.getElementById('stripe-pk-test').value.trim(),
+    stripe_sk_test: document.getElementById('stripe-sk-test').value.trim(),
+    stripe_wh_test: document.getElementById('stripe-wh-test').value.trim(),
+    stripe_pk_live: document.getElementById('stripe-pk-live').value.trim(),
+    stripe_sk_live: document.getElementById('stripe-sk-live').value.trim(),
+    stripe_wh_live: document.getElementById('stripe-wh-live').value.trim(),
+  };
+  for (const [clave, valor] of Object.entries(claves)) {
+    await AdminAPI.post('/admin/configuracion', { clave, valor });
+  }
+  Toast.show('Configuración Stripe guardada', 'success');
+}
+
+async function loadMPConfig() {
+  const r = await AdminAPI.get('/admin/configuracion');
+  const cfg = {};
+  (r.configuracion || []).forEach(c => { cfg[c.r_clave || c.clave] = c.r_valor || c.valor; });
+  document.getElementById('mp-mode').value    = cfg.mp_mode || 'test';
+  document.getElementById('mp-pk-test').value = cfg.mp_pk_test || '';
+  document.getElementById('mp-at-test').value = cfg.mp_at_test || '';
+  document.getElementById('mp-pk-live').value = cfg.mp_pk_live || '';
+  document.getElementById('mp-at-live').value = cfg.mp_at_live || '';
+}
+
+async function guardarMPConfig() {
+  const claves = {
+    mp_mode:    document.getElementById('mp-mode').value,
+    mp_pk_test: document.getElementById('mp-pk-test').value.trim(),
+    mp_at_test: document.getElementById('mp-at-test').value.trim(),
+    mp_pk_live: document.getElementById('mp-pk-live').value.trim(),
+    mp_at_live: document.getElementById('mp-at-live').value.trim(),
+  };
+  for (const [clave, valor] of Object.entries(claves)) {
+    await AdminAPI.post('/admin/configuracion', { clave, valor });
+  }
+  Toast.show('Configuración MercadoPago guardada', 'success');
+}
+
+async function guardarConfig() {
+  const claves = {
+    sitio_nombre:    document.getElementById('cfg-sitio-nombre').value.trim(),
+    slogan:          document.getElementById('cfg-slogan').value.trim(),
+    url:             document.getElementById('cfg-url').value.trim(),
+    email:           document.getElementById('cfg-email').value.trim(),
+    telefono:        document.getElementById('cfg-tel').value.trim(),
+    whatsapp:        document.getElementById('cfg-wa').value.trim(),
+    direccion:       document.getElementById('cfg-dir').value.trim(),
+    moneda:          document.getElementById('cfg-moneda').value,
+    zona_horaria:    document.getElementById('cfg-tz').value.trim(),
+    iva:             document.getElementById('cfg-iva').value,
+    precios_con_iva: document.getElementById('cfg-precios').value,
+    facebook:        document.getElementById('cfg-facebook').value.trim(),
+    instagram:       document.getElementById('cfg-instagram').value.trim(),
+    linkedin:        document.getElementById('cfg-linkedin').value.trim(),
+    horario_lv:      document.getElementById('cfg-horario-lv').value.trim(),
+    horario_sab:     document.getElementById('cfg-horario-sab').value.trim(),
+    horario_dom:     document.getElementById('cfg-horario-dom').value.trim(),
+  };
+  let errores = 0;
+  for (const [clave, valor] of Object.entries(claves)) {
+    const r = await AdminAPI.post('/admin/configuracion', { clave, valor });
+    if (!r.ok) errores++;
+  }
+  if (errores) Toast.show('Algunos valores no se guardaron', 'error');
+  else Toast.show('Configuración general guardada', 'success');
+}
+
+async function loadNotif() {
+  const r = await AdminAPI.get('/admin/configuracion');
+  const cfg = {};
+  (r.configuracion || []).forEach(c => { cfg[c.r_clave || c.clave] = c.r_valor || c.valor; });
+  const chk = (id, key, def = true) => {
+    const el = document.getElementById(id);
+    if (el) el.checked = cfg[key] !== undefined ? cfg[key] !== '0' : def;
+  };
+  chk('notif-admin',          'notif_admin_pedido',   true);
+  chk('notif-admin-contacto', 'notif_admin_contacto', true);
+  chk('notif-cliente',        'notif_cliente_pedido', true);
+  chk('notif-cliente-envio',  'notif_cliente_envio',  true);
+}
+
+async function guardarNotif() {
+  const val = id => (document.getElementById(id)?.checked ? '1' : '0');
+  const configuraciones = [
+    { clave: 'notif_admin_pedido',   valor: val('notif-admin') },
+    { clave: 'notif_admin_contacto', valor: val('notif-admin-contacto') },
+    { clave: 'notif_cliente_pedido', valor: val('notif-cliente') },
+    { clave: 'notif_cliente_envio',  valor: val('notif-cliente-envio') },
+  ];
+  const r = await AdminAPI.post('/admin/configuracion/notificaciones', { configuraciones });
+  Toast.show(r.mensaje || (r.ok ? 'Guardado' : 'Error'), r.ok ? 'success' : 'error');
+}
+
+async function loadGeneralConfig() {
+  const r = await AdminAPI.get('/admin/configuracion');
+  if (!r.ok) return;
+  const cfg = {};
+  (r.configuracion || []).forEach(c => { cfg[c.r_clave || c.clave] = c.r_valor || c.valor; });
+  const set = (id, key) => { if (cfg[key]) { const el = document.getElementById(id); if (el) el.value = cfg[key]; } };
+  set('cfg-sitio-nombre', 'sitio_nombre');
+  set('cfg-slogan',        'slogan');
+  set('cfg-url',           'url');
+  set('cfg-email',         'email');
+  set('cfg-tel',           'telefono');
+  set('cfg-wa',            'whatsapp');
+  set('cfg-dir',           'direccion');
+  set('cfg-moneda',        'moneda');
+  set('cfg-iva',           'iva');
+  set('cfg-facebook',      'facebook');
+  set('cfg-instagram',     'instagram');
+  set('cfg-linkedin',      'linkedin');
+  set('cfg-horario-lv',    'horario_lv');
+  set('cfg-horario-sab',   'horario_sab');
+  set('cfg-horario-dom',   'horario_dom');
+  if (cfg.logo_url) {
+    const box = document.getElementById('logo-preview-box');
+    if (box) box.innerHTML = `<img src="${cfg.logo_url}" style="max-height:40px;max-width:120px;object-fit:contain">`;
+  }
+}
+
+async function subirLogo(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const form = new FormData();
+  form.append('logo', file);
+  const token = localStorage.getItem('mbs_admin_token');
+  try {
+    const res = await fetch('/api/admin/configuracion/logo', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token },
+      body: form
+    });
+    const data = await res.json();
+    if (data.ok) {
+      Toast.show('Logo actualizado', 'success');
+      if (data.url) {
+        const box = document.getElementById('logo-preview-box');
+        if (box) box.innerHTML = `<img src="${data.url}" style="max-height:40px;max-width:120px;object-fit:contain">`;
+        document.getElementById('logo-info').textContent = file.name + ' · ' + (file.size / 1024).toFixed(0) + ' KB';
+      }
+    } else {
+      Toast.show(data.mensaje || 'Error al subir logo', 'error');
+    }
+  } catch(e) {
+    Toast.show('Error de conexión', 'error');
+  }
+  input.value = '';
+}
+
+async function actualizarPass() {
+  const curr  = document.getElementById('curr-pass').value;
+  const nueva = document.getElementById('new-pass').value;
+  const conf  = document.getElementById('confirm-pass').value;
+  if (!curr || !nueva || !conf) { Toast.show('Completa todos los campos', 'error'); return; }
+  if (nueva !== conf) { Toast.show('Las contraseñas no coinciden', 'error'); return; }
+  if (nueva.length < 8) { Toast.show('Mínimo 8 caracteres', 'error'); return; }
+  const r = await AdminAPI.put('/auth/password', { password_actual: curr, password_nueva: nueva });
+  Toast.show(r.mensaje || (r.ok ? 'Contraseña actualizada' : 'Error'), r.ok ? 'success' : 'error');
+  if (r.ok) {
+    document.getElementById('curr-pass').value  = '';
+    document.getElementById('new-pass').value   = '';
+    document.getElementById('confirm-pass').value = '';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  AdminAuth.check();
+  loadGeneralConfig();
+  loadEnvios();
+  loadAdmins();
+  loadPagoMetodos();
+  loadSpeiConfig();
+  loadPayPalConfig();
+  loadStripeConfig();
+  loadMPConfig();
+  loadNotif();
+});
+</script>
+</body>
+</html>
