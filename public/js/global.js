@@ -6,39 +6,6 @@
 const API = (() => {
   const BASE = '/api';
 
-  const get = async (endpoint) => {
-    const res = await fetch(BASE + endpoint, {
-      headers: authHeaders()
-    });
-    return res.json();
-  };
-
-  const post = async (endpoint, body) => {
-    const res = await fetch(BASE + endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify(body)
-    });
-    return res.json();
-  };
-
-  const put = async (endpoint, body) => {
-    const res = await fetch(BASE + endpoint, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify(body)
-    });
-    return res.json();
-  };
-
-  const del = async (endpoint) => {
-    const res = await fetch(BASE + endpoint, {
-      method: 'DELETE',
-      headers: authHeaders()
-    });
-    return res.json();
-  };
-
   const authHeaders = () => {
     const token = Session.getToken();
     const sessionKey = Session.getSessionKey();
@@ -47,6 +14,28 @@ const API = (() => {
     if (sessionKey) headers['x-session-key'] = sessionKey;
     return headers;
   };
+
+  const _request = async (endpoint, options = {}) => {
+    try {
+      const res = await fetch(BASE + endpoint, {
+        ...options,
+        headers: { ...options.headers, ...authHeaders() }
+      });
+      const ct = res.headers.get('content-type') || '';
+      const data = ct.includes('application/json')
+        ? await res.json()
+        : { ok: false, mensaje: await res.text() };
+      if (!res.ok) return { ok: false, mensaje: data.mensaje || `Error ${res.status}`, ...data };
+      return data;
+    } catch (_) {
+      return { ok: false, mensaje: 'Error de conexión' };
+    }
+  };
+
+  const get  = (endpoint)       => _request(endpoint);
+  const post = (endpoint, body) => _request(endpoint, { method: 'POST',   headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const put  = (endpoint, body) => _request(endpoint, { method: 'PUT',    headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const del  = (endpoint)       => _request(endpoint, { method: 'DELETE' });
 
   return { get, post, put, del };
 })();
@@ -360,6 +349,9 @@ const Navbar = (() => {
 
     if (Session.isLoggedIn() && user) {
       const initials = (user.nombre[0] + (user.apellidos?.[0] || '')).toUpperCase();
+      const avatarHtml = user.foto_url
+        ? `<div class="navbar__user-avatar" id="navbar-avatar" style="padding:0;overflow:hidden"><img src="${user.foto_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="${initials}"></div>`
+        : `<div class="navbar__user-avatar" id="navbar-avatar">${initials}</div>`;
       actionsEl.innerHTML = `
         <button id="currency-toggle" class="currency-toggle" data-mode="MXN"
           onclick="Currency.setMode(this.dataset.mode === 'MXN' ? 'USD' : 'MXN')">
@@ -384,7 +376,7 @@ const Navbar = (() => {
           <span class="navbar__cart-badge" style="display:none">0</span>
         </a>
         <div class="navbar__user">
-          <div class="navbar__user-avatar">${initials}</div>
+          ${avatarHtml}
           <span class="navbar__user-name hide-mobile">${user.nombre}</span>
           <span style="color:rgba(255,255,255,.5);font-size:.8rem">▾</span>
           <div class="navbar__dropdown">
@@ -576,24 +568,95 @@ const NavbarSearch = (() => {
   return { init };
 })();
 
-/* ── Inicialización global ───────────────────────────────────── */
+
+/* -- Configuracion dinamica del sitio -- */
+const SiteConfig = (() => {
+  async function init() {
+    try {
+      const r = await API.get('/config/publica');
+      if (!r.ok || !r.configuracion || !r.configuracion.length) return;
+
+      const cfg = {};
+      r.configuracion.forEach(c => { cfg[c.clave] = c.valor; });
+
+      // Footer: columna contacto (posicion 0=direccion, 1=telefono, 2=email)
+      const contactSpans = document.querySelectorAll('.footer__contact-item span:last-child');
+      if (contactSpans[0] && cfg.direccion) contactSpans[0].textContent = cfg.direccion;
+      if (contactSpans[1] && cfg.telefono)  contactSpans[1].textContent = cfg.telefono;
+      if (contactSpans[2] && cfg.email)     contactSpans[2].textContent = cfg.email;
+
+      // Footer: WhatsApp
+      const waLink = document.querySelector('.footer__whatsapp');
+      if (waLink && cfg.whatsapp) {
+        const num = cfg.whatsapp.replace(/\D/g, '');
+        waLink.href = 'https://wa.me/' + num;
+      }
+
+      // Footer: redes sociales (orden: LinkedIn, Facebook, Instagram)
+      const toUrl = v => {
+        if (!v || v === '#') return '#';
+        return /^https?:\/\//i.test(v) ? v : 'https://' + v;
+      };
+      const socialLinks = document.querySelectorAll('.footer__social a');
+      if (socialLinks[0] && cfg.linkedin)  { socialLinks[0].href = toUrl(cfg.linkedin);  socialLinks[0].target = '_blank'; }
+      if (socialLinks[1] && cfg.facebook)  { socialLinks[1].href = toUrl(cfg.facebook);  socialLinks[1].target = '_blank'; }
+      if (socialLinks[2] && cfg.instagram) { socialLinks[2].href = toUrl(cfg.instagram); socialLinks[2].target = '_blank'; }
+
+      // Footer: tagline / slogan
+      const tagline = document.querySelector('.footer__tagline');
+      if (tagline) {
+        const partes = [cfg.slogan, cfg.direccion].filter(Boolean);
+        if (partes.length) tagline.textContent = partes.join('. ') + '.';
+      }
+
+      // Boton WhatsApp flotante
+      const waFloat = document.querySelector('a.whatsapp-float, a[href*="wa.me"]:not(.footer__whatsapp)');
+      if (waFloat && cfg.whatsapp) {
+        const num = cfg.whatsapp.replace(/\D/g, '');
+        waFloat.href = 'https://wa.me/' + num;
+      }
+
+      // Nombre del sitio en footer
+      const brand = document.querySelector('.footer__brand-name');
+      if (brand && cfg.sitio_nombre) brand.textContent = cfg.sitio_nombre;
+
+      // Copyright
+      const copy = document.querySelector('.footer__bottom span');
+      if (copy && cfg.sitio_nombre) {
+        const year = new Date().getFullYear();
+        copy.textContent = '\u00a9 ' + year + ' ' + cfg.sitio_nombre + ' \u00b7 Todos los derechos reservados';
+      }
+
+      // Logo del navbar (si fue subido desde admin)
+      if (cfg.logo_url) {
+        const logoEls = document.querySelectorAll('.navbar__logo-text');
+        if (logoEls.length) {
+          const probe = new Image();
+          probe.onload = () => {
+            logoEls.forEach(el => {
+              el.style.display = 'none';
+              const img = document.createElement('img');
+              img.src = cfg.logo_url;
+              img.alt = cfg.sitio_nombre || 'MBS';
+              img.style.cssText = 'max-height:36px;max-width:120px;object-fit:contain;vertical-align:middle';
+              el.parentNode.insertBefore(img, el);
+            });
+          };
+          probe.src = cfg.logo_url;
+        }
+      }
+
+    } catch (_) { /* falla silenciosa; footer estatico permanece */ }
+  }
+
+  return { init };
+})();
+
+/* -- Inicializacion global -- */
 document.addEventListener('DOMContentLoaded', () => {
   Navbar.init();
   MobileMenu.init();
   NavbarSearch.init();
   Currency.init();
-
-  // Mostrar logo del sitio si fue subido desde el panel admin
-  const logoEls = document.querySelectorAll('.navbar__logo-text');
-  if (logoEls.length) {
-    const probe = new Image();
-    probe.onload = () => {
-      logoEls.forEach(el => {
-        el.outerHTML = '<img src="/uploads/logo/logo.png" class="navbar__logo-img" alt="MBS Comunicaciones" style="height:38px;object-fit:contain;max-width:140px;vertical-align:middle">';
-      });
-    };
-    probe.src = '/uploads/logo/logo.png';
-  }
-
-  NavbarNotif.init();
+  SiteConfig.init();
 });
