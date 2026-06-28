@@ -3,6 +3,7 @@ const express = require('express');
 const cors    = require('cors');
 const morgan  = require('morgan');
 const path    = require('path');
+const helmet  = require('helmet');
 
 const app = express();
 
@@ -12,6 +13,14 @@ const app = express();
 app.set('trust proxy', 1);
 
 // ── Middlewares globales ──────────────────────────────────────
+app.use(helmet({
+  // CSP desactivado aquí: las páginas HTML cargan scripts de CDN externos
+  // (MercadoPago, PayPal, Stripe) cuyas URLs varían; definir una política
+  // restrictiva requeriría listar cada dominio de terceros por separado.
+  contentSecurityPolicy: false,
+  // crossOriginEmbedderPolicy bloquea recursos de terceros en iframes (e.g. bricks de MP)
+  crossOriginEmbedderPolicy: false,
+}));
 app.use(cors());
 app.use(morgan('dev'));
 

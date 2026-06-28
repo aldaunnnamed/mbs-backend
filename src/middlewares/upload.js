@@ -26,6 +26,24 @@ const uploadImage = multer({
   limits:     { fileSize: 2 * 1024 * 1024 }
 });
 
+// ── Avatares de usuario ───────────────────────────────────────
+const avatarDir = path.join(__dirname, '../../public/uploads/avatares');
+if (!fs.existsSync(avatarDir)) fs.mkdirSync(avatarDir, { recursive: true });
+
+const avatarStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, avatarDir),
+  filename:    (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, 'avatar-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7) + ext);
+  }
+});
+
+const uploadAvatar = multer({
+  storage:    avatarStorage,
+  fileFilter: imageFilter,
+  limits:     { fileSize: 1 * 1024 * 1024 }
+});
+
 // ── Logo ──────────────────────────────────────────────────────
 const logoDir = path.join(__dirname, '../../public/uploads/logo');
 if (!fs.existsSync(logoDir)) fs.mkdirSync(logoDir, { recursive: true });
@@ -52,4 +70,4 @@ const uploadCsv = multer({
   limits: { fileSize: 500 * 1024 }
 });
 
-module.exports = { uploadImage, uploadCsv, uploadLogo };
+module.exports = { uploadImage, uploadAvatar, uploadCsv, uploadLogo };

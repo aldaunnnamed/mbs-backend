@@ -8,6 +8,9 @@ router.post('/', async (req, res) => {
     if (!nombre || !email || !asunto || !mensaje) {
       return res.status(400).json({ ok: false, mensaje: 'nombre, email, asunto y mensaje son requeridos' });
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ ok: false, mensaje: 'El email no tiene un formato válido' });
+    }
     await query(
       'INSERT INTO mensajes_contacto (nombre, empresa, email, telefono, asunto, mensaje)' +
       ' VALUES ($1,$2,$3,$4,$5,$6)',

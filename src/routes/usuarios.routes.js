@@ -1,13 +1,13 @@
 const router   = require('express').Router();
 const { query } = require('../config/db');
 const { verificarToken } = require('../middlewares/auth');
-const { uploadImage } = require('../middlewares/upload');
+const { uploadAvatar } = require('../middlewares/upload');
 
 // POST /api/usuarios/foto — sube o actualiza foto de perfil
-router.post('/foto', verificarToken, uploadImage.single('foto'), async (req, res) => {
+router.post('/foto', verificarToken, uploadAvatar.single('foto'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ ok: false, mensaje: 'No se recibió ninguna imagen' });
-    const url = '/uploads/productos/' + req.file.filename;
+    const url = '/uploads/avatares/' + req.file.filename;
     await query(
       'UPDATE usuarios SET avatar_url = $1 WHERE id = $2',
       [url, parseInt(req.usuario.id)]

@@ -1,4 +1,5 @@
 const { query } = require('../config/db');
+const { enviarActualizacionEstado } = require('../services/email.service');
 
 const dashboard = async (req, res) => {
   try {
@@ -150,6 +151,26 @@ const actualizarEstadoPedido = async (req, res) => {
       [parseInt(req.params.id), estado, paqueteria || null, numero_guia || null, notas || null, parseInt(req.usuario.id)]
     );
     res.json({ ok: true, mensaje: 'Estado actualizado correctamente' });
+
+    // Email al cliente — fire-and-forget
+    ;(async () => {
+      try {
+        const r = await query(
+          'SELECT p.numero, u.email, u.nombre FROM pedidos p' +
+          ' JOIN usuarios u ON u.id = p.usuario_id WHERE p.id = $1',
+          [parseInt(req.params.id)]
+        );
+        if (r.rows.length) {
+          const { numero, email, nombre } = r.rows[0];
+          await enviarActualizacionEstado({
+            to: email, nombre, numeroPedido: numero,
+            estado, paqueteria: paqueteria || null, numeroGuia: numero_guia || null,
+          });
+        }
+      } catch (e) {
+        console.error('[email] actualización estado:', e.message);
+      }
+    })();
   } catch (err) {
     console.error('actualizarEstadoPedido:', err.message);
     res.status(500).json({ ok: false, mensaje: 'Error al actualizar estado' });
@@ -816,9 +837,10 @@ const importarProductos = async (req, res) => {
              categoria_id,marca_id,precio_venta,precio_antes,stock_actual,stock_minimo,estado,badge)
              VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
             [row.sku, row.nombre, slug, row.descripcion_corta||null, row.descripcion_larga||null,
+             parseInt(row.categoria_id)||1, row.marca_id?parseInt(row.marca_id):null,
              parseFloat(row.precio_venta)||0, row.precio_antes?parseFloat(row.precio_antes):null,
              parseInt(row.stock_actual)||0, parseInt(row.stock_minimo)||5,
-             row.estado||'activo', row.badge||null, row.sku]
+             row.estado||'activo', row.badge||null]
           );
           creados++;
         }
@@ -975,7 +997,7 @@ const subirImagenProducto = async (req, res) => {
 const eliminarImagenProducto = async (req, res) => {
   try {
     await query('DELETE FROM producto_imagenes WHERE id=$1 AND producto_id=$2',
-      [parseInt(req.params.imgId), parseInt(req.params.id)]);
+      [parseInt(req.params.img_id), parseInt(req.params.id)]);
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ ok: false, mensaje: 'Error al eliminar' }); }
 };
@@ -985,7 +1007,7 @@ const marcarPrincipalImagen = async (req, res) => {
     await query('UPDATE producto_imagenes SET es_principal=false WHERE producto_id=$1',
       [parseInt(req.params.id)]);
     await query('UPDATE producto_imagenes SET es_principal=true WHERE id=$1',
-      [parseInt(req.params.imgId)]);
+      [parseInt(req.params.img_id)]);
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ ok: false, mensaje: 'Error al marcar principal' }); }
 };
@@ -1000,20 +1022,18 @@ const crearCategoria = async (req, res) => {
     const r = await query(
       'INSERT INTO categorias (nombre,slug,descripcion,icono) VALUES ($1,$2,$3,$4) RETURNING *',
       [nombre, slug, descripcion || null, icono || null]);
-    res.json({ ok: true, categoria: r.rows[0] });
+    res.status(201).json({ ok: true, id: r.rows[0].id, categoria: r.rows[0] });
   } catch (err) { res.status(500).json({ ok: false, mensaje: 'Error al crear categoría' }); }
 };
 
 const crearMarca = async (req, res) => {
   try {
-    const { nombre, descripcion } = req.body;
+    const { nombre } = req.body;
     if (!nombre) return res.status(400).json({ ok: false, mensaje: 'Nombre requerido' });
-    const slug = nombre.toLowerCase().normalize('NFD')
-      .replace(/[̀-ͯ]/g, '').replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     const r = await query(
-      'INSERT INTO marcas (nombre,slug,descripcion) VALUES ($1,$2,$3) RETURNING *',
-      [nombre, slug, descripcion || null]);
-    res.json({ ok: true, marca: r.rows[0] });
+      'INSERT INTO marcas (nombre) VALUES ($1) RETURNING *',
+      [nombre]);
+    res.status(201).json({ ok: true, id: r.rows[0].id, marca: r.rows[0] });
   } catch (err) { res.status(500).json({ ok: false, mensaje: 'Error al crear marca' }); }
 };
 

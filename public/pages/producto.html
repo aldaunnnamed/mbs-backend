@@ -311,13 +311,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                  </div>
                </div>
                <div id="reviews-list"><p class="text-muted" style="font-size:.88rem">Cargando reseñas...</p></div>`
-            : `<div style="text-align:center;padding:40px 20px">
-                 <div style="font-size:2.5rem;margin-bottom:12px">⭐</div>
-                 <p style="color:var(--gray-600);margin-bottom:8px">Aún no hay reseñas para este producto.</p>
-                 <p style="font-size:.85rem;color:var(--gray-500)">¿Ya lo compraste? Cuéntanos tu experiencia por
-                   <a href="https://wa.me/527713455929" style="color:var(--electric)">WhatsApp</a>.
-                 </p>
-               </div>`}
+            : `<p style="color:var(--gray-600);font-size:.9rem;margin:0 0 8px;">
+                 Aún no hay reseñas. ¡Sé el primero en compartir tu experiencia!
+               </p>
+               <div id="reviews-list"></div>`}
         </div>
       </div>
     </div>
@@ -389,25 +386,102 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Reseñas — cargar listado si el producto tiene reseñas aprobadas
-  if (nres > 0) {
-    const resData = await API.get('/productos/' + prodId + '/resenas');
+  // ── Reseñas ───────────────────────────────────────────────────
+  const renderResenaItem = r => `
+    <div style="border-bottom:1px solid var(--gray-100);padding:14px 0">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <strong style="font-size:.9rem;color:var(--navy)">${r.r_usuario_nombre}</strong>
+        <span style="font-size:.78rem;color:var(--gray-500)">${new Date(r.r_created_at).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}</span>
+      </div>
+      <div style="color:#f59e0b;font-size:.95rem;margin-bottom:4px">${stars(r.r_calificacion)}</div>
+      ${r.r_titulo ? `<div style="font-weight:600;font-size:.88rem;margin-bottom:2px">${r.r_titulo}</div>` : ''}
+      ${r.r_comentario ? `<p style="font-size:.85rem;color:var(--gray-600);line-height:1.5">${r.r_comentario}</p>` : ''}
+      ${r.r_verificado ? `<span class="badge" style="background:var(--green-lite);color:var(--green);font-size:.7rem;margin-top:6px;display:inline-block">✓ Compra verificada</span>` : ''}
+    </div>`;
+
+  const loadResenas = async () => {
+    const resData    = await API.get('/productos/' + prodId + '/resenas');
     const reviewsList = document.getElementById('reviews-list');
-    if (reviewsList) {
-      const items = resData.resenas || [];
-      reviewsList.innerHTML = items.length
-        ? items.map(r => `
-            <div style="border-bottom:1px solid var(--gray-100);padding:14px 0">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-                <strong style="font-size:.9rem;color:var(--navy)">${r.r_usuario_nombre}</strong>
-                <span style="font-size:.78rem;color:var(--gray-500)">${new Date(r.r_created_at).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}</span>
-              </div>
-              <div style="color:#f59e0b;font-size:.95rem;margin-bottom:4px">${stars(r.r_calificacion)}</div>
-              ${r.r_titulo ? `<div style="font-weight:600;font-size:.88rem;margin-bottom:2px">${r.r_titulo}</div>` : ''}
-              ${r.r_comentario ? `<p style="font-size:.85rem;color:var(--gray-600);line-height:1.5">${r.r_comentario}</p>` : ''}
-              ${r.r_verificado ? `<span class="badge" style="background:var(--green-lite);color:var(--green);font-size:.7rem;margin-top:6px;display:inline-block">✓ Compra verificada</span>` : ''}
-            </div>`).join('')
-        : '<p class="text-muted" style="font-size:.88rem">Aún no hay reseñas para mostrar.</p>';
+    if (!reviewsList) return;
+    const items = resData.resenas || [];
+    reviewsList.innerHTML = items.map(renderResenaItem).join('');
+  };
+
+  await loadResenas();
+
+  // ── Formulario para escribir reseña ───────────────────────────
+  const tabResenas = document.getElementById('tab-resenas');
+  if (tabResenas) {
+    tabResenas.insertAdjacentHTML('beforeend', Session.isLoggedIn() ? `
+      <div id="review-form-wrapper" style="margin-top:24px;border-top:1px solid var(--gray-200);padding-top:24px;">
+        <h4 style="margin:0 0 16px;font-size:1rem;color:var(--navy);">Escribe tu reseña</h4>
+        <div style="margin-bottom:14px;">
+          <div style="font-size:.82rem;color:var(--gray-600);margin-bottom:6px;">Calificación *</div>
+          <div id="star-picker" style="display:flex;gap:6px;cursor:pointer;user-select:none;">
+            ${[1,2,3,4,5].map(n => `<span data-val="${n}" style="font-size:2rem;line-height:1;color:var(--gray-300);transition:color .1s;">★</span>`).join('')}
+          </div>
+          <input type="hidden" id="review-calificacion">
+        </div>
+        <div style="margin-bottom:12px;">
+          <input id="review-titulo" type="text" maxlength="200" placeholder="Título (opcional)"
+            style="width:100%;padding:9px 12px;border:1px solid var(--gray-200);border-radius:6px;font-size:.88rem;box-sizing:border-box;">
+        </div>
+        <div style="margin-bottom:16px;">
+          <textarea id="review-comentario" rows="4"
+            placeholder="Comparte tu experiencia con este producto (mín. 10 caracteres)..."
+            style="width:100%;padding:9px 12px;border:1px solid var(--gray-200);border-radius:6px;font-size:.88rem;resize:vertical;box-sizing:border-box;"></textarea>
+        </div>
+        <button id="btn-enviar-resena" class="btn btn-primary">Publicar reseña</button>
+      </div>` : `
+      <div style="margin-top:24px;border-top:1px solid var(--gray-200);padding-top:18px;text-align:center;">
+        <p style="font-size:.88rem;color:var(--gray-600);margin:0;">
+          <a href="/pages/login.html" style="color:var(--electric);font-weight:600;">Inicia sesión</a>
+          para escribir una reseña.
+        </p>
+      </div>`);
+
+    if (Session.isLoggedIn()) {
+      let starVal = 0;
+      const starPicker = document.getElementById('star-picker');
+      const calInput   = document.getElementById('review-calificacion');
+      const spans      = starPicker?.querySelectorAll('span');
+
+      const pintarEstrellas = n => spans?.forEach((s, i) => {
+        s.style.color = i < n ? '#f59e0b' : 'var(--gray-300)';
+      });
+
+      spans?.forEach(star => {
+        star.addEventListener('mouseover', () => pintarEstrellas(+star.dataset.val));
+        star.addEventListener('mouseout',  () => pintarEstrellas(starVal));
+        star.addEventListener('click',     () => { starVal = +star.dataset.val; calInput.value = starVal; pintarEstrellas(starVal); });
+      });
+
+      document.getElementById('btn-enviar-resena')?.addEventListener('click', async () => {
+        const calificacion = parseInt(calInput.value);
+        const comentario   = document.getElementById('review-comentario').value.trim();
+        const titulo       = document.getElementById('review-titulo').value.trim();
+
+        if (!calificacion) { Toast.show('Selecciona una calificación', 'error'); return; }
+        if (comentario.length < 10) { Toast.show('El comentario debe tener al menos 10 caracteres', 'error'); return; }
+
+        const btn = document.getElementById('btn-enviar-resena');
+        btn.disabled = true; btn.textContent = 'Publicando...';
+
+        const res = await API.post('/productos/' + prodId + '/resenas', { calificacion, titulo, comentario });
+        if (res.ok) {
+          Toast.show('¡Reseña publicada!', 'success');
+          document.getElementById('review-form-wrapper').innerHTML = `
+            <div style="padding:18px;background:#f0fdf4;border-radius:8px;text-align:center;">
+              <div style="font-size:2rem;margin-bottom:6px;">✅</div>
+              <p style="margin:0;font-size:.9rem;color:#16a34a;font-weight:600;">Reseña publicada correctamente.</p>
+              ${res.verificado ? '<p style="margin:8px 0 0;font-size:.82rem;color:var(--gray-600);">Incluye el badge de Compra verificada.</p>' : ''}
+            </div>`;
+          await loadResenas();
+        } else {
+          Toast.show(res.mensaje || 'Error al publicar la reseña', 'error');
+          btn.disabled = false; btn.textContent = 'Publicar reseña';
+        }
+      });
     }
   }
 });

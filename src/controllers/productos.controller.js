@@ -118,4 +118,54 @@ const resenas = async (req, res) => {
   }
 };
 
-module.exports = { listar, detalle, categorias, marcas, resenas };
+// POST /api/productos/:id/resenas
+const crearResena = async (req, res) => {
+  try {
+    const productoId = parseInt(req.params.id);
+    const usuarioId  = parseInt(req.usuario.id);
+    const { calificacion, titulo, comentario } = req.body;
+
+    if (!calificacion || calificacion < 1 || calificacion > 5) {
+      return res.status(400).json({ ok: false, mensaje: 'Calificación inválida (debe ser entre 1 y 5)' });
+    }
+    if (!comentario || comentario.trim().length < 10) {
+      return res.status(400).json({ ok: false, mensaje: 'El comentario debe tener al menos 10 caracteres' });
+    }
+
+    const prodRes = await query(
+      "SELECT id FROM productos WHERE id = $1 AND estado = 'activo'",
+      [productoId]
+    );
+    if (!prodRes.rows.length) {
+      return res.status(404).json({ ok: false, mensaje: 'Producto no encontrado' });
+    }
+
+    // Verificar si compró el producto (badge "Compra verificada")
+    const compraRes = await query(
+      `SELECT 1 FROM pedido_items pi
+       JOIN pedidos p ON p.id = pi.pedido_id
+       WHERE pi.producto_id = $1 AND p.usuario_id = $2 AND p.estatus_pago = 'pagado'
+       LIMIT 1`,
+      [productoId, usuarioId]
+    );
+    const verificado = compraRes.rows.length > 0;
+
+    await query(
+      `INSERT INTO resenas (producto_id, usuario_id, calificacion, titulo, comentario, verificado)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [productoId, usuarioId, parseInt(calificacion),
+       titulo ? titulo.trim().slice(0, 200) : null,
+       comentario.trim(), verificado]
+    );
+
+    res.status(201).json({ ok: true, mensaje: 'Reseña publicada correctamente', verificado });
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ ok: false, mensaje: 'Ya publicaste una reseña para este producto' });
+    }
+    console.error('crearResena:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error al publicar la reseña' });
+  }
+};
+
+module.exports = { listar, detalle, categorias, marcas, resenas, crearResena };

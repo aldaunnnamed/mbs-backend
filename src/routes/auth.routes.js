@@ -1,18 +1,49 @@
-const router = require('express').Router();
-const ctrl   = require('../controllers/auth.controller');
+const router    = require('express').Router();
+const ctrl      = require('../controllers/auth.controller');
 const { verificarToken } = require('../middlewares/auth');
 const { query } = require('../config/db');
-const crypto = require('crypto');
+const crypto    = require('crypto');
+const rateLimit = require('express-rate-limit');
 const { enviarCorreoRecuperacion } = require('../services/email.service');
 
-router.post('/registro',          ctrl.registro);
-router.post('/login',             ctrl.login);
+// 5 intentos por IP cada 15 minutos
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, mensaje: 'Demasiados intentos. Espera 15 minutos antes de volver a intentarlo.' },
+  skip: () => process.env.NODE_ENV === 'test',
+});
+
+// 10 registros por IP cada hora
+const registroLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, mensaje: 'Demasiadas cuentas creadas desde esta IP. Intenta más tarde.' },
+  skip: () => process.env.NODE_ENV === 'test',
+});
+
+// 5 solicitudes de recuperación por IP cada hora
+const recuperarLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, mensaje: 'Demasiadas solicitudes de recuperación. Intenta en una hora.' },
+  skip: () => process.env.NODE_ENV === 'test',
+});
+
+router.post('/registro', registroLimiter, ctrl.registro);
+router.post('/login',    loginLimiter,    ctrl.login);
 router.get ('/perfil',  verificarToken, ctrl.perfil);
 router.put ('/perfil',  verificarToken, ctrl.actualizarPerfil);
 router.put ('/password',verificarToken, ctrl.cambiarPassword);
 
 // POST /api/auth/recuperar — solicita recuperación de contraseña
-router.post('/recuperar', async (req, res) => {
+router.post('/recuperar', recuperarLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ ok: false, mensaje: 'Email requerido' });

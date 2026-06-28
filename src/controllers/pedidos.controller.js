@@ -1,4 +1,5 @@
 const { query } = require('../config/db');
+const { enviarConfirmacionPedido, enviarNotificacionNuevoPedido } = require('../services/email.service');
 
 // POST /api/pedidos
 const crear = async (req, res) => {
@@ -24,7 +25,50 @@ const crear = async (req, res) => {
     if (!fila || fila.r_pedido_id === 0) {
       return res.status(400).json({ ok: false, mensaje: fila?.r_mensaje || 'Error al crear pedido' });
     }
+
     res.status(201).json({ ok: true, mensaje: 'Pedido creado', pedido_id: fila.r_pedido_id, numero_pedido: fila.r_numero_pedido });
+
+    // Emails de confirmación — fire-and-forget (no bloquean la respuesta)
+    ;(async () => {
+      try {
+        const [pedidoRes, itemsRes, usuarioRes] = await Promise.all([
+          query(
+            'SELECT p.numero, p.total, p.subtotal, p.costo_envio, p.iva,' +
+            " p.dir_nombre || ' ' || p.dir_apellidos AS dir_receptor," +
+            ' p.dir_calle, p.dir_colonia, p.dir_ciudad, p.dir_estado_geo, p.dir_cp,' +
+            ' me.nombre AS metodo_envio_nombre, mp.nombre AS metodo_pago_nombre' +
+            ' FROM pedidos p' +
+            ' JOIN metodos_envio me ON me.id = p.metodo_envio_id' +
+            ' JOIN metodos_pago  mp ON mp.id = p.metodo_pago_id' +
+            ' WHERE p.id = $1',
+            [fila.r_pedido_id]
+          ),
+          query(
+            'SELECT nombre, sku, cantidad, precio_unitario, subtotal' +
+            ' FROM pedido_items WHERE pedido_id = $1 ORDER BY id',
+            [fila.r_pedido_id]
+          ),
+          query('SELECT email, nombre FROM usuarios WHERE id = $1', [parseInt(req.usuario.id)]),
+        ]);
+
+        const pedido  = { ...pedidoRes.rows[0], items: itemsRes.rows };
+        const usuario = usuarioRes.rows[0];
+        const totalItems = itemsRes.rows.reduce((acc, i) => acc + Number(i.cantidad), 0);
+
+        await Promise.allSettled([
+          enviarConfirmacionPedido({ to: usuario.email, nombre: usuario.nombre, pedido }),
+          enviarNotificacionNuevoPedido({
+            numeroPedido: fila.r_numero_pedido,
+            clienteNombre: usuario.nombre,
+            clienteEmail:  usuario.email,
+            total:         pedidoRes.rows[0].total,
+            totalItems,
+          }),
+        ]);
+      } catch (e) {
+        console.error('[email] confirmación pedido:', e.message);
+      }
+    })();
   } catch (err) {
     console.error('crear pedido:', err.message);
     res.status(500).json({ ok: false, mensaje: 'Error al crear pedido' });

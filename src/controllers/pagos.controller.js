@@ -65,7 +65,7 @@ const webhookSpei = async (req, res) => {
 
     const result = await query(
       'SELECT fn_confirmar_pago_spei($1,$2,$3,$4,$5)',
-      [referencia, monto, clave_rastreo, banco_emisor, req.body]
+      [referencia, monto, clave_rastreo, banco_emisor, JSON.stringify(req.body)]
     );
 
     res.json({ ok: true, resultado: result.rows[0] });
@@ -279,7 +279,7 @@ const webhookStripe = async (req, res) => {
       const pedidoId = pi.metadata?.pedido_id;
       if (pedidoId) {
         await query(
-          `UPDATE pedidos SET estatus_pago='pagado', fecha_pago=NOW() WHERE id=CAST($1 AS INTEGER)`,
+          `UPDATE pedidos SET estatus_pago='pagado', fecha_pago=NOW(), pago_proveedor='stripe' WHERE id=CAST($1 AS INTEGER)`,
           [parseInt(pedidoId)]
         );
       }
