@@ -186,12 +186,13 @@ describe('API Admin (/api/admin)', () => {
     test('PUT /productos/:id actualiza el producto', async () => {
       if (!productoId) return;
 
+      const putSku = `TEST-ADMIN-PUT-${Date.now()}`;
       const res = await request(app)
         .put(`/api/admin/productos/${productoId}`)
         .set('Authorization', `Bearer ${tokenAdmin}`)
         .send({
-          sku:          `TEST-ADMIN-${Date.now()}`,
-          nombre:       'Producto de Test Admin (editado)',
+          sku:          putSku,
+          nombre:       `Producto de Test Admin Editado ${putSku}`,
           precio_venta: 129.99,
           stock_actual: 15,
           stock_minimo: 2,
