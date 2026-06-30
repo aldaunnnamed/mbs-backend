@@ -300,10 +300,19 @@ const crearIntentStripe = async (req, res) => {
 
 // POST /api/pagos/stripe/webhook
 const webhookStripe = async (req, res) => {
+  // Verificación de firma — fallo aquí = entrega inválida → 400
+  let evento;
   try {
     const sig = req.headers['stripe-signature'];
-    const evento = await stripeSvc.verificarWebhook(req.body, sig);
+    evento = await stripeSvc.verificarWebhook(req.body, sig);
+  } catch (err) {
+    console.error('webhookStripe — firma inválida:', err.message);
+    return res.status(400).json({ ok: false, mensaje: err.message });
+  }
 
+  // Procesamiento post-verificación — fallo aquí = error de servidor → 500
+  // (Stripe no reintenta en 5xx como sí lo hace con 4xx)
+  try {
     if (evento.type === 'payment_intent.succeeded') {
       const pi = evento.data.object;
       const pedidoId = pi.metadata?.pedido_id;
@@ -314,10 +323,10 @@ const webhookStripe = async (req, res) => {
         );
       }
     }
-    res.json({ received: true });
+    res.json({ ok: true, received: true });
   } catch (err) {
-    console.error('webhookStripe:', err.message);
-    res.status(400).json({ ok: false, mensaje: err.message });
+    console.error('webhookStripe — error procesando evento:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error procesando el evento' });
   }
 };
 

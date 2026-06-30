@@ -693,7 +693,9 @@ window.confirmarPedido = async () => {
             payment_method: { card: stripeCard }
           });
           if (stripeErr) {
-            Toast.show(stripeErr.message || 'El pago con tarjeta fue rechazado', 'error');
+            // Cancelar el pedido huérfano — fn_crear_pedido ya limpió el carrito
+            try { await API.post('/pedidos/' + pedidoRes.pedido_id + '/cancelar', { motivo: 'Pago con tarjeta rechazado' }); } catch (_) {}
+            Toast.show((stripeErr.message || 'El pago con tarjeta fue rechazado') + '. El pedido fue cancelado — vuelve a intentarlo.', 'error');
             const errEl = document.getElementById('stripe-card-errors');
             if (errEl) errEl.textContent = stripeErr.message || '';
             btn.disabled = false;

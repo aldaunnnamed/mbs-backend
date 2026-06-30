@@ -71,7 +71,7 @@ const pages = [
   'checkout', 'mi-cuenta', 'mis-pedidos',
   'login', 'registro', 'contacto', 'recuperar-password',
   'sobre-nosotros', 'faq', 'politica-envios', 'garantia', 'privacidad', 'terminos',
-  'reset-password', 'paypal-retorno', 'mp-retorno',
+  'reset-password', 'paypal-retorno',
   'checkout-ok', 'checkout-error', 'checkout-pendiente'
 ];
 pages.forEach(page => {

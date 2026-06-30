@@ -82,6 +82,18 @@ const reintentar = async () => {
 };
 window.reintentar = reintentar;
 
+const mostrarPendiente = (pago) => {
+  setIcon('loading', '⏳');
+  document.getElementById('pp-title').textContent = 'Pago en revisión';
+  document.getElementById('pp-desc').textContent =
+    'Tu pago está siendo revisado por PayPal. Te notificaremos cuando se confirme. No es necesario reintentar.';
+  document.getElementById('pp-pedido').textContent = pago.r_pedido_numero || '—';
+  document.getElementById('pp-total').textContent  = Currency.format(pago.r_total || 0);
+  document.getElementById('pp-estado').textContent = pago.r_paypal_estado || 'En revisión';
+  document.getElementById('pp-detail').style.display = 'block';
+  showButtons(`<a href="/pages/mis-pedidos.html" class="btn btn-primary">Ver mis pedidos</a>`);
+};
+
 const mostrarFallo = (mensaje) => {
   setIcon('error', '✕');
   document.getElementById('pp-title').textContent = 'No se completó el pago';
@@ -134,10 +146,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (res.ok && res.pago && res.pago.r_estatus_pago === 'pagado') {
       mostrarExito(res.pago);
       Cart.updateBadge();
+    } else if (res.ok && res.pago) {
+      // Captura registrada pero pago pendiente de confirmación (PENDING/UNDER_REVIEW)
+      // No mostrar "Reintentar" — el webhook confirmará cuando PayPal resuelva
+      mostrarPendiente(res.pago);
     } else {
-      const msg = res.mensaje
-        || (res.pago ? `Estado de pago: ${res.pago.r_estatus_pago} | PayPal: ${res.pago.r_paypal_estado || res.pago.r_proveedor_estado || '—'}` : null);
-      mostrarFallo(msg);
+      mostrarFallo(res.mensaje || null);
     }
   } catch (err) {
     console.error('Error capturando pago PayPal:', err);
