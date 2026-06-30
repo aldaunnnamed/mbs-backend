@@ -130,11 +130,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   try {
     const res = await API.post('/pagos/paypal/capturar', { order_id: orderId });
+    console.log('[PayPal retorno] res:', JSON.stringify(res));
     if (res.ok && res.pago && res.pago.r_estatus_pago === 'pagado') {
       mostrarExito(res.pago);
       Cart.updateBadge();
     } else {
-      mostrarFallo(res.mensaje);
+      const msg = res.mensaje
+        || (res.pago ? `Estado de pago: ${res.pago.r_estatus_pago} | PayPal: ${res.pago.r_paypal_estado || res.pago.r_proveedor_estado || '—'}` : null);
+      mostrarFallo(msg);
     }
   } catch (err) {
     console.error('Error capturando pago PayPal:', err);

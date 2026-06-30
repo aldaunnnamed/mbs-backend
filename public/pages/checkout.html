@@ -9,7 +9,6 @@
   <link rel="stylesheet" href="/css/navbar.css">
   <link rel="stylesheet" href="/css/pages.css">
   <script src="https://js.stripe.com/v3/"></script>
-  <script src="https://sdk.mercadopago.com/js/v2"></script>
 </head>
 <body>
 
@@ -264,26 +263,7 @@
               </div>
             </div>
 
-            <div class="payment-panel" id="panel-mercadopago">
-              <!-- Estado: cargando -->
-              <div id="mp-loading" style="text-align:center;padding:24px 0;color:var(--gray-500);font-size:.88rem">
-                ⏳ Cargando formulario de pago...
-              </div>
-              <!-- Estado: listo — el brick se monta aquí -->
-              <div id="mp-brick-container" style="display:none">
-                <div id="cardPaymentBrick_container"></div>
-                <p style="font-size:.78rem;color:var(--gray-500);margin-top:10px;text-align:center">
-                  🔒 Datos encriptados por <strong>Mercado Pago</strong> · MBS no almacena tu tarjeta
-                </p>
-              </div>
-              <!-- Estado: no configurado -->
-              <div id="mp-not-configured" style="display:none">
-                <div class="shipping-info" style="margin-bottom:0">
-                  <p><strong>💙 Mercado Pago</strong></p>
-                  <p style="color:var(--gray-500)">Mercado Pago no está disponible en este momento.</p>
-                </div>
-              </div>
-            </div>
+
           </div>
         </div>
 
@@ -355,8 +335,6 @@ let selectedAddressId = null;   // id de dirección guardada seleccionada (null 
 // Stripe
 let stripeInstance = null, stripeCard = null, stripeReady = false;
 
-// Mercado Pago Bricks
-let mpInstance = null, mpBrickController = null;
 
 const initStripe = async () => {
   if (stripeReady) return;
@@ -394,137 +372,6 @@ const initStripe = async () => {
   }
 };
 
-const initMP = async () => {
-  // Desmontar brick previo si existe
-  if (mpBrickController) {
-    try { mpBrickController.unmount(); } catch (_) {}
-    mpBrickController = null;
-    mpInstance = null;
-  }
-  // Limpiar contenedor
-  const container = document.getElementById('cardPaymentBrick_container');
-  if (container) container.innerHTML = '';
-  document.getElementById('mp-loading').style.display = 'block';
-  document.getElementById('mp-brick-container').style.display = 'none';
-  document.getElementById('mp-not-configured').style.display = 'none';
-
-  try {
-    const resp = await fetch('/api/pagos/mp/public-key');
-    const data = await resp.json();
-    if (!data.ok || !data.public_key) {
-      document.getElementById('mp-loading').style.display = 'none';
-      document.getElementById('mp-not-configured').style.display = 'block';
-      return;
-    }
-
-    // Calcular total actual
-    const subtotal   = cartItems.reduce((s, i) => s + parseFloat(i.r_subtotal || i.subtotal || 0), 0);
-    const envPrecio  = selectedShipping ? selectedShipping.precio : 0;
-    const envFinal   = subtotal >= 2000 ? 0 : envPrecio;
-    const total      = Math.round((subtotal + envFinal + (subtotal + envFinal) * 0.16) * 100) / 100;
-
-    mpInstance = new MercadoPago(data.public_key, { locale: 'es-MX' });
-
-    document.getElementById('mp-loading').style.display = 'none';
-    document.getElementById('mp-brick-container').style.display = 'block';
-
-    const userEmail = Session.getUser()?.email || document.getElementById('checkout-email')?.value?.trim() || '';
-
-    mpBrickController = await mpInstance.bricks().create('cardPayment', 'cardPaymentBrick_container', {
-      initialization: { amount: total, payer: { email: userEmail } },
-      customization: {
-        visual: { style: { theme: 'default' } },
-        paymentMethods: { minInstallments: 1, maxInstallments: 12 },
-      },
-      callbacks: {
-        onReady: () => {},
-        onError: (err) => { console.error('[MP Brick]', err); },
-        onSubmit: async (formData) => {
-          // Validar campos del checkout
-          const email  = document.getElementById('checkout-email').value.trim();
-          const nombre = document.getElementById('dir-nombre').value.trim();
-          const calle  = document.getElementById('dir-calle').value.trim();
-          const cp     = document.getElementById('dir-cp').value.trim();
-          if (!email || !nombre || !calle || !cp) {
-            Toast.show('Completa los datos de contacto y dirección antes de pagar', 'error');
-            throw new Error('Datos incompletos');
-          }
-          if (!Session.isLoggedIn()) {
-            Toast.show('Inicia sesión para continuar', 'info');
-            throw new Error('No autenticado');
-          }
-
-          // Crear/obtener dirección
-          let finalDirId = selectedAddressId;
-          if (!finalDirId) {
-            const dirRes = await API.post('/usuarios/direcciones', {
-              nombre:        document.getElementById('dir-nombre').value,
-              apellidos:     document.getElementById('dir-apellidos').value,
-              calle_numero:  document.getElementById('dir-calle').value,
-              colonia:       document.getElementById('dir-colonia').value,
-              cp:            document.getElementById('dir-cp').value,
-              estado:        document.getElementById('dir-estado').value,
-              ciudad:        document.getElementById('dir-ciudad').value,
-              es_predeterminada: true,
-            });
-            if (!dirRes.ok) throw new Error('Error al guardar la dirección');
-            finalDirId = dirRes.id;
-          }
-
-          const metodoPago = paymentMethods.find(m => m.clave === 'mercadopago');
-          if (!metodoPago) throw new Error('Método de pago no encontrado');
-
-          const carritoData = await API.get('/carrito/id');
-          if (!carritoData.carrito_id) throw new Error('Carrito no encontrado');
-
-          // Crear pedido
-          const pedidoRes = await API.post('/pedidos', {
-            carrito_id:      carritoData.carrito_id,
-            direccion_id:    finalDirId,
-            metodo_envio_id: selectedShipping?.id,
-            metodo_pago_id:  metodoPago.id,
-            notas_cliente:   document.getElementById('checkout-notas').value || null,
-            requiere_factura: !!document.getElementById('checkout-rfc').value,
-          });
-          if (!pedidoRes.ok) throw new Error(pedidoRes.mensaje || 'Error al crear el pedido');
-
-          // Procesar pago con token del brick
-          const pagoRes = await API.post('/pagos/mp/pago', {
-            pedido_id:         pedidoRes.pedido_id,
-            token:             formData.token,
-            installments:      formData.installments,
-            payment_method_id: formData.payment_method_id,
-            issuer_id:         formData.issuer_id,
-            payer:             formData.payer,
-          });
-
-          if (!pagoRes.ok || pagoRes.status === 'rejected') {
-            throw new Error(pagoRes.mensaje || 'El pago fue rechazado');
-          }
-
-          // Éxito — mostrar pantalla de confirmación
-          Cart.updateBadge();
-          document.getElementById('success-order-num').textContent = pedidoRes.numero_pedido;
-          document.getElementById('success-msg').textContent =
-            'Gracias por tu compra. Te enviaremos la confirmación a ' + email;
-          document.getElementById('s-total').textContent  = document.getElementById('sb-total').textContent;
-          document.getElementById('s-pago').textContent   = metodoPago.nombre;
-          document.getElementById('s-envio').textContent  = selectedShipping?.nombre || 'Estándar';
-          document.getElementById('s-dir').textContent    =
-            (document.getElementById('dir-calle').value || '') + ', ' +
-            (document.getElementById('dir-ciudad').value || '');
-          document.getElementById('checkout-form-page').style.display = 'none';
-          document.getElementById('success-page').style.display = 'flex';
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        },
-      },
-    });
-  } catch (err) {
-    console.error('[MP Brick] init error:', err);
-    document.getElementById('mp-loading').style.display = 'none';
-    document.getElementById('mp-not-configured').style.display = 'block';
-  }
-};
 
 document.addEventListener('DOMContentLoaded', async () => {
   try {
@@ -559,15 +406,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     tabs.appendChild(ppBtn);
   }
 
-  const mpActivo = paymentMethods.some(m => m.clave === 'mercadopago' && m.activo);
-  if (mpActivo) {
-    const tabs = document.getElementById('payment-tabs-container');
-    const mpBtn = document.createElement('button');
-    mpBtn.className = 'payment-tab';
-    mpBtn.innerHTML = '💙 Mercado Pago';
-    mpBtn.onclick = function() { switchPayment('mercadopago', this); };
-    tabs.appendChild(mpBtn);
-  }
 
   // Inicializar Stripe para la tab por defecto
   initStripe();
@@ -741,10 +579,6 @@ window.switchPayment = (method, btn) => {
   btn.classList.add('active');
   document.getElementById('panel-' + method)?.classList.add('active');
   if (method === 'tarjeta') initStripe();
-  if (method === 'mercadopago') initMP();
-  // Ocultar botón "Confirmar" cuando MP está activo (el brick tiene su propio botón Pagar)
-  const btnConfirm = document.getElementById('btn-confirm');
-  if (btnConfirm) btnConfirm.style.display = method === 'mercadopago' ? 'none' : '';
 };
 
 window.confirmarPedido = async () => {
@@ -835,9 +669,6 @@ window.confirmarPedido = async () => {
         }
         Toast.show(ordenRes.mensaje || 'Tu pedido fue creado, pero no se pudo iniciar el pago con PayPal. Puedes reintentarlo desde "Mis pedidos".', 'error');
       }
-
-      // Mercado Pago → manejado por el brick (onSubmit), no llega aquí
-      if (selectedPayment === 'mercadopago') return;
 
       // Stripe (tarjeta) → confirmCardPayment
       if (selectedPayment === 'tarjeta') {

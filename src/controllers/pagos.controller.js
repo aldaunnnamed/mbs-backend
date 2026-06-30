@@ -161,19 +161,32 @@ const capturarOrdenPaypal = async (req, res) => {
       const comision = capture?.seller_receivable_breakdown?.paypal_fee?.value ?? null;
       const email   = captura.payer?.email_address || null;
 
+      console.log('capturarOrdenPaypal — estado:', estado, '| capture.status:', capture?.status, '| order.status:', captura.status, '| monto:', monto);
+
       await query(
         'SELECT fn_confirmar_pago_paypal(' +
         'CAST($1 AS VARCHAR), CAST($2 AS VARCHAR), CAST($3 AS VARCHAR),' +
         'CAST($4 AS NUMERIC), CAST($5 AS NUMERIC), CAST($6 AS VARCHAR), CAST($7 AS JSONB))',
         [order_id, capture?.id || null, estado, monto, comision, email, JSON.stringify(captura)]
       );
+
+      // Seguro directo: si PayPal confirmó el pago, marcar pedido como pagado
+      // (por si fn_confirmar_pago_paypal no actualizó por sandbox/timing)
+      if (estado === 'COMPLETED') {
+        await query(
+          `UPDATE pedidos SET estatus_pago='pagado', fecha_pago=NOW(),
+           pago_proveedor='paypal', pago_proveedor_estado='COMPLETED'
+           WHERE id=CAST($1 AS INTEGER) AND estatus_pago != 'pagado'`,
+          [pedidoId]
+        );
+      }
     }
 
     const estadoPago = await query('SELECT * FROM fn_estado_pago_pedido(CAST($1 AS INTEGER))', [pedidoId]);
     res.json({ ok: true, pago: estadoPago.rows[0] });
   } catch (err) {
     console.error('capturarOrdenPaypal:', err.message);
-    res.status(500).json({ ok: false, mensaje: 'Error al capturar el pago de PayPal' });
+    res.status(500).json({ ok: false, mensaje: err.message || 'Error al capturar el pago de PayPal' });
   }
 };
 
@@ -291,138 +304,8 @@ const webhookStripe = async (req, res) => {
   }
 };
 
-// ── Mercado Pago ──────────────────────────────────────────────────
-const mpSvc = require('../services/mercadopago.service');
-
-// POST /api/pagos/mp/preferencia
-const crearPreferenciaMP = async (req, res) => {
-  try {
-    const { pedido_id } = req.body;
-    if (!pedido_id) return res.status(400).json({ ok: false, mensaje: 'pedido_id requerido' });
-
-    const pedidoRes = await query(
-      `SELECT p.id, p.numero, p.total, p.estatus_pago,
-              json_agg(json_build_object('producto_id',pi.producto_id,'nombre',pr.nombre,
-                'cantidad',pi.cantidad,'precio_unitario',pi.precio_unitario)) as items
-       FROM pedidos p
-       JOIN pedido_items pi ON pi.pedido_id = p.id
-       JOIN productos pr    ON pr.id = pi.producto_id
-       WHERE p.id=CAST($1 AS INTEGER) AND p.usuario_id=CAST($2 AS INTEGER)
-       GROUP BY p.id`,
-      [parseInt(pedido_id), parseInt(req.usuario.id)]
-    );
-    if (!pedidoRes.rows.length) return res.status(404).json({ ok: false, mensaje: 'Pedido no encontrado' });
-    const pedido = pedidoRes.rows[0];
-    if (pedido.estatus_pago === 'pagado') return res.status(400).json({ ok: false, mensaje: 'Ya fue pagado' });
-
-    const appUrl = (process.env.APP_URL || (req.protocol + '://' + req.get('host'))).replace(/\/$/, '');
-    // MP rechaza notification_url con localhost; solo enviarla en producción (HTTPS)
-    const notifUrl = appUrl.startsWith('https://') ? appUrl + '/api/pagos/mp/webhook' : undefined;
-
-    const result = await mpSvc.crearPreferencia({
-      pedido_id:        pedido.id,
-      items:            pedido.items,
-      notification_url: notifUrl,
-      back_urls: {
-        success: appUrl + '/pages/mp-retorno.html?pedido_id=' + pedido.id + '&status=success',
-        failure: appUrl + '/pages/mp-retorno.html?pedido_id=' + pedido.id + '&status=failure',
-        pending: appUrl + '/pages/mp-retorno.html?pedido_id=' + pedido.id + '&status=pending',
-      },
-    });
-
-    res.json({ ok: true, ...result });
-  } catch (err) {
-    console.error('crearPreferenciaMP:', err.message);
-    res.status(500).json({ ok: false, mensaje: err.message });
-  }
-};
-
-// GET /api/pagos/mp/public-key  (sin auth — publishable key)
-const getMPPublicKey = async (req, res) => {
-  try {
-    const pk = await mpSvc.getPublicKey();
-    if (!pk) return res.status(503).json({ ok: false, mensaje: 'Mercado Pago no configurado' });
-    res.json({ ok: true, public_key: pk });
-  } catch (err) {
-    res.status(500).json({ ok: false, mensaje: err.message });
-  }
-};
-
-// POST /api/pagos/mp/pago  — pago directo con token de tarjeta (Checkout Bricks)
-const crearPagoMP = async (req, res) => {
-  try {
-    const { pedido_id, token, installments, payment_method_id, issuer_id, payer } = req.body;
-    if (!pedido_id || !token) {
-      return res.status(400).json({ ok: false, mensaje: 'Faltan parámetros: pedido_id y token son requeridos' });
-    }
-
-    const pedidoRes = await query(
-      'SELECT id, total, estatus_pago FROM pedidos WHERE id=CAST($1 AS INTEGER) AND usuario_id=CAST($2 AS INTEGER)',
-      [parseInt(pedido_id), parseInt(req.usuario.id)]
-    );
-    if (!pedidoRes.rows.length) return res.status(404).json({ ok: false, mensaje: 'Pedido no encontrado' });
-    const pedido = pedidoRes.rows[0];
-    if (pedido.estatus_pago === 'pagado') return res.status(400).json({ ok: false, mensaje: 'Este pedido ya fue pagado' });
-
-    const pago = await mpSvc.crearPago({
-      token,
-      installments,
-      payment_method_id,
-      issuer_id,
-      payer,
-      amount:    parseFloat(pedido.total),
-      pedido_id: pedido.id,
-    });
-
-    console.log('crearPagoMP:', pago.status, pago.status_detail, 'pedido:', pedido.id);
-
-    if (pago.status === 'approved') {
-      await query(
-        `UPDATE pedidos SET estatus_pago='pagado', fecha_pago=NOW() WHERE id=CAST($1 AS INTEGER)`,
-        [pedido.id]
-      );
-    }
-
-    res.json({
-      ok:            pago.status === 'approved',
-      status:        pago.status,
-      status_detail: pago.status_detail,
-      payment_id:    pago.id,
-      mensaje:       pago.status !== 'approved' ? (pago.status_detail || 'Pago no aprobado') : undefined,
-    });
-  } catch (err) {
-    console.error('crearPagoMP:', err.message, err.mpBody || '');
-    const status = err.mpStatus && err.mpStatus >= 400 && err.mpStatus < 600 ? err.mpStatus : 500;
-    res.status(status).json({ ok: false, mensaje: err.message, mp_detail: err.mpBody || undefined });
-  }
-};
-
-// POST /api/pagos/mp/webhook
-const webhookMP = async (req, res) => {
-  try {
-    const { type, data } = req.body;
-    if (type === 'payment' && data?.id) {
-      const pago = await mpSvc.consultarPago(data.id);
-      if (pago.status === 'approved') {
-        const pedidoId = pago.external_reference;
-        if (pedidoId) {
-          await query(
-            `UPDATE pedidos SET estatus_pago='pagado', fecha_pago=NOW() WHERE id=CAST($1 AS INTEGER)`,
-            [parseInt(pedidoId)]
-          );
-        }
-      }
-    }
-    res.sendStatus(200);
-  } catch (err) {
-    console.error('webhookMP:', err.message);
-    res.sendStatus(200); // MP requiere 200 aunque haya error
-  }
-};
-
 module.exports = {
   estadoPago, crearReferenciaSpei, webhookSpei,
   crearOrdenPaypal, capturarOrdenPaypal, webhookPaypal,
   getStripePublicKey, crearIntentStripe, webhookStripe,
-  getMPPublicKey, crearPreferenciaMP, crearPagoMP, webhookMP,
 };

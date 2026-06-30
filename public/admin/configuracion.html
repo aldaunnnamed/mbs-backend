@@ -248,37 +248,6 @@
               </div>
             </div>
 
-            <!-- Mercado Pago -->
-            <div class="card mb16">
-              <div class="card__hd">
-                <div>
-                  <span class="card__title">🏦 Mercado Pago</span>
-                  <div class="fs11 tx-m mt4">Modo:
-                    <select class="fs" id="mp-mode" style="display:inline;width:auto;margin-left:6px">
-                      <option value="sandbox">Sandbox (pruebas)</option>
-                      <option value="live">Live (producción)</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-              <div class="card__bd">
-                <div class="fs11 tx-m mb12">Obtén tus credenciales en <a href="https://www.mercadopago.com.mx/developers/es/docs" target="_blank" style="color:var(--c-blue)">mercadopago.com.mx/developers</a>.</div>
-                <div class="form-gap">
-                  <div class="fg2">
-                    <div class="fg"><label class="flbl">Public Key (test)</label><input class="fi" id="mp-pk-test" placeholder="TEST-..."></div>
-                    <div class="fg"><label class="flbl">Access Token (test)</label><input class="fi" id="mp-at-test" type="password" placeholder="TEST-..."></div>
-                  </div>
-                  <div class="fg2">
-                    <div class="fg"><label class="flbl">Public Key (live)</label><input class="fi" id="mp-pk-live" placeholder="APP_USR-..."></div>
-                    <div class="fg"><label class="flbl">Access Token (live)</label><input class="fi" id="mp-at-live" type="password" placeholder="APP_USR-..."></div>
-                  </div>
-                </div>
-              </div>
-              <div class="card__hd" style="border-top:1px solid var(--border);border-bottom:none">
-                <button class="btn btn-p btn-sm" onclick="guardarMPConfig()">Guardar configuración Mercado Pago</button>
-              </div>
-            </div>
-
             <div class="card">
               <div class="card__hd"><span class="card__title">💳 Métodos de pago</span></div>
               <div class="tbl-wrap">
@@ -670,30 +639,6 @@ async function guardarStripeConfig() {
   Toast.show('Configuración Stripe guardada', 'success');
 }
 
-async function loadMPConfig() {
-  const r = await AdminAPI.get('/admin/configuracion');
-  const cfg = {};
-  (r.configuracion || []).forEach(c => { cfg[c.r_clave || c.clave] = c.r_valor || c.valor; });
-  document.getElementById('mp-mode').value    = cfg.mp_mode || 'test';
-  document.getElementById('mp-pk-test').value = cfg.mp_pk_test || '';
-  document.getElementById('mp-at-test').value = cfg.mp_at_test || '';
-  document.getElementById('mp-pk-live').value = cfg.mp_pk_live || '';
-  document.getElementById('mp-at-live').value = cfg.mp_at_live || '';
-}
-
-async function guardarMPConfig() {
-  const claves = {
-    mp_mode:    document.getElementById('mp-mode').value,
-    mp_pk_test: document.getElementById('mp-pk-test').value.trim(),
-    mp_at_test: document.getElementById('mp-at-test').value.trim(),
-    mp_pk_live: document.getElementById('mp-pk-live').value.trim(),
-    mp_at_live: document.getElementById('mp-at-live').value.trim(),
-  };
-  for (const [clave, valor] of Object.entries(claves)) {
-    await AdminAPI.post('/admin/configuracion', { clave, valor });
-  }
-  Toast.show('Configuración MercadoPago guardada', 'success');
-}
 
 async function guardarConfig() {
   const claves = {
@@ -831,7 +776,6 @@ document.addEventListener('DOMContentLoaded', () => {
   loadSpeiConfig();
   loadPayPalConfig();
   loadStripeConfig();
-  loadMPConfig();
   loadNotif();
 });
 </script>
