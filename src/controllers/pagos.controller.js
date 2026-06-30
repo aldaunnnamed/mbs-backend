@@ -61,6 +61,21 @@ const crearReferenciaSpei = async (req, res) => {
 // POST /api/pagos/spei/webhook  ← el banco llama a esta ruta
 const webhookSpei = async (req, res) => {
   try {
+    // Verificar token compartido configurado en Admin → Configuración (spei_webhook_token)
+    const cfgRes = await query(
+      "SELECT valor FROM configuracion WHERE clave = 'spei_webhook_token'"
+    );
+    const tokenEsperado = cfgRes.rows[0]?.valor;
+    if (!tokenEsperado) {
+      return res.status(503).json({ ok: false, mensaje: 'spei_webhook_token no configurado' });
+    }
+    const tokenRecibido = req.headers['x-webhook-token']
+      || req.headers['authorization']?.replace('Bearer ', '');
+    if (!tokenRecibido || tokenRecibido !== tokenEsperado) {
+      console.warn('webhookSpei: token inválido');
+      return res.status(401).json({ ok: false });
+    }
+
     const { referencia, monto, clave_rastreo, banco_emisor } = req.body;
 
     const result = await query(
@@ -195,7 +210,9 @@ const webhookPaypal = async (req, res) => {
   try {
     const evento = req.body;
 
-    if (process.env.PAYPAL_WEBHOOK_ID) {
+    // Leer webhook_id desde la BD (igual que el resto de credenciales PayPal)
+    const { webhook_id } = await paypal.getCfg();
+    if (webhook_id) {
       const valido = await paypal.verificarWebhook(req.headers, evento);
       if (!valido) {
         console.warn('webhookPaypal: firma de webhook inválida');

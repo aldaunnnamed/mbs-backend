@@ -647,6 +647,14 @@ window.confirmarPedido = async () => {
       return;
     }
 
+    // Guard: tarjeta seleccionada pero Stripe no está disponible
+    if (selectedPayment === 'tarjeta' && (!stripeInstance || !stripeCard)) {
+      Toast.show('El pago con tarjeta no está disponible en este momento. Selecciona otro método de pago.', 'error');
+      btn.disabled = false;
+      btn.innerHTML = '🔒 Confirmar y pagar ' + confirmTotalText;
+      return;
+    }
+
     // 4. Crear pedido
     const pedidoRes = await API.post('/pedidos', {
       carrito_id:      cid,
@@ -693,8 +701,13 @@ window.confirmarPedido = async () => {
             return;
           }
           // Pago exitoso con Stripe — muestra pantalla de éxito
+        } else {
+          // Stripe no disponible — el guard de arriba ya debería haber bloqueado esto
+          Toast.show('El pago con tarjeta no está disponible. Selecciona otro método de pago.', 'error');
+          btn.disabled = false;
+          btn.innerHTML = '🔒 Confirmar y pagar ' + confirmTotalText;
+          return;
         }
-        // Si Stripe no está configurado se muestra éxito igual (pedido creado)
       }
 
       // SPEI → mostrar datos bancarios
