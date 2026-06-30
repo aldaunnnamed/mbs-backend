@@ -168,7 +168,7 @@ describe('API Admin (/api/admin)', () => {
         .set('Authorization', `Bearer ${tokenAdmin}`)
         .send({
           sku:           uniqueSku,
-          nombre:        'Producto de Test Admin',
+          nombre:        `Producto de Test Admin ${uniqueSku}`,
           descripcion_corta: 'Descripción corta de prueba',
           categoria_id:  1,
           precio_venta:  99.99,
@@ -177,10 +177,10 @@ describe('API Admin (/api/admin)', () => {
           estado:        'activo',
         });
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(201);
       expect(res.body.ok).toBe(true);
-      expect(res.body.id).toBeTruthy();
-      productoId = res.body.id;
+      expect(res.body.producto_id).toBeTruthy();
+      productoId = res.body.producto_id;
     });
 
     test('PUT /productos/:id actualiza el producto', async () => {
