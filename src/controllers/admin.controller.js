@@ -920,15 +920,35 @@ const notificaciones = async (req, res) => {
 
 /* ── Clientes (detalle) ──────────────────────────────────────── */
 const detalleCliente = async (req, res) => {
+  const id = parseInt(req.params.id);
   try {
     const [c, p] = await Promise.all([
-      query('SELECT * FROM fn_detalle_cliente(CAST($1 AS INTEGER))', [parseInt(req.params.id)]),
-      query(`SELECT numero, estado, total, created_at FROM pedidos
-             WHERE usuario_id=$1 ORDER BY created_at DESC LIMIT 10`, [parseInt(req.params.id)]),
+      query(
+        `SELECT
+           u.id, u.nombre, u.apellidos, u.email, u.telefono,
+           u.rfc, u.razon_social, u.tipo, u.activo, u.bloqueado,
+           u.motivo_bloqueo, u.avatar_url, u.notas_internas,
+           u.ultimo_login, u.created_at,
+           COUNT(DISTINCT pe.id)      AS total_pedidos,
+           COALESCE(SUM(pe.total), 0) AS total_gastado
+         FROM usuarios u
+         LEFT JOIN pedidos pe ON pe.usuario_id = u.id AND pe.estatus_pago = 'pagado'
+         WHERE u.id = $1 AND u.rol NOT IN ('admin','superadmin')
+         GROUP BY u.id`,
+        [id]
+      ),
+      query(
+        `SELECT numero, estado, total, created_at FROM pedidos
+         WHERE usuario_id=$1 ORDER BY created_at DESC LIMIT 10`,
+        [id]
+      ),
     ]);
     if (!c.rows.length) return res.status(404).json({ ok: false, mensaje: 'Cliente no encontrado' });
     res.json({ ok: true, cliente: c.rows[0], pedidos_recientes: p.rows });
-  } catch (err) { res.status(500).json({ ok: false, mensaje: 'Error al obtener cliente' }); }
+  } catch (err) {
+    console.error('detalleCliente:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error al obtener cliente' });
+  }
 };
 
 /* ── Pedidos (detalle) ───────────────────────────────────────── */
