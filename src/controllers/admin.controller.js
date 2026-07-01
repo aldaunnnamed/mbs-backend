@@ -1,7 +1,15 @@
-const { query }  = require('../config/db');
-const bcrypt     = require('bcryptjs');
+const { query }   = require('../config/db');
+const bcrypt      = require('bcryptjs');
 const PDFDocument = require('pdfkit');
 const { enviarActualizacionEstado } = require('../services/email.service');
+
+// Normaliza un texto a slug URL-safe (minúsculas, sin acentos, guiones)
+const generarSlug = (texto) =>
+  (texto || '').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-');
 
 const dashboard = async (req, res) => {
   try {
@@ -296,10 +304,7 @@ const guardarProducto = async (req, res) => {
     const estadoVal= ['activo','inactivo','borrador'].includes(estado) ? estado : 'activo';
     const adminId  = parseInt(req.usuario.id);
 
-    // Generar slug desde el nombre
-    const slug = nombre.toLowerCase()
-      .normalize('NFD').replace(/[̀-ͯ]/g, '')
-      .replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '').replace(/-+/g, '-');
+    const slug = generarSlug(nombre);
 
     if (isNaN(catId) || catId <= 0) {
       return res.status(400).json({ ok: false, mensaje: 'Selecciona una categoría válida' });
@@ -594,12 +599,15 @@ const guardarConfigNotif = async (req, res) => {
     if (!Array.isArray(configuraciones)) {
       return res.status(400).json({ ok: false, mensaje: 'Se esperaba array de configuraciones' });
     }
-    for (const { clave, valor } of configuraciones) {
-      await query(
-        'SELECT fn_guardar_configuracion(CAST($1 AS CHARACTER VARYING), CAST($2 AS TEXT), CAST($3 AS INTEGER))',
-        [clave, String(valor), parseInt(req.usuario.id)]
-      );
-    }
+    const adminId = parseInt(req.usuario.id);
+    await Promise.all(
+      configuraciones.map(({ clave, valor }) =>
+        query(
+          'SELECT fn_guardar_configuracion(CAST($1 AS CHARACTER VARYING), CAST($2 AS TEXT), CAST($3 AS INTEGER))',
+          [clave, String(valor), adminId]
+        )
+      )
+    );
     res.json({ ok: true, mensaje: 'Configuración de notificaciones guardada' });
   } catch (err) {
     console.error('guardarConfigNotif:', err.message);
@@ -814,9 +822,7 @@ const importarProductos = async (req, res) => {
       header.forEach((h, idx) => { row[h] = vals[idx] || null; });
       try {
         if (!row.sku || !row.nombre) { errores++; continue; }
-        const slug = (row.nombre || '').toLowerCase()
-          .normalize('NFD').replace(/[̀-ͯ]/g, '')
-          .replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '');
+        const slug = generarSlug(row.nombre);
         const exists = await query('SELECT id FROM productos WHERE sku = $1', [row.sku]);
         if (exists.rows.length) {
           await query(
@@ -1016,8 +1022,7 @@ const crearCategoria = async (req, res) => {
   try {
     const { nombre, descripcion, icono } = req.body;
     if (!nombre) return res.status(400).json({ ok: false, mensaje: 'Nombre requerido' });
-    const slug = nombre.toLowerCase().normalize('NFD')
-      .replace(/[̀-ͯ]/g, '').replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const slug = generarSlug(nombre);
     const r = await query(
       'INSERT INTO categorias (nombre,slug,descripcion,icono) VALUES ($1,$2,$3,$4) RETURNING *',
       [nombre, slug, descripcion || null, icono || null]);
