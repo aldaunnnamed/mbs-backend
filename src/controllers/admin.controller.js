@@ -1,4 +1,4 @@
-const { query }   = require('../config/db');
+const { query, pool } = require('../config/db');
 const bcrypt      = require('bcryptjs');
 const PDFDocument = require('pdfkit');
 const { enviarActualizacionEstado } = require('../services/email.service');
@@ -1008,13 +1008,25 @@ const eliminarImagenProducto = async (req, res) => {
 };
 
 const marcarPrincipalImagen = async (req, res) => {
+  const client = await pool.connect();
   try {
-    await query('UPDATE producto_imagenes SET es_principal=false WHERE producto_id=$1',
-      [parseInt(req.params.id)]);
-    await query('UPDATE producto_imagenes SET es_principal=true WHERE id=$1',
-      [parseInt(req.params.img_id)]);
+    await client.query('BEGIN');
+    await client.query(
+      'UPDATE producto_imagenes SET es_principal=false WHERE producto_id=$1',
+      [parseInt(req.params.id)]
+    );
+    await client.query(
+      'UPDATE producto_imagenes SET es_principal=true WHERE id=$1',
+      [parseInt(req.params.img_id)]
+    );
+    await client.query('COMMIT');
     res.json({ ok: true });
-  } catch (err) { res.status(500).json({ ok: false, mensaje: 'Error al marcar principal' }); }
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ ok: false, mensaje: 'Error al marcar principal' });
+  } finally {
+    client.release();
+  }
 };
 
 /* ── Categorías y Marcas ─────────────────────────────────────── */
