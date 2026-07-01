@@ -16,7 +16,23 @@ const estadoPago = async (req, res) => {
       'SELECT * FROM fn_estado_pago_pedido(CAST($1 AS INTEGER))',
       [parseInt(req.params.pedido_id)]
     );
-    res.json({ ok: true, pago: result.rows[0] });
+    const pago = result.rows[0] || {};
+
+    // fn_estado_pago_pedido no devuelve banco/beneficiario/monto_esperado de pago_referencias
+    if (pago.r_spei_referencia) {
+      const refRes = await query(
+        'SELECT banco, beneficiario, monto_esperado FROM pago_referencias' +
+        ' WHERE pedido_id = $1 ORDER BY created_at DESC LIMIT 1',
+        [parseInt(req.params.pedido_id)]
+      );
+      if (refRes.rows.length) {
+        pago.r_spei_banco        = refRes.rows[0].banco;
+        pago.r_spei_beneficiario = refRes.rows[0].beneficiario;
+        pago.r_monto             = refRes.rows[0].monto_esperado;
+      }
+    }
+
+    res.json({ ok: true, pago });
   } catch (err) {
     res.status(500).json({ ok: false, mensaje: 'Error al consultar estado de pago' });
   }

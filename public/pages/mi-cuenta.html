@@ -580,6 +580,15 @@ window.verDetallePedido = async (id, estatusPagoFromList) => {
 
           <!-- Info envío + acciones -->
           <div>
+            <!-- Panel SPEI: se muestra dinámicamente si el pedido tiene referencia bancaria pendiente -->
+            <div id="detalle-spei-info" style="display:none;background:#FFF8E1;border:1.5px solid #F59E0B;border-radius:12px;padding:20px;margin-bottom:14px">
+              <h4 style="margin-bottom:12px;color:#92400E;font-family:Rajdhani,sans-serif">🏦 Realiza tu transferencia SPEI</h4>
+              <div id="detalle-spei-rows"></div>
+              <p style="font-size:.76rem;color:#92400E;margin-top:12px">
+                Una vez realizada la transferencia, confirmaremos tu pago en un máximo de 24 h.
+              </p>
+            </div>
+
             <div style="background:var(--gray-50);border-radius:12px;padding:20px;margin-bottom:14px">
               <h4 style="margin-bottom:10px;color:var(--navy);font-family:Rajdhani,sans-serif">Informacion de envio</h4>
               <p style="font-size:.85rem;color:var(--gray-600);line-height:1.8">
@@ -611,6 +620,38 @@ window.verDetallePedido = async (id, estatusPagoFromList) => {
         </div>
       </div>
     </div>`;
+
+  // Consultar datos SPEI si el pago está pendiente
+  if (ep === 'pendiente') {
+    try {
+      const pagoData = await API.get('/pagos/estado/' + id);
+      if (pagoData.ok && pagoData.pago && pagoData.pago.r_spei_referencia) {
+        const sp = pagoData.pago;
+        const vence = sp.r_spei_vence_en
+          ? new Date(sp.r_spei_vence_en).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })
+          : '—';
+        const monto = sp.r_monto
+          ? '$' + parseFloat(sp.r_monto).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + ' MXN'
+          : Currency.format(total);
+        document.getElementById('detalle-spei-rows').innerHTML = `
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:.85rem;line-height:1.6">
+            <span style="color:#92400E;font-weight:700">CLABE:</span>
+            <span style="font-family:monospace;font-weight:700;letter-spacing:.05em">${sp.r_spei_clabe || '—'}</span>
+            <span style="color:#92400E;font-weight:700">Banco:</span>
+            <span>${sp.r_spei_banco || '—'}</span>
+            <span style="color:#92400E;font-weight:700">Beneficiario:</span>
+            <span>${sp.r_spei_beneficiario || '—'}</span>
+            <span style="color:#92400E;font-weight:700">Referencia:</span>
+            <span style="font-weight:700">${sp.r_spei_referencia || '—'}</span>
+            <span style="color:#92400E;font-weight:700">Monto:</span>
+            <span style="font-weight:700;color:#D97706">${monto}</span>
+            <span style="color:#92400E;font-weight:700">Vence:</span>
+            <span>${vence}</span>
+          </div>`;
+        document.getElementById('detalle-spei-info').style.display = '';
+      }
+    } catch (_) {}
+  }
 };
 
 
