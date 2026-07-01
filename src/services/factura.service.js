@@ -63,7 +63,11 @@ const generarFacturaHTML = (pedido, items) => {
     <h2>FACTURA</h2>
     <p>No. de pedido: <strong>${pedido.numero || ''}</strong></p>
     <p>Fecha: ${fecha}</p>
-    <span class="badge">PAGADO</span>
+    ${pedido.estatus_pago === 'pagado'
+      ? '<span class="badge">PAGADO</span>'
+      : pedido.estatus_pago === 'fallido'
+        ? '<span class="badge" style="background:#FFEBEE;color:#C62828">PAGO FALLIDO</span>'
+        : '<span class="badge" style="background:#FFF8E1;color:#E65100">PENDIENTE DE PAGO</span>'}
   </div>
 </div>
 

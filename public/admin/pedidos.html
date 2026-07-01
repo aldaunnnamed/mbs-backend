@@ -154,7 +154,7 @@
                 <div class="det-sec__ttl">Pago</div>
                 <div class="flex-c gap8">
                   <span id="det-pago-metodo" class="fw6">—</span>
-                  <span class="bdg bdg--g">✓ Pagado</span>
+                  <span id="det-pago-estatus" class="bdg bdg--o">⏳ Pendiente</span>
                 </div>
               </div>
             </div>
@@ -282,6 +282,10 @@ async function verDetalle(id) {
   document.getElementById('det-iva').textContent     = fmt.money((parseFloat(p.subtotal||p.total)||0)*0.16);
   document.getElementById('det-total').textContent   = fmt.money(p.total);
   document.getElementById('det-pago-metodo').textContent = p.metodo_pago_nombre || 'Transferencia SPEI';
+  const ep = p.estatus_pago || 'pendiente';
+  const epBadge = document.getElementById('det-pago-estatus');
+  epBadge.className = 'bdg ' + ({ pagado:'bdg--g', fallido:'bdg--r', reembolsado:'bdg--b' }[ep] || 'bdg--o');
+  epBadge.textContent = { pagado:'✓ Pagado', fallido:'✕ Fallido', reembolsado:'↩ Reembolsado', pendiente:'⏳ Pendiente' }[ep] || ep;
   document.getElementById('det-nuevo-estado').value  = p.estado || 'nuevo';
 
   if (p.cupon_codigo) {

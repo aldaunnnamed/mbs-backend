@@ -419,11 +419,22 @@ const loadOrders = async () => {
   const statusLabel = { nuevo:'Nuevo', en_preparacion:'En preparación', enviado:'Enviado', en_camino:'En camino', entregado:'Entregado', cancelado:'Cancelado' };
   const statusIcon  = { en_preparacion:'⚙', enviado:'📤', en_camino:'🚚', entregado:'✓', cancelado:'✕', nuevo:'🆕' };
 
+  const pagoLabel = { pagado:'✓ Pagado', pendiente:'⏳ Pago pendiente', fallido:'✕ Pago fallido', reembolsado:'↩ Reembolsado' };
+  const pagoStyle = {
+    pagado:     'background:#E8F5E9;color:#2E7D32',
+    pendiente:  'background:#FFF8E1;color:#E65100',
+    fallido:    'background:#FFEBEE;color:#C62828',
+    reembolsado:'background:#E3F2FD;color:#1565C0',
+  };
+
   list.innerHTML = data.pedidos.map(p => {
-    const estado = p.r_estado || p.estado;
-    const numero = p.r_numero || p.numero;
-    const total  = p.r_total  || p.total;
-    const fecha  = new Date(p.r_created_at || p.created_at).toLocaleDateString('es-MX', {day:'numeric',month:'short',year:'numeric'});
+    const estado     = p.r_estado || p.estado;
+    const ep         = p.r_estatus_pago || p.estatus_pago || 'pendiente';
+    const numero     = p.r_numero || p.numero;
+    const total      = p.r_total  || p.total;
+    const fecha      = new Date(p.r_created_at || p.created_at).toLocaleDateString('es-MX', {day:'numeric',month:'short',year:'numeric'});
+    const pidStr     = String(p.r_id || p.id);
+    const epStr      = ep;
     return `
     <div class="order-card">
       <div class="order-card__header">
@@ -431,10 +442,13 @@ const loadOrders = async () => {
           <div class="order-card__number">PEDIDO ${numero}</div>
           <div class="order-card__date">FECHA · ${fecha}</div>
         </div>
-        <div style="display:flex;align-items:center;gap:12px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
           <div class="order-card__total">$${parseFloat(total).toLocaleString('es-MX',{minimumFractionDigits:2})}</div>
           <span class="order-status ${statusMap[estado]||'nuevo'}">
             ${statusIcon[estado]||''} ${statusLabel[estado]||estado}
+          </span>
+          <span style="font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:99px;${pagoStyle[ep]||pagoStyle.pendiente}">
+            ${pagoLabel[ep]||ep}
           </span>
         </div>
       </div>
@@ -454,7 +468,7 @@ const loadOrders = async () => {
           ${p.r_numero_guia||p.numero_guia ? '🚚 Guía: ' + (p.r_numero_guia||p.numero_guia) : '📦 Preparando tu pedido'}
         </span>
         <div class="order-card__actions">
-          <button class="btn btn-outline btn-sm" onclick="verDetallePedido(${p.r_id||p.id})">Ver detalle</button>
+          <button class="btn btn-outline btn-sm" onclick="verDetallePedido(${pidStr},'${epStr}')">Ver detalle</button>
           ${estado === 'entregado'
             ? '<button class="btn btn-primary btn-sm">Volver a comprar</button>'
             : estado === 'en_camino'
@@ -468,7 +482,7 @@ const loadOrders = async () => {
   }).join('');
 };
 
-window.verDetallePedido = async (id) => {
+window.verDetallePedido = async (id, estatusPagoFromList) => {
   const data = await API.get('/pedidos/' + id);
   if (!data.ok) { Toast.show('Error al cargar el pedido', 'error'); return; }
 
@@ -481,6 +495,9 @@ window.verDetallePedido = async (id) => {
   const numero = first.r_pedido_numero || '';
   const estado = first.r_estado || '';
   const total  = parseFloat(first.r_total)  || 0;
+  const ep     = estatusPagoFromList || 'pendiente';
+  const epLbl  = { pagado:'✓ Pago confirmado', pendiente:'⏳ Pago pendiente', fallido:'✕ Pago fallido', reembolsado:'↩ Reembolsado' }[ep] || ep;
+  const epStyle= { pagado:'background:#E8F5E9;color:#2E7D32', pendiente:'background:#FFF8E1;color:#E65100', fallido:'background:#FFEBEE;color:#C62828', reembolsado:'background:#E3F2FD;color:#1565C0' }[ep] || 'background:#FFF8E1;color:#E65100';
 
   const statusSteps = ['nuevo','en_preparacion','enviado','en_camino','entregado'];
   const idx = Math.max(0, statusSteps.indexOf(estado));
@@ -513,7 +530,10 @@ window.verDetallePedido = async (id) => {
           <div class="order-detail__num">${numero}</div>
           <div class="order-detail__date">Detalle del pedido</div>
         </div>
-        <span class="order-status ${estado.replace('_','-')}">${estado.replace('_',' ')}</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+          <span class="order-status ${estado.replace('_','-')}">${estado.replace('_',' ')}</span>
+          <span style="font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:99px;${epStyle}">${epLbl}</span>
+        </div>
       </div>
       <div class="order-detail__body">
 
