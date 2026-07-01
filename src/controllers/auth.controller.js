@@ -1,6 +1,6 @@
-const { query } = require('../config/db');
-const bcrypt    = require('bcryptjs');
-const jwt       = require('jsonwebtoken');
+const { query }  = require('../config/db');
+const bcrypt     = require('bcryptjs');
+const jwt        = require('jsonwebtoken');
 
 // POST /api/auth/registro
 const registro = async (req, res) => {

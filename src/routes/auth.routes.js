@@ -1,9 +1,10 @@
-const router    = require('express').Router();
-const ctrl      = require('../controllers/auth.controller');
+const router     = require('express').Router();
+const crypto     = require('crypto');
+const bcrypt     = require('bcryptjs');
+const rateLimit  = require('express-rate-limit');
+const ctrl       = require('../controllers/auth.controller');
 const { verificarToken } = require('../middlewares/auth');
-const { query } = require('../config/db');
-const crypto    = require('crypto');
-const rateLimit = require('express-rate-limit');
+const { query }  = require('../config/db');
 const { enviarCorreoRecuperacion } = require('../services/email.service');
 
 // 5 intentos por IP cada 15 minutos
@@ -105,7 +106,6 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ ok: false, mensaje: 'El enlace es inválido o ha expirado. Solicita uno nuevo.' });
     }
 
-    const bcrypt = require('bcryptjs');
     const hash = await bcrypt.hash(password, 12);
     const uid  = r.rows[0].usuario_id;
 

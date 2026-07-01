@@ -1,11 +1,4 @@
-const { query } = require('../config/db');
-const { exec }  = require('child_process');
-const path      = require('path');
-const fs        = require('fs');
-
-// Genera la factura como HTML y la convierte a PDF usando Puppeteer
-// o la genera directamente como HTML descargable si Puppeteer no está disponible.
-// En producción usar wkhtmltopdf o Puppeteer.
+// Genera la factura del pedido como HTML imprimible (descargable desde el navegador).
 
 const generarFacturaHTML = (pedido, items) => {
   const fecha = new Date(pedido.created_at || Date.now())

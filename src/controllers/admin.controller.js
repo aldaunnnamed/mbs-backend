@@ -1,4 +1,6 @@
-const { query } = require('../config/db');
+const { query }  = require('../config/db');
+const bcrypt     = require('bcryptjs');
+const PDFDocument = require('pdfkit');
 const { enviarActualizacionEstado } = require('../services/email.service');
 
 const dashboard = async (req, res) => {
@@ -447,7 +449,6 @@ const exportarClientes = async (req, res) => {
       ' GROUP BY u.id ORDER BY u.created_at DESC'
     );
 
-    const PDFDocument = require('pdfkit');
     const doc = new PDFDocument({ margin: 40, size: 'A4', layout: 'landscape' });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename="clientes-mbs.pdf"');
@@ -551,7 +552,6 @@ const crearAdmin = async (req, res) => {
     if (!['admin','superadmin'].includes(rol)) {
       return res.status(400).json({ ok: false, mensaje: 'Rol inválido' });
     }
-    const bcrypt = require('bcryptjs');
     const hash = await bcrypt.hash(password, 12);
     const r = await query(
       'INSERT INTO usuarios (nombre, apellidos, email, password_hash, rol, tipo)' +
@@ -692,7 +692,6 @@ const exportarProductos = async (req, res) => {
       ' ORDER BY p.nombre'
     );
 
-    const PDFDocument = require('pdfkit');
     const doc = new PDFDocument({ margin: 40, size: 'A4', layout: 'landscape' });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename="productos-mbs.pdf"');

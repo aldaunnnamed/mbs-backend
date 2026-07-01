@@ -67,7 +67,7 @@ router.post('/direcciones', verificarToken, async (req, res) => {
       ' VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id',
       [parseInt(req.usuario.id), alias || null, nombre || '', apellidos || '',
        calle_numero || '', colonia || '', ciudad || '', estado || '', cp || '',
-       telefono || null, es_predeterminada ? true : false]
+       telefono || null, !!es_predeterminada]
     );
     res.status(201).json({ ok: true, mensaje: 'Direccion guardada', id: result.rows[0].id });
   } catch (err) {
@@ -87,7 +87,7 @@ router.put('/direcciones/:id', verificarToken, async (req, res) => {
       ' WHERE id=$11 AND usuario_id=$12',
       [alias || null, nombre || '', apellidos || '', calle_numero || '',
        colonia || '', ciudad || '', estado || '', cp || '',
-       telefono || null, es_predeterminada ? true : false,
+       telefono || null, !!es_predeterminada,
        parseInt(req.params.id), parseInt(req.usuario.id)]
     );
     res.json({ ok: true, mensaje: 'Dirección actualizada' });
