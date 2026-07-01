@@ -15,10 +15,10 @@ app.set('trust proxy', 1);
 // ── Middlewares globales ──────────────────────────────────────
 app.use(helmet({
   // CSP desactivado aquí: las páginas HTML cargan scripts de CDN externos
-  // (MercadoPago, PayPal, Stripe) cuyas URLs varían; definir una política
-  // restrictiva requeriría listar cada dominio de terceros por separado.
+  // (PayPal, Stripe) cuyas URLs varían; definir una política restrictiva
+  // requeriría listar cada dominio de terceros por separado.
   contentSecurityPolicy: false,
-  // crossOriginEmbedderPolicy bloquea recursos de terceros en iframes (e.g. bricks de MP)
+  // crossOriginEmbedderPolicy bloquea recursos de terceros en iframes (e.g. widgets de PayPal)
   crossOriginEmbedderPolicy: false,
 }));
 app.use(cors());
