@@ -570,15 +570,25 @@ async function loadSpeiConfig() {
 }
 
 async function guardarSpeiConfig() {
+  const clabe = document.getElementById('cfg-spei-clabe').value.trim();
+  if (clabe && !/^\d{18}$/.test(clabe)) {
+    Toast.show('La CLABE debe tener exactamente 18 dígitos numéricos', 'error');
+    return;
+  }
   const claves = {
-    spei_clabe:        document.getElementById('cfg-spei-clabe').value.trim(),
+    spei_clabe:        clabe,
     spei_banco:        document.getElementById('cfg-spei-banco').value.trim(),
     spei_beneficiario: document.getElementById('cfg-spei-beneficiario').value.trim(),
   };
-  for (const [clave, valor] of Object.entries(claves)) {
-    await AdminAPI.post('/admin/configuracion', { clave, valor });
+  try {
+    for (const [clave, valor] of Object.entries(claves)) {
+      const r = await AdminAPI.post('/admin/configuracion', { clave, valor });
+      if (!r.ok) throw new Error(r.mensaje || clave);
+    }
+    Toast.show('Configuración SPEI guardada', 'success');
+  } catch (e) {
+    Toast.show('Error al guardar: ' + e.message, 'error');
   }
-  Toast.show('Configuración SPEI guardada', 'success');
 }
 
 async function loadPayPalConfig() {
