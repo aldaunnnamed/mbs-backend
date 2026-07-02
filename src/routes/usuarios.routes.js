@@ -1,4 +1,6 @@
 const router   = require('express').Router();
+const path     = require('path');
+const fs       = require('fs');
 const { query } = require('../config/db');
 const { verificarToken } = require('../middlewares/auth');
 const { uploadAvatar } = require('../middlewares/upload');
@@ -7,11 +9,18 @@ const { uploadAvatar } = require('../middlewares/upload');
 router.post('/foto', verificarToken, uploadAvatar.single('foto'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ ok: false, mensaje: 'No se recibió ninguna imagen' });
+    const uid = parseInt(req.usuario.id);
     const url = '/uploads/avatares/' + req.file.filename;
-    await query(
-      'UPDATE usuarios SET avatar_url = $1 WHERE id = $2',
-      [url, parseInt(req.usuario.id)]
-    );
+
+    const anterior = await query('SELECT avatar_url FROM usuarios WHERE id = $1', [uid]);
+    await query('UPDATE usuarios SET avatar_url = $1 WHERE id = $2', [url, uid]);
+
+    const avatarAnterior = anterior.rows[0]?.avatar_url;
+    if (avatarAnterior && avatarAnterior.startsWith('/uploads/avatares/')) {
+      const rutaAnterior = path.join(__dirname, '../../public', avatarAnterior);
+      fs.unlink(rutaAnterior, () => {}); // best-effort, no bloquea la respuesta
+    }
+
     res.json({ ok: true, mensaje: 'Foto actualizada', avatar_url: url });
   } catch (err) {
     console.error('foto perfil:', err.message);
