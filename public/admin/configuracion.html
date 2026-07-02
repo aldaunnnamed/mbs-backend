@@ -598,21 +598,21 @@ async function loadPayPalConfig() {
   document.getElementById('paypal-mode').value     = cfg.paypal_mode || 'sandbox';
   document.getElementById('paypal-cid-test').value = cfg.paypal_client_id_test || '';
   document.getElementById('paypal-sec-test').value = cfg.paypal_secret_test || '';
-  document.getElementById('paypal-wh-test').value  = cfg.paypal_webhook_test || '';
+  document.getElementById('paypal-wh-test').value  = cfg.paypal_webhook_id_test || '';
   document.getElementById('paypal-cid-live').value = cfg.paypal_client_id_live || '';
   document.getElementById('paypal-sec-live').value = cfg.paypal_secret_live || '';
-  document.getElementById('paypal-wh-live').value  = cfg.paypal_webhook_live || '';
+  document.getElementById('paypal-wh-live').value  = cfg.paypal_webhook_id_live || '';
 }
 
 async function guardarPayPalConfig() {
   const claves = {
-    paypal_mode:           document.getElementById('paypal-mode').value,
-    paypal_client_id_test: document.getElementById('paypal-cid-test').value.trim(),
-    paypal_secret_test:    document.getElementById('paypal-sec-test').value.trim(),
-    paypal_webhook_test:   document.getElementById('paypal-wh-test').value.trim(),
-    paypal_client_id_live: document.getElementById('paypal-cid-live').value.trim(),
-    paypal_secret_live:    document.getElementById('paypal-sec-live').value.trim(),
-    paypal_webhook_live:   document.getElementById('paypal-wh-live').value.trim(),
+    paypal_mode:              document.getElementById('paypal-mode').value,
+    paypal_client_id_test:    document.getElementById('paypal-cid-test').value.trim(),
+    paypal_secret_test:       document.getElementById('paypal-sec-test').value.trim(),
+    paypal_webhook_id_test:   document.getElementById('paypal-wh-test').value.trim(),
+    paypal_client_id_live:    document.getElementById('paypal-cid-live').value.trim(),
+    paypal_secret_live:       document.getElementById('paypal-sec-live').value.trim(),
+    paypal_webhook_id_live:   document.getElementById('paypal-wh-live').value.trim(),
   };
   for (const [clave, valor] of Object.entries(claves)) {
     await AdminAPI.post('/admin/configuracion', { clave, valor });
@@ -627,21 +627,21 @@ async function loadStripeConfig() {
   document.getElementById('stripe-mode').value    = cfg.stripe_mode || 'test';
   document.getElementById('stripe-pk-test').value = cfg.stripe_pk_test || '';
   document.getElementById('stripe-sk-test').value = cfg.stripe_sk_test || '';
-  document.getElementById('stripe-wh-test').value = cfg.stripe_wh_test || '';
+  document.getElementById('stripe-wh-test').value = cfg.stripe_webhook_secret_test || '';
   document.getElementById('stripe-pk-live').value = cfg.stripe_pk_live || '';
   document.getElementById('stripe-sk-live').value = cfg.stripe_sk_live || '';
-  document.getElementById('stripe-wh-live').value = cfg.stripe_wh_live || '';
+  document.getElementById('stripe-wh-live').value = cfg.stripe_webhook_secret_live || '';
 }
 
 async function guardarStripeConfig() {
   const claves = {
-    stripe_mode:    document.getElementById('stripe-mode').value,
-    stripe_pk_test: document.getElementById('stripe-pk-test').value.trim(),
-    stripe_sk_test: document.getElementById('stripe-sk-test').value.trim(),
-    stripe_wh_test: document.getElementById('stripe-wh-test').value.trim(),
-    stripe_pk_live: document.getElementById('stripe-pk-live').value.trim(),
-    stripe_sk_live: document.getElementById('stripe-sk-live').value.trim(),
-    stripe_wh_live: document.getElementById('stripe-wh-live').value.trim(),
+    stripe_mode:                document.getElementById('stripe-mode').value,
+    stripe_pk_test:             document.getElementById('stripe-pk-test').value.trim(),
+    stripe_sk_test:             document.getElementById('stripe-sk-test').value.trim(),
+    stripe_webhook_secret_test: document.getElementById('stripe-wh-test').value.trim(),
+    stripe_pk_live:             document.getElementById('stripe-pk-live').value.trim(),
+    stripe_sk_live:             document.getElementById('stripe-sk-live').value.trim(),
+    stripe_webhook_secret_live: document.getElementById('stripe-wh-live').value.trim(),
   };
   for (const [clave, valor] of Object.entries(claves)) {
     await AdminAPI.post('/admin/configuracion', { clave, valor });
