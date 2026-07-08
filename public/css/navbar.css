@@ -282,6 +282,15 @@
   border: 1px solid var(--gray-100);
   overflow: hidden;
 }
+@media (max-width: 768px) {
+  .navbar__notif-panel {
+    position: fixed;
+    top: 64px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
+}
 .navbar__notif-hd {
   display: flex;
   align-items: center;

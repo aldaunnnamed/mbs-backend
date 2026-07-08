@@ -222,7 +222,6 @@
 </div>
 
 <div id="toast-container"></div>
-<a href="https://wa.me/527713455929" class="whatsapp-fab" target="_blank">💬</a>
 
 <footer class="footer">
   <div class="container">
@@ -473,8 +472,6 @@ const loadOrders = async () => {
             ? '<button class="btn btn-primary btn-sm">Volver a comprar</button>'
             : estado === 'en_camino'
             ? '<button class="btn btn-primary btn-sm">Rastrear envío</button>'
-            : estado === 'en_preparacion'
-            ? '<button class="btn btn-sm" style="background:var(--red-lite);color:var(--red)">Cancelar pedido</button>'
             : ''}
         </div>
       </div>
@@ -501,7 +498,6 @@ window.verDetallePedido = async (id, estatusPagoFromList) => {
 
   const statusSteps = ['nuevo','en_preparacion','enviado','en_camino','entregado'];
   const idx = Math.max(0, statusSteps.indexOf(estado));
-  const cancelable = ['nuevo','en_preparacion'].includes(estado);
 
   // Agrupar items únicos
   const uniqueItems = [];
@@ -530,7 +526,7 @@ window.verDetallePedido = async (id, estatusPagoFromList) => {
           <div class="order-detail__num">${numero}</div>
           <div class="order-detail__date">Detalle del pedido</div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        <div class="order-detail__status-col">
           <span class="order-status ${estado.replace('_','-')}">${estado.replace('_',' ')}</span>
           <span style="font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:99px;${epStyle}">${epLbl}</span>
         </div>
@@ -1002,31 +998,6 @@ window.volverAComprar = async (pedidoId) => {
   } catch (err) {
     Toast.show('Error al procesar la solicitud', 'error');
   }
-};
-
-window.solicitarCancelacion = (id, numero) => {
-  // Modal de confirmación inline
-  const motivo = prompt(
-    'Pedido ' + numero + '\n\n' +
-    'Por favor indica el motivo de la cancelacion:\n' +
-    '(Ej: Cambio de opinion, orden duplicada, etc.)'
-  );
-
-  if (motivo === null) return; // Canceló el prompt
-
-  API.post('/pedidos/' + id + '/cancelar', { motivo })
-    .then(res => {
-      if (res.ok) {
-        Toast.show(res.mensaje, 'success');
-        setTimeout(() => {
-          showPanel('pedidos');
-          loadOrders();
-        }, 1200);
-      } else {
-        Toast.show(res.mensaje || 'No se pudo cancelar el pedido', 'error');
-      }
-    })
-    .catch(() => Toast.show('Error de conexion', 'error'));
 };
 
 window.contactarSoporte = (id, numero) => {

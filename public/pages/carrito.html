@@ -96,7 +96,7 @@
             <input type="checkbox" id="select-all" checked>
             Seleccionar todo
           </label>
-          <div style="display:flex;gap:12px">
+          <div class="cart-table__footer-actions">
             <button class="btn-ghost btn" onclick="removeSelected()" style="color:var(--red);font-size:.85rem">
               🗑 Eliminar seleccionados
             </button>
@@ -437,8 +437,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     for (const item of items) {
       const pid = item.r_producto_id || item.producto_id;
       if (!pid) continue;
-      const res = await API.post('/usuarios/favoritos/' + pid, {});
-      if (res.ok) ok++;
+      let res = await API.post('/usuarios/favoritos/' + pid, {});
+      if (res.ok && res.accion === 'eliminado') {
+        // El producto ya era favorito: el toggle lo quitó, hay que volver a agregarlo
+        res = await API.post('/usuarios/favoritos/' + pid, {});
+      }
+      if (res.ok && res.accion === 'agregado') ok++;
     }
     Toast.show(ok + ' producto' + (ok !== 1 ? 's' : '') + ' guardado' + (ok !== 1 ? 's' : '') + ' en favoritos', 'success');
   };
