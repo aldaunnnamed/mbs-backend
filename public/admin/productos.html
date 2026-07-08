@@ -570,13 +570,13 @@ async function subirImagen(input) {
 
 async function eliminarImagen(imgId) {
   if (!confirm('¿Eliminar esta imagen?')) return;
-  const r = await AdminAPI.del('/admin/productos/imagenes/' + imgId);
+  const r = await AdminAPI.del('/admin/productos/' + editId + '/imagenes/' + imgId);
   Toast.show(r.ok ? 'Imagen eliminada' : (r.mensaje || 'Error'), r.ok ? 'success' : 'error');
   if (r.ok) cargarImagenes(editId);
 }
 
 async function setPrincipal(imgId) {
-  const r = await AdminAPI.put('/admin/productos/imagenes/' + imgId + '/principal', {});
+  const r = await AdminAPI.put('/admin/productos/' + editId + '/imagenes/' + imgId + '/principal', {});
   Toast.show(r.ok ? 'Imagen principal actualizada' : (r.mensaje || 'Error'), r.ok ? 'success' : 'error');
   if (r.ok) cargarImagenes(editId);
 }
