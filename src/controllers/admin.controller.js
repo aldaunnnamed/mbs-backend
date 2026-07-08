@@ -208,6 +208,27 @@ const marcarPagoManual = async (req, res) => {
   }
 };
 
+// Guardar nota interna de un pedido (no notifica al cliente, a diferencia
+// de actualizarEstadoPedido)
+const guardarNotasPedido = async (req, res) => {
+  try {
+    const { notas } = req.body;
+    const result = await query(
+      'SELECT fn_guardar_notas_pedido(' +
+      'CAST($1 AS INTEGER), CAST($2 AS TEXT), CAST($3 AS INTEGER))',
+      [parseInt(req.params.id), notas || null, parseInt(req.usuario.id)]
+    );
+    const mensaje = result.rows[0].fn_guardar_notas_pedido;
+    if (mensaje.startsWith('ERROR')) {
+      return res.status(404).json({ ok: false, mensaje });
+    }
+    res.json({ ok: true, mensaje: 'Nota guardada' });
+  } catch (err) {
+    console.error('guardarNotasPedido:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error al guardar la nota' });
+  }
+};
+
 const alertasInventario = async (req, res) => {
   try {
     const result = await query('SELECT * FROM fn_alertas_inventario()');
@@ -1160,7 +1181,7 @@ const marcarMensajeLeido = async (req, res) => {
 module.exports = {
   dashboard, kpisPedidos, notificaciones, topProductos,
   listarClientes, detalleCliente, toggleBloqueo, exportarClientes,
-  listarPedidos, actualizarEstadoPedido, detallePedido, marcarPagoManual,
+  listarPedidos, actualizarEstadoPedido, detallePedido, marcarPagoManual, guardarNotasPedido,
   listarProductos, guardarProducto, toggleEstadoProducto,
   crearCategoria, crearMarca,
   listarImagenesProducto, subirImagenProducto, eliminarImagenProducto, marcarPrincipalImagen,

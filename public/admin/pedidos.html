@@ -471,13 +471,14 @@ async function confirmarEnvio() {
   const paqueteria = document.getElementById('det-paqueteria').value;
   const guia       = document.getElementById('det-guia').value.trim();
   if (!guia) { Toast.show('Ingresa el número de guía', 'error'); return; }
-  const r = await AdminAPI.put('/admin/pedidos/' + currentPedidoId + '/envio', {
-    paqueteria, numero_guia: guia
+  const r = await AdminAPI.put('/admin/pedidos/' + currentPedidoId + '/estado', {
+    estado: 'enviado', paqueteria, numero_guia: guia
   });
   if (r.ok) {
     Toast.show(r.mensaje || 'Envío confirmado', 'success');
     document.getElementById('det-nuevo-estado').value = 'enviado';
-    actualizarEstado();
+    document.getElementById('det-estado-badge').innerHTML = badge('enviado');
+    loadPedidos();
   } else {
     Toast.show(r.mensaje || 'Error', 'error');
   }
