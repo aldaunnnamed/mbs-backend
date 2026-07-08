@@ -23,6 +23,7 @@ router.get('/pedidos/kpis',                 ctrl.kpisPedidos);
 router.get('/pedidos',                      ctrl.listarPedidos);
 router.get('/pedidos/:id',                  ctrl.detallePedido);
 router.put('/pedidos/:id/estado',           ctrl.actualizarEstadoPedido);
+router.put('/pedidos/:id/pago-manual',      ctrl.marcarPagoManual);
 
 // Inventario
 router.get('/inventario/alertas',           ctrl.alertasInventario);

@@ -17,7 +17,7 @@
   <div class="container">
     <div class="navbar__inner">
       <a href="/" class="navbar__logo"><span class="navbar__logo-text">MBS</span></a>
-      <div style="flex:1;text-align:center;color:rgba(255,255,255,.5);font-size:.88rem">
+      <div class="navbar__trust-msg">
         🔒 Pago 100% seguro
       </div>
       <div class="navbar__actions" id="navbar-actions"></div>
@@ -213,12 +213,10 @@
           </div>
           <div class="checkout-section__body">
             <div class="payment-tabs" id="payment-tabs-container">
-              <button class="payment-tab active" onclick="switchPayment('tarjeta', this)">💳 Tarjeta</button>
-              <button class="payment-tab" onclick="switchPayment('spei', this)">🏦 Transferencia</button>
-              <!-- PayPal tab: se muestra solo si está activo en BD -->
+              <!-- Pestañas generadas dinámicamente según los métodos activos en BD -->
             </div>
 
-            <div class="payment-panel active" id="panel-tarjeta">
+            <div class="payment-panel" id="panel-tarjeta">
               <!-- Estado: cargando -->
               <div id="stripe-loading" style="text-align:center;padding:24px 0;color:var(--gray-500);font-size:.88rem">
                 ⏳ Cargando formulario de tarjeta...
@@ -328,7 +326,7 @@
 
 <script src="/js/global.js?v=4"></script>
 <script>
-let cartItems = [], shippingMethods = [], paymentMethods = [], selectedShipping = null, selectedPayment = 'tarjeta';
+let cartItems = [], shippingMethods = [], paymentMethods = [], selectedShipping = null, selectedPayment = null;
 let carritoId = null;
 let selectedAddressId = null;   // id de dirección guardada seleccionada (null = nueva)
 
@@ -393,22 +391,33 @@ document.addEventListener('DOMContentLoaded', async () => {
   const cidData = await API.get('/carrito/id');
   carritoId = cidData.carrito_id;
 
-  // 2. Cargar métodos de pago activos y mostrar/ocultar PayPal
+  // 2. Cargar métodos de pago y construir las pestañas solo con los que están activos en BD
   const payData2 = await API.get('/pedidos/pagos-metodos');
   paymentMethods = payData2.metodos || [];
-  const paypalActivo = paymentMethods.some(m => m.clave === 'paypal' && m.activo);
-  if (paypalActivo) {
-    const tabs = document.getElementById('payment-tabs-container');
-    const ppBtn = document.createElement('button');
-    ppBtn.className = 'payment-tab';
-    ppBtn.textContent = 'PayPal';
-    ppBtn.onclick = function() { switchPayment('paypal', this); };
-    tabs.appendChild(ppBtn);
+
+  const metodosSoportados = [
+    { clave: 'tarjeta', label: '💳 Tarjeta' },
+    { clave: 'spei',    label: '🏦 Transferencia' },
+    { clave: 'paypal',  label: 'PayPal' },
+  ];
+  const tabsContainer = document.getElementById('payment-tabs-container');
+  let primerMetodo = null;
+  metodosSoportados.forEach(m => {
+    if (!paymentMethods.some(pm => pm.clave === m.clave && pm.activo)) return;
+    const btn = document.createElement('button');
+    btn.className = 'payment-tab';
+    btn.textContent = m.label;
+    btn.onclick = function() { switchPayment(m.clave, this); };
+    tabsContainer.appendChild(btn);
+    if (!primerMetodo) primerMetodo = { clave: m.clave, btn };
+  });
+
+  if (primerMetodo) {
+    switchPayment(primerMetodo.clave, primerMetodo.btn);
+  } else {
+    tabsContainer.innerHTML = '<p style="color:var(--gray-600);font-size:.88rem">No hay métodos de pago disponibles por el momento. Contáctanos para completar tu compra.</p>';
+    document.getElementById('btn-confirm').disabled = true;
   }
-
-
-  // Inicializar Stripe para la tab por defecto
-  initStripe();
 
   // 3. Cargar métodos de envío (filtrar duplicados y precio_tipo cotizar)
   const shipData = await API.get('/pedidos/envios');

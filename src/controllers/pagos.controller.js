@@ -1,5 +1,6 @@
 const { query } = require('../config/db');
 const paypal = require('../services/paypal.service');
+const stripeSvc = require('../services/stripe.service');
 
 // GET /api/pagos/estado/:pedido_id
 const estadoPago = async (req, res) => {
@@ -44,14 +45,37 @@ const crearReferenciaSpei = async (req, res) => {
     const { pedido_id, horas_vence = 48 } = req.body;
 
     const pedidoRes = await query(
-      'SELECT id FROM pedidos WHERE id = CAST($1 AS INTEGER) AND usuario_id = CAST($2 AS INTEGER)',
+      'SELECT id, numero, total FROM pedidos WHERE id = CAST($1 AS INTEGER) AND usuario_id = CAST($2 AS INTEGER)',
       [parseInt(pedido_id), parseInt(req.usuario.id)]
     );
     if (!pedidoRes.rows.length) {
       return res.status(404).json({ ok: false, mensaje: 'Pedido no encontrado' });
     }
+    const pedido = pedidoRes.rows[0];
 
-    // Leer configuracion SPEI de la BD
+    const motorRes = await query("SELECT valor FROM configuracion WHERE clave = 'spei_motor'");
+    const motor = motorRes.rows[0]?.valor || 'legacy';
+
+    if (motor === 'stripe') {
+      const stripeSpei = await stripeSvc.crearPaymentIntentSpei({
+        pedido_id,
+        numero_pedido: pedido.numero,
+        monto_centavos: Math.round(parseFloat(pedido.total) * 100),
+      });
+
+      const result = await query(
+        'SELECT * FROM fn_crear_referencia_spei_stripe($1,$2,$3,$4,$5,$6,$7,$8)',
+        [pedido_id, stripeSpei.clabe, stripeSpei.banco, stripeSpei.beneficiario,
+         stripeSpei.referencia, stripeSpei.customer_id, stripeSpei.payment_intent_id, horas_vence]
+      );
+
+      return res.json({
+        ok: true,
+        spei: { ...result.rows[0], r_hosted_instructions_url: stripeSpei.hosted_instructions_url },
+      });
+    }
+
+    // Motor 'legacy': CLABE fija propia leída de configuracion
     const cfg = await query(
       "SELECT clave, valor FROM configuracion WHERE clave IN ('spei_clabe','spei_banco','spei_beneficiario')"
     );
@@ -273,7 +297,6 @@ const webhookPaypal = async (req, res) => {
 
 
 // ── Stripe ────────────────────────────────────────────────────────
-const stripeSvc = require('../services/stripe.service');
 
 // GET /api/pagos/stripe/public-key  (sin auth — publishable key)
 const getStripePublicKey = async (req, res) => {
@@ -329,8 +352,22 @@ const webhookStripe = async (req, res) => {
   // Procesamiento post-verificación — fallo aquí = error de servidor → 500
   // (Stripe no reintenta en 5xx como sí lo hace con 4xx)
   try {
-    if (evento.type === 'payment_intent.succeeded') {
-      const pi = evento.data.object;
+    const pi = evento.data.object;
+    const esSpei = pi?.metadata?.tipo === 'spei';
+
+    const eventosSpei = {
+      'payment_intent.succeeded':      'pagado',
+      'payment_intent.processing':     'procesando',
+      'payment_intent.payment_failed': 'fallido',
+    };
+
+    if (esSpei && eventosSpei[evento.type]) {
+      await query(
+        'SELECT fn_confirmar_pago_spei_stripe($1,$2,$3,$4)',
+        [pi.id, eventosSpei[evento.type], pi.amount_received ? pi.amount_received / 100 : null, JSON.stringify(evento)]
+      );
+    } else if (evento.type === 'payment_intent.succeeded') {
+      // Pago con tarjeta
       const pedidoId = pi.metadata?.pedido_id;
       if (pedidoId) {
         await query(

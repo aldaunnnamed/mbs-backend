@@ -73,4 +73,46 @@ const getPublicKey = async () => {
   return mode === 'live' ? (cfg.stripe_pk_live || '') : (cfg.stripe_pk_test || '');
 };
 
-module.exports = { crearPaymentIntent, verificarWebhook, getPublicKey };
+// Crea un Customer efímero + PaymentIntent de transferencia SPEI (customer_balance / mx_bank_transfer)
+// y devuelve las instrucciones bancarias que genera Stripe (CLABE dinámica, banco, referencia).
+const crearPaymentIntentSpei = async ({ pedido_id, numero_pedido, monto_centavos, metadata = {} }) => {
+  const stripe = await getStripe();
+
+  const customer = await stripe.customers.create({
+    name: 'Pedido ' + numero_pedido,
+    metadata: { pedido_id: String(pedido_id) },
+  });
+
+  const intent = await stripe.paymentIntents.create({
+    amount: Math.round(monto_centavos),
+    currency: 'mxn',
+    customer: customer.id,
+    payment_method_types: ['customer_balance'],
+    payment_method_data: { type: 'customer_balance' },
+    payment_method_options: {
+      customer_balance: {
+        funding_type: 'bank_transfer',
+        bank_transfer: { type: 'mx_bank_transfer' },
+      },
+    },
+    metadata: { ...metadata, pedido_id: String(pedido_id), tipo: 'spei' },
+    confirm: true,
+  });
+
+  const spei = intent.next_action?.display_bank_transfer_instructions?.financial_addresses?.[0]?.spei;
+  if (!spei) {
+    throw new Error('Stripe no devolvió instrucciones de transferencia SPEI para este PaymentIntent');
+  }
+
+  return {
+    payment_intent_id: intent.id,
+    customer_id: customer.id,
+    clabe: spei.clabe,
+    banco: spei.bank_name,
+    beneficiario: spei.account_holder_name,
+    referencia: intent.next_action.display_bank_transfer_instructions.reference,
+    hosted_instructions_url: intent.next_action.display_bank_transfer_instructions.hosted_instructions_url,
+  };
+};
+
+module.exports = { crearPaymentIntent, verificarWebhook, getPublicKey, crearPaymentIntentSpei };

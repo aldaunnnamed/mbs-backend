@@ -187,6 +187,27 @@ const actualizarEstadoPedido = async (req, res) => {
   }
 };
 
+// Marcar un pedido como pagado manualmente (fuera de banda: conciliación
+// bancaria, pedidos legacy sin webhook real, errores de proveedor, etc.)
+const marcarPagoManual = async (req, res) => {
+  try {
+    const { nota } = req.body;
+    const result = await query(
+      'SELECT fn_marcar_pedido_pagado_manual(' +
+      'CAST($1 AS INTEGER), CAST($2 AS INTEGER), CAST($3 AS TEXT))',
+      [parseInt(req.params.id), parseInt(req.usuario.id), nota || null]
+    );
+    const mensaje = result.rows[0].fn_marcar_pedido_pagado_manual;
+    if (mensaje.startsWith('ERROR')) {
+      return res.status(400).json({ ok: false, mensaje });
+    }
+    res.json({ ok: true, mensaje: 'Pedido marcado como pagado' });
+  } catch (err) {
+    console.error('marcarPagoManual:', err.message);
+    res.status(500).json({ ok: false, mensaje: 'Error al marcar el pedido como pagado' });
+  }
+};
+
 const alertasInventario = async (req, res) => {
   try {
     const result = await query('SELECT * FROM fn_alertas_inventario()');
@@ -1139,7 +1160,7 @@ const marcarMensajeLeido = async (req, res) => {
 module.exports = {
   dashboard, kpisPedidos, notificaciones, topProductos,
   listarClientes, detalleCliente, toggleBloqueo, exportarClientes,
-  listarPedidos, actualizarEstadoPedido, detallePedido,
+  listarPedidos, actualizarEstadoPedido, detallePedido, marcarPagoManual,
   listarProductos, guardarProducto, toggleEstadoProducto,
   crearCategoria, crearMarca,
   listarImagenesProducto, subirImagenProducto, eliminarImagenProducto, marcarPrincipalImagen,

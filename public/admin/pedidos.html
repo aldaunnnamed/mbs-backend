@@ -155,6 +155,7 @@
                 <div class="flex-c gap8">
                   <span id="det-pago-metodo" class="fw6">—</span>
                   <span id="det-pago-estatus" class="bdg bdg--o">⏳ Pendiente</span>
+                  <button class="btn btn-gr btn-xs" id="det-marcar-pagado-btn" style="display:none" onclick="marcarPagado()">Marcar como pagado</button>
                 </div>
               </div>
             </div>
@@ -286,6 +287,7 @@ async function verDetalle(id) {
   const epBadge = document.getElementById('det-pago-estatus');
   epBadge.className = 'bdg ' + ({ pagado:'bdg--g', fallido:'bdg--r', reembolsado:'bdg--b' }[ep] || 'bdg--o');
   epBadge.textContent = { pagado:'✓ Pagado', fallido:'✕ Fallido', reembolsado:'↩ Reembolsado', pendiente:'⏳ Pendiente' }[ep] || ep;
+  document.getElementById('det-marcar-pagado-btn').style.display = (ep === 'pagado') ? 'none' : '';
   document.getElementById('det-nuevo-estado').value  = p.estado || 'nuevo';
 
   if (p.cupon_codigo) {
@@ -498,6 +500,20 @@ async function cancelarPedido() {
     loadPedidos();
   } else {
     Toast.show(r.mensaje || 'Error al cancelar', 'error');
+  }
+}
+
+async function marcarPagado() {
+  if (!currentPedidoId) return;
+  const notaRaw = prompt('Motivo (opcional) — ej. "Transferencia confirmada por conciliación bancaria":');
+  if (notaRaw === null) return;
+  const nota = notaRaw || '';
+  const r = await AdminAPI.put('/admin/pedidos/' + currentPedidoId + '/pago-manual', { nota });
+  if (r.ok) {
+    Toast.show('Pedido marcado como pagado', 'success');
+    verDetalle(currentPedidoId);
+  } else {
+    Toast.show(r.mensaje || 'Error al marcar el pago', 'error');
   }
 }
 

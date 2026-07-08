@@ -122,7 +122,7 @@
                 </div>
               </div>
               <div class="card__hd" style="border-top:1px solid var(--border);border-bottom:none">
-                <button class="btn btn-gr btn-sm">Cancelar</button>
+                <button class="btn btn-gr btn-sm" onclick="loadGeneralConfig()">Cancelar</button>
                 <button class="btn btn-p btn-sm" onclick="guardarConfig()">Guardar cambios</button>
               </div>
             </div>
@@ -167,9 +167,18 @@
           <!-- PAGOS -->
           <div class="cfg-panel" id="cfg-pagos">
             <div class="card mb16">
-              <div class="card__hd"><span class="card__title">🏦 Datos bancarios para SPEI</span></div>
+              <div class="card__hd"><span class="card__title">🏦 Transferencia SPEI</span></div>
               <div class="card__bd">
-                <div class="fs11 tx-m mb8">Estos datos se muestran al cliente cuando elige "Transferencia SPEI" en el checkout.</div>
+                <div class="fg mb16">
+                  <label class="flbl">Motor de transferencia</label>
+                  <select class="fs" id="cfg-spei-motor">
+                    <option value="legacy">CLABE propia (fija, la de abajo)</option>
+                    <option value="stripe">Stripe (CLABE dinámica por pedido)</option>
+                  </select>
+                  <div class="fs11 tx-m mt4">Con "Stripe" cada pedido recibe su propia CLABE generada automáticamente. Los pedidos ya creados con el motor anterior siguen funcionando igual sin importar cuál esté seleccionado aquí.</div>
+                </div>
+                <hr style="border:none;border-top:1px solid var(--border);margin:0 0 16px">
+                <div class="fs11 tx-m mb8">Estos datos solo aplican cuando el motor de arriba está en "CLABE propia".</div>
                 <div class="form-gap">
                   <div class="fg2">
                     <div class="fg"><label class="flbl">CLABE interbancaria <span>*</span></label><input class="fi" id="cfg-spei-clabe" maxlength="18" placeholder="18 dígitos"></div>
@@ -179,7 +188,7 @@
                 </div>
               </div>
               <div class="card__hd" style="border-top:1px solid var(--border);border-bottom:none">
-                <button class="btn btn-p btn-sm" onclick="guardarSpeiConfig()">Guardar datos SPEI</button>
+                <button class="btn btn-p btn-sm" onclick="guardarSpeiConfig()">Guardar configuración SPEI</button>
               </div>
             </div>
             <!-- PayPal -->
@@ -322,7 +331,7 @@
                 </div>
               </div>
               <div class="card__hd" style="border-top:1px solid var(--border);border-bottom:none">
-                <button class="btn btn-gr btn-sm">Restablecer valores</button>
+                <button class="btn btn-gr btn-sm" onclick="limpiarCamposPass()">Restablecer valores</button>
                 <button class="btn btn-p btn-sm" onclick="actualizarPass()">Actualizar contraseña</button>
               </div>
             </div>
@@ -564,6 +573,7 @@ async function loadSpeiConfig() {
   const r = await AdminAPI.get('/admin/configuracion');
   const cfg = {};
   (r.configuracion || []).forEach(c => { cfg[c.r_clave || c.clave] = c.r_valor || c.valor; });
+  document.getElementById('cfg-spei-motor').value        = cfg.spei_motor || 'legacy';
   document.getElementById('cfg-spei-clabe').value        = cfg.spei_clabe || '';
   document.getElementById('cfg-spei-banco').value        = cfg.spei_banco || '';
   document.getElementById('cfg-spei-beneficiario').value = cfg.spei_beneficiario || '';
@@ -576,6 +586,7 @@ async function guardarSpeiConfig() {
     return;
   }
   const claves = {
+    spei_motor:        document.getElementById('cfg-spei-motor').value,
     spei_clabe:        clabe,
     spei_banco:        document.getElementById('cfg-spei-banco').value.trim(),
     spei_beneficiario: document.getElementById('cfg-spei-beneficiario').value.trim(),
@@ -759,6 +770,12 @@ async function subirLogo(input) {
     Toast.show('Error de conexión', 'error');
   }
   input.value = '';
+}
+
+function limpiarCamposPass() {
+  document.getElementById('curr-pass').value    = '';
+  document.getElementById('new-pass').value     = '';
+  document.getElementById('confirm-pass').value = '';
 }
 
 async function actualizarPass() {
