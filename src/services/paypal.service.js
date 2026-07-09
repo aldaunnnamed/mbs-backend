@@ -137,4 +137,4 @@ const verificarWebhook = async (headers, body) => {
   return resp.ok && data.verification_status === 'SUCCESS';
 };
 
-module.exports = { credencialesConfiguradas, obtenerAccessToken, crearOrden, capturarOrden, verificarWebhook, getCfg };
+module.exports = { credencialesConfiguradas, crearOrden, capturarOrden, verificarWebhook, getCfg };

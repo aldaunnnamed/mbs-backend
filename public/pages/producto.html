@@ -513,7 +513,7 @@ window.switchTab = (tab, btn) => {
 let selectedVariant = null, qty = 1;
 
 // Actualizar precio principal cuando cambie la moneda
-document.addEventListener('currencyChange', () => {
+window.addEventListener('mbs:currency', () => {
   const priceEl = document.querySelector('.product-info__price[data-mxn]');
   if (priceEl) priceEl.textContent = Currency.format(priceEl.dataset.mxn);
 });

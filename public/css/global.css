@@ -152,7 +152,6 @@ h1,h2,h3,h4,h5,h6 {
 .badge-orange  { background: var(--orange);      color: var(--white); }
 .badge-navy    { background: var(--navy);         color: var(--white); }
 .badge-electric{ background: var(--electric-lite);color: var(--electric); }
-.badge-green   { background: var(--green-lite);   color: var(--green); }
 .badge-red     { background: var(--red-lite);     color: var(--red); }
 .badge-amber   { background: var(--amber-lite);   color: #7B4F00; }
 
@@ -281,23 +280,11 @@ h1,h2,h3,h4,h5,h6 {
 }
 
 /* ── Utilidades ──────────────────────────────────────────────── */
-.text-orange  { color: var(--orange); }
-.text-navy    { color: var(--navy); }
 .text-muted   { color: var(--gray-600); }
-.text-center  { text-align: center; }
-.fw-700       { font-weight: 700; }
-.mt-4  { margin-top: 4px; }
-.mt-8  { margin-top: 8px; }
-.mt-16 { margin-top: 16px; }
-.mt-24 { margin-top: 24px; }
 .mb-8  { margin-bottom: 8px; }
 .mb-16 { margin-bottom: 16px; }
-.mb-24 { margin-bottom: 24px; }
 .hidden { display: none !important; }
 .flex  { display: flex; }
-.items-center { align-items: center; }
-.gap-8  { gap: 8px; }
-.gap-16 { gap: 16px; }
 
 /* ── Skeleton loader ─────────────────────────────────────────── */
 .skeleton {

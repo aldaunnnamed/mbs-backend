@@ -216,8 +216,6 @@ const capturarOrdenPaypal = async (req, res) => {
       const comision = capture?.seller_receivable_breakdown?.paypal_fee?.value ?? null;
       const email   = captura.payer?.email_address || null;
 
-      console.log('capturarOrdenPaypal — estado:', estado, '| capture.status:', capture?.status, '| order.status:', captura.status, '| monto:', monto);
-
       await query(
         'SELECT fn_confirmar_pago_paypal(' +
         'CAST($1 AS VARCHAR), CAST($2 AS VARCHAR), CAST($3 AS VARCHAR),' +

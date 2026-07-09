@@ -321,5 +321,4 @@ module.exports = {
   enviarConfirmacionPedido,
   enviarNotificacionNuevoPedido,
   enviarActualizacionEstado,
-  credencialesConfiguradas,
 };

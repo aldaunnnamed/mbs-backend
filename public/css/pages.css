@@ -160,18 +160,6 @@
   display: flex; gap: 10px;
   margin-bottom: 20px;
 }
-.btn-icon {
-  width: 42px; height: 42px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--gray-100);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.1rem;
-  cursor: pointer;
-  transition: var(--transition);
-  background: var(--white);
-}
-.btn-icon:hover { background: var(--gray-50); border-color: var(--navy); }
-.btn-icon.active { color: var(--red); border-color: var(--red); }
 .btn-whatsapp {
   flex: 1;
   background: #25D366; color: var(--white);
@@ -232,66 +220,6 @@
 }
 .specs-table td:first-child { color: var(--gray-600); width: 45%; }
 .specs-table td:last-child  { font-weight: 600; color: var(--navy); text-align: right; }
-
-/* Reseñas */
-.reviews-summary {
-  display: flex; gap: 32px; align-items: flex-start;
-  margin-bottom: 32px;
-}
-.reviews-score {
-  text-align: center; min-width: 120px;
-}
-.reviews-score__num {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 3.5rem; font-weight: 700;
-  color: var(--navy); line-height: 1;
-}
-.reviews-score__stars { color: var(--amber); font-size: 1.2rem; margin: 6px 0; }
-.reviews-score__count { font-size: .8rem; color: var(--gray-600); }
-.reviews-bars { flex: 1; }
-.review-bar-row {
-  display: flex; align-items: center; gap: 8px;
-  margin-bottom: 6px; font-size: .83rem;
-}
-.review-bar-row span:first-child { width: 24px; text-align: right; color: var(--gray-600); }
-.review-bar-track {
-  flex: 1; height: 8px;
-  background: var(--gray-100);
-  border-radius: 99px; overflow: hidden;
-}
-.review-bar-fill {
-  height: 100%; background: var(--amber);
-  border-radius: 99px;
-  transition: width .6s ease;
-}
-.review-bar-row span:last-child { width: 36px; color: var(--gray-600); font-size: .78rem; }
-
-.reviews-grid {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 20px; margin-top: 24px;
-}
-.review-card {
-  background: var(--gray-50);
-  border-radius: var(--radius-md);
-  padding: 20px;
-}
-.review-card__stars { color: var(--amber); margin-bottom: 8px; }
-.review-card__title { font-weight: 700; font-size: .95rem; color: var(--navy); margin-bottom: 6px; }
-.review-card__text  { font-size: .88rem; color: var(--gray-600); margin-bottom: 12px; line-height: 1.6; }
-.review-card__meta  { font-size: .78rem; color: var(--gray-400); display: flex; justify-content: space-between; }
-.review-card__verified { color: var(--green); font-weight: 600; font-size: .75rem; }
-
-/* Productos relacionados */
-.related-section { padding: 48px 0; }
-.related-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 24px;
-}
-.related-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-}
 
 /* ════════════════════════════════════════════════════════════
    PÁGINA: CARRITO
@@ -386,7 +314,6 @@
 .cart-item__sku  { font-size: .78rem; color: var(--gray-400); margin-bottom: 4px; }
 .cart-item__variant { font-size: .78rem; color: var(--gray-600); }
 .cart-item__price  { font-weight: 600; font-size: .95rem; color: var(--navy); }
-.cart-item__savings { font-size: .75rem; color: var(--green); margin-top: 2px; }
 .cart-item__qty { display: flex; align-items: center; gap: 6px; }
 .cart-item__subtotal {
   font-family: 'Rajdhani', sans-serif;
@@ -450,14 +377,6 @@
   font-family: 'Rajdhani', sans-serif;
   font-size: 1.8rem; font-weight: 700;
   color: var(--orange);
-}
-.summary-savings {
-  background: rgba(76,175,80,.15);
-  border: 1px solid rgba(76,175,80,.3);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
-  font-size: .82rem; color: #a5d6a7;
-  margin-bottom: 20px;
 }
 .summary-iva { font-size: .78rem; color: rgba(255,255,255,.4); text-align: right; margin-bottom: 16px; }
 .summary-payment-icons {
@@ -565,7 +484,6 @@
 .form-input:focus { outline: none; border-color: var(--navy); box-shadow: 0 0 0 3px rgba(11,30,61,.08); }
 .form-input.valid   { border-color: var(--green); }
 .form-input.invalid { border-color: var(--red); }
-.form-hint { font-size: .78rem; color: var(--gray-600); margin-top: 4px; }
 
 /* Dirección guardada */
 .saved-address {
@@ -632,14 +550,6 @@
 .payment-tab.active { color: var(--navy); border-bottom-color: var(--orange); }
 .payment-panel { display: none; }
 .payment-panel.active { display: block; }
-.card-logos { display: flex; gap: 8px; margin-top: 8px; }
-.card-logo {
-  padding: 3px 10px;
-  border: 1px solid var(--gray-100);
-  border-radius: var(--radius-sm);
-  font-size: .75rem; font-weight: 700;
-  color: var(--gray-600);
-}
 .msi-banner {
   background: var(--electric-lite);
   border-radius: var(--radius-sm);
@@ -850,7 +760,6 @@
 .account-nav hr { border: none; border-top: 1px solid var(--gray-100); margin: 4px 0; }
 
 /* Panel principal */
-.account-main { }
 .account-panel { display: none; }
 .account-panel.active { display: block; }
 
@@ -868,14 +777,6 @@
   border: 1px solid var(--gray-100);
 }
 .orders-tab.active { background: var(--navy); color: var(--white); border-color: var(--navy); }
-.orders-search {
-  padding: 9px 14px;
-  border: 1px solid var(--gray-100);
-  border-radius: var(--radius-sm);
-  font-size: .85rem; font-family: inherit;
-  flex: 1; min-width: 200px;
-}
-.orders-search:focus { outline: none; border-color: var(--navy); }
 
 .order-card {
   background: var(--white);
@@ -918,7 +819,6 @@
 .order-item-preview__img img { width: 100%; height: 100%; object-fit: cover; }
 .order-item-preview__name  { font-size: .85rem; font-weight: 600; color: var(--navy); margin-bottom: 2px; }
 .order-item-preview__sku   { font-size: .75rem; color: var(--gray-400); }
-.order-item-preview__price { font-size: .85rem; color: var(--orange); font-weight: 600; }
 
 .order-card__footer {
   padding: 12px 20px;
@@ -1000,13 +900,6 @@
   font-size: .82rem; color: var(--electric);
   cursor: pointer; text-decoration: underline;
 }
-.form-section-title {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 1rem; font-weight: 700; color: var(--navy);
-  margin: 20px 0 14px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--gray-100);
-}
 .form-actions { display: flex; gap: 12px; margin-top: 24px; }
 
 /* ── Responsive ──────────────────────────────────────────────── */
@@ -1016,9 +909,7 @@
   .checkout-layout { grid-template-columns: minmax(0,1fr); }
   .account-layout { grid-template-columns: minmax(0,1fr); }
   .account-sidebar { position: static; }
-  .related-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .upsell-grid  { grid-template-columns: repeat(2,minmax(0,1fr)); }
-  .reviews-grid { grid-template-columns: minmax(0,1fr); }
   .tab-panel__grid { grid-template-columns: minmax(0,1fr); }
   .order-detail__grid { grid-template-columns: minmax(0,1fr); }
 }

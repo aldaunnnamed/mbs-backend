@@ -148,30 +148,6 @@
   border-radius: 99px;
 }
 
-/* Tipo de conector — botones */
-.connector-btns {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.connector-btn {
-  padding: 5px 12px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--gray-100);
-  font-size: .8rem;
-  font-weight: 600;
-  color: var(--gray-600);
-  background: var(--white);
-  cursor: pointer;
-  transition: var(--transition);
-}
-.connector-btn.active,
-.connector-btn:hover {
-  background: var(--navy);
-  color: var(--white);
-  border-color: var(--navy);
-}
-
 /* Rango de precio */
 .price-range {
   padding: 4px 0;
@@ -367,21 +343,6 @@
 .page-btn:hover { border-color: var(--navy); color: var(--navy); }
 .page-btn.active { background: var(--navy); color: var(--white); border-color: var(--navy); }
 .page-btn:disabled { opacity: .4; cursor: not-allowed; }
-.pagination__perpage {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: .85rem;
-  color: var(--gray-600);
-}
-.pagination__perpage select {
-  padding: 6px 10px;
-  border: 1px solid var(--gray-100);
-  border-radius: var(--radius-sm);
-  font-size: .85rem;
-  background: var(--white);
-}
-
 
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 1024px) {

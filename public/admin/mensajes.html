@@ -234,7 +234,7 @@ function abrirResponder(id) {
 
       <div style="background:var(--bg);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:.85rem">
         <div><strong>Para:</strong>
-          <span id="reply-email-show">${esc(m.email)}</span>
+          <span>${esc(m.email)}</span>
           <button onclick="copiarEmail('${esc(m.email)}')" class="btn btn-gr btn-xs" style="margin-left:8px">Copiar</button>
         </div>
         <div style="margin-top:4px"><strong>Asunto:</strong> Re: ${esc(m.asunto || '(sin asunto)')}</div>

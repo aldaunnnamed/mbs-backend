@@ -294,14 +294,6 @@ async function loadProducts() {
   renderTable(prods, r.total || 0);
 }
 
-function stockBadge(p) {
-  const stock  = p.stock_actual ?? p.r_stock_actual;
-  const minimo = p.stock_minimo ?? p.r_stock_minimo ?? 5;
-  if (stock === 0) return '<span class="bdg bdg--r">Sin stock</span>';
-  if (stock <= minimo) return '<span class="bdg bdg--o">Stock bajo</span>';
-  return '<span class="bdg bdg--g">OK</span>';
-}
-
 function estadoBadge(p) {
   const estado = p.estado || p.r_estado || 'activo';
   return estado === 'activo'

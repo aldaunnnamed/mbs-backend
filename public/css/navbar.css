@@ -481,16 +481,6 @@
   font-size: .84rem;
   color: var(--gray-400);
 }
-.ns-spinner {
-  width: 14px; height: 14px;
-  border: 2px solid var(--gray-200);
-  border-top-color: var(--electric);
-  border-radius: 50%;
-  animation: ns-spin .6s linear infinite;
-  flex-shrink: 0;
-}
-@keyframes ns-spin { to { transform: rotate(360deg); } }
-
 /* Mobile hamburger */
 .navbar__hamburger {
   display: none;
@@ -526,10 +516,6 @@
   grid-template-columns: 1.5fr 1fr 1fr 1.2fr;
   gap: 48px;
   padding-bottom: 48px;
-}
-.footer__brand img {
-  height: 40px;
-  margin-bottom: 16px;
 }
 .footer__brand-name {
   font-family: 'Rajdhani', sans-serif;

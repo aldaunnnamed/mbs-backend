@@ -134,7 +134,7 @@
               <div class="det-sec">
                 <div class="det-sec__ttl">Productos ordenados</div>
                 <div class="tbl-wrap">
-                  <table class="tbl" id="det-items-tbl">
+                  <table class="tbl">
                     <thead><tr><th>Producto</th><th>SKU</th><th>Cant.</th><th>Precio</th></tr></thead>
                     <tbody id="det-items"></tbody>
                   </table>
@@ -258,7 +258,7 @@ function renderPedidos(peds) {
         <td>
           <div style="display:flex;gap:6px">
             <button class="btn btn-b btn-xs" onclick="verDetalle(${p.id})">Ver</button>
-            <button class="btn btn-gr btn-xs" onclick="abrirModal(${p.id},'${p.estado}')">Actualizar</button>
+            <button class="btn btn-gr btn-xs" onclick="abrirModal(${p.id})">Actualizar</button>
           </div>
         </td>
       </tr>`).join('')
@@ -518,7 +518,7 @@ async function marcarPagado() {
   }
 }
 
-function abrirModal(id, estado) {
+function abrirModal(id) {
   verDetalle(id);
 }
 

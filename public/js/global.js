@@ -258,22 +258,6 @@ const NavbarNotif = (() => {
   return { init, toggle, markOne, markAll, load };
 })();
 
-/* ── Formato de valores ──────────────────────────────────────── */
-const fmt = (() => {
-  const money = (n, symbol = '$') =>
-    symbol + parseFloat(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-  const num = (n) => parseInt(n || 0).toLocaleString('es-MX');
-
-  const date = (str) => {
-    if (!str) return '—';
-    const d = new Date(str);
-    return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
-  };
-
-  return { money, num, date };
-})();
-
 /* ── Moneda dual MXN / USD ───────────────────────────────────── */
 const Currency = (() => {
   let _rate = null;   // MXN por 1 USD
@@ -510,21 +494,21 @@ const NavbarSearch = (() => {
 
       return `
         <a class="ns-item" href="/pages/producto.html?id=${id}">
-          <div class="ns-item__img">
+          <div class="ns-img">
             ${img
               ? `<img src="${img}" alt="" loading="lazy">`
-              : '<span class="ns-item__ph">📦</span>'}
+              : '<span class="ns-img--ph">📦</span>'}
           </div>
-          <div class="ns-item__info">
-            <div class="ns-item__name">${hl(nombre, q)}</div>
-            ${cat ? `<div class="ns-item__cat">${cat}</div>` : ''}
+          <div class="ns-info">
+            <div class="ns-name">${hl(nombre, q)}</div>
+            ${cat ? `<div class="ns-meta">${cat}</div>` : ''}
           </div>
-          <div class="ns-item__price">${priceMXN(precio)}</div>
+          <div class="ns-price">${priceMXN(precio)}</div>
         </a>`;
     });
 
     dd.innerHTML = items.join('') +
-      `<a class="ns-ver-todo" href="/pages/catalogo.html?busqueda=${encodeURIComponent(q)}">
+      `<a class="ns-ver-todos" href="/pages/catalogo.html?busqueda=${encodeURIComponent(q)}">
         Ver todos los resultados →
       </a>`;
     dd.style.display = 'block';

@@ -378,9 +378,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const cartData = await API.get('/carrito');
   cartItems = cartData.items || [];
 
-  console.log('[checkout] cartData:', cartData);
-  console.log('[checkout] cartItems.length:', cartItems.length);
-
   if (!cartItems.length) {
     Toast.show('Tu carrito está vacío. Agrega productos antes de continuar.', 'info');
     setTimeout(() => { window.location.href = '/pages/carrito.html'; }, 1500);

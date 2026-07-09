@@ -923,19 +923,6 @@ window.subirFoto = async (input) => {
   input.value = '';
 };
 
-window.cambiarPassword = async () => {
-  const actual = document.getElementById('p-pass-actual').value;
-  const nueva  = document.getElementById('p-pass-nueva').value;
-  if (!actual || !nueva) { Toast.show('Ingresa tu contraseña actual y la nueva', 'error'); return; }
-  if (nueva.length < 8)  { Toast.show('La nueva contraseña debe tener mínimo 8 caracteres', 'error'); return; }
-  const res = await API.put('/auth/password', { password_actual: actual, password_nueva: nueva });
-  Toast.show(res.mensaje || (res.ok ? 'Contraseña actualizada' : 'Error'), res.ok ? 'success' : 'error');
-  if (res.ok) {
-    document.getElementById('p-pass-actual').value = '';
-    document.getElementById('p-pass-nueva').value  = '';
-  }
-};
-
 window.cambiarPasswordSeguridad = async () => {
   const actual   = document.getElementById('seg-pass-actual').value;
   const nueva    = document.getElementById('seg-pass-nueva').value;

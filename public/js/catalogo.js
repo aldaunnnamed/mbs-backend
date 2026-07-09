@@ -305,11 +305,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadProducts();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-  window.changePerPage = (n) => {
-    state.por_pagina = parseInt(n);
-    state.pagina = 1;
-    loadProducts();
-  };
   window.removeFilter = (key) => {
     if (key === 'busqueda')    { state.busqueda = null; }
     if (key === 'solo_stock')  { state.solo_stock = false; document.getElementById('toggle-stock').checked = false; }
@@ -337,6 +332,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelectorAll('.filter-option input[type="checkbox"]').forEach(i => i.checked = false);
     const stockToggle = document.getElementById('toggle-stock');
     if (stockToggle) stockToggle.checked = false;
+    const slider = document.getElementById('price-slider');
+    const priceMin = document.getElementById('price-min');
+    const priceMax = document.getElementById('price-max');
+    if (slider)   slider.value   = 15000;
+    if (priceMin) priceMin.value = 0;
+    if (priceMax) priceMax.value = 15000;
     loadProducts();
   };
 

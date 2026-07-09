@@ -475,10 +475,6 @@ async function guardarEnvio() {
   }
 }
 
-function tog(id, checked) {
-  return `<label class="tog"><input type="checkbox" id="${id}" ${checked?'checked':''}><div class="tog__tr"><div class="tog__th"></div></div></label>`;
-}
-
 async function loadAdmins() {
   const r = await AdminAPI.get('/admin/admins');
   const admins = r.admins || [];

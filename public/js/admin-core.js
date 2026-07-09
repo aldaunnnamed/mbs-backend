@@ -114,8 +114,6 @@ const Sidebar = (() => {
     if (user) {
       const ini = ((user.nombre||'M')[0] + (user.apellidos||'B')[0]).toUpperCase();
       document.querySelectorAll('.js-ini').forEach(e => e.textContent = ini);
-      document.querySelectorAll('.js-name').forEach(e => e.textContent = user.nombre || 'Admin');
-      document.querySelectorAll('.js-email').forEach(e => e.textContent = user.email || '');
     }
 
     // Mobile toggle
@@ -146,13 +144,6 @@ const badge = (st) => {
     enviado:       ['bdg--b', '🚚 Enviado'],
     entregado:     ['bdg--g', '✓ Entregado'],
     cancelado:     ['bdg--gr','✕ Cancelado'],
-    activo:        ['bdg--g', 'Activo'],
-    inactivo:      ['bdg--gr','Inactivo'],
-    sin_stock:     ['bdg--r', 'Sin stock'],
-    stock_bajo:    ['bdg--o', 'Stock bajo'],
-    ok:            ['bdg--g', 'OK'],
-    critico:       ['bdg--r', 'Crítico'],
-    bajo:          ['bdg--o', 'Bajo'],
   };
   const [cls, lbl] = m[st] || ['bdg--gr', st];
   return `<span class="bdg ${cls}">${lbl}</span>`;
