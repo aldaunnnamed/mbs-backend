@@ -173,8 +173,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const cat    = p.r_categoria_nombre || p.categoria_nombre || '';
   const marca  = p.r_marca_nombre || p.marca_nombre || '';
   const stock  = p.r_stock_actual ?? p.stock_actual;
-  const calif  = p.r_calificacion_promedio || 0;
-  const nres   = p.r_total_resenas || 0;
+  const calif  = parseFloat(p.r_calificacion_promedio) || 0;
+  const nres   = parseInt(p.r_total_resenas, 10) || 0;
 
   const stars = (n) => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
   const mainImg = imgs[0]?.url || null;
