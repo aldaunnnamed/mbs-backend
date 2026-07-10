@@ -177,7 +177,8 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label">C.P. <span class="req">*</span></label>
-                  <input type="text" class="form-input" id="dir-cp" maxlength="5" autocomplete="postal-code">
+                  <input type="text" class="form-input" id="dir-cp" maxlength="5" inputmode="numeric" pattern="[0-9]*" autocomplete="postal-code"
+                    oninput="this.value = this.value.replace(/\D/g, '')">
                 </div>
               </div>
               <div class="form-grid-2">
@@ -612,27 +613,29 @@ window.confirmarPedido = async () => {
   btn.textContent = '⏳ Procesando...';
 
   try {
-    // 1. Usar dirección guardada seleccionada o crear una nueva
+    // 1. Guardar/actualizar la dirección con los datos actuales del formulario
+    // (por si el cliente corrigió algún campo —p. ej. el C.P.— de una dirección guardada)
     let finalDirId = selectedAddressId;
-    if (!finalDirId) {
-      const dirRes = await API.post('/usuarios/direcciones', {
-        nombre:        document.getElementById('dir-nombre').value,
-        apellidos:     document.getElementById('dir-apellidos').value,
-        calle_numero:  document.getElementById('dir-calle').value,
-        colonia:       document.getElementById('dir-colonia').value,
-        cp:            document.getElementById('dir-cp').value,
-        estado:        document.getElementById('dir-estado').value,
-        ciudad:        document.getElementById('dir-ciudad').value,
-        es_predeterminada: true
-      });
-      if (!dirRes.ok || !dirRes.id) {
-        Toast.show('Error al guardar la dirección', 'error');
-        btn.disabled = false;
-        btn.innerHTML = '🔒 Confirmar y pagar ' + confirmTotalText;
-        return;
-      }
-      finalDirId = dirRes.id;
+    const direccionBody = {
+      nombre:        document.getElementById('dir-nombre').value,
+      apellidos:     document.getElementById('dir-apellidos').value,
+      calle_numero:  document.getElementById('dir-calle').value,
+      colonia:       document.getElementById('dir-colonia').value,
+      cp:            document.getElementById('dir-cp').value,
+      estado:        document.getElementById('dir-estado').value,
+      ciudad:        document.getElementById('dir-ciudad').value,
+      es_predeterminada: true
+    };
+    const dirRes = finalDirId
+      ? await API.put('/usuarios/direcciones/' + finalDirId, direccionBody)
+      : await API.post('/usuarios/direcciones', direccionBody);
+    if (!dirRes.ok) {
+      Toast.show('Error al guardar la dirección', 'error');
+      btn.disabled = false;
+      btn.innerHTML = '🔒 Confirmar y pagar ' + confirmTotalText;
+      return;
     }
+    if (!finalDirId) finalDirId = dirRes.id;
 
     // 2. Obtener método de pago desde los ya cargados
     const metodoPago = paymentMethods.find(m => m.clave === selectedPayment);

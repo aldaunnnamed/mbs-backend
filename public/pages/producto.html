@@ -169,12 +169,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.title = (p.r_nombre || p.nombre) + ' — MBS Comunicaciones';
 
   const nombre = p.r_nombre || p.nombre;
-  const precio = p.r_precio_venta || p.precio_venta;
+  const precioBase = parseFloat(p.r_precio_venta || p.precio_venta);
   const cat    = p.r_categoria_nombre || p.categoria_nombre || '';
   const marca  = p.r_marca_nombre || p.marca_nombre || '';
-  const stock  = p.r_stock_actual ?? p.stock_actual;
+  const stockProducto = p.r_stock_actual ?? p.stock_actual;
   const calif  = parseFloat(p.r_calificacion_promedio) || 0;
   const nres   = parseInt(p.r_total_resenas, 10) || 0;
+
+  // Si el producto tiene variantes, el precio y el stock reales son los de la
+  // variante seleccionada (cada variante tiene su propio stock independiente)
+  const precio = variantes.length ? precioBase + parseFloat(variantes[0].precio_extra || 0) : precioBase;
+  const stock  = variantes.length ? variantes[0].stock : stockProducto;
 
   const stars = (n) => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
   const mainImg = imgs[0]?.url || null;
@@ -228,8 +233,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           <span class="product-info__stars">${stars(calif)}</span>
           <span>${calif} <a class="product-info__reviews">(${nres} reseñas)</a></span>
         </div>
-        <div class="product-info__price" data-mxn="${precio}">${Currency.format(precio)}</div>
-        <div class="product-info__stock">
+        <div class="product-info__price" id="product-price" data-mxn="${precio}">${Currency.format(precio)}</div>
+        <div class="product-info__stock" id="product-stock">
           ${stock > 0
             ? `<span class="product-info__stock-in">● En stock ${stock}</span>
                <span style="color:var(--gray-600);font-size:.85rem">📦 Envío a toda la república</span>`
@@ -241,7 +246,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="qty-label">Cantidad</div>
         <div class="qty-control">
           <button class="qty-btn" onclick="changeQty(-1)">−</button>
-          <input type="number" class="qty-input" id="qty-input" value="1" min="1" max="${stock}">
+          <input type="number" class="qty-input" id="qty-input" value="${stock>0?1:0}" min="1" max="${stock}" oninput="syncQty()">
           <button class="qty-btn" onclick="changeQty(1)">+</button>
           <span class="qty-hint">Compra mín. 1 · Precio por unidad</span>
         </div>
@@ -321,6 +326,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   `;
 
   // Seleccionar primera variante si hay
+  variantesData = variantes;
+  precioBaseGlobal = precioBase;
   if (variantes.length) selectedVariant = variantes[0].id;
 
   // Eventos
@@ -495,11 +502,50 @@ window.selectVariant = (btn) => {
   document.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   selectedVariant = btn.dataset.id;
+
+  // Cada variante tiene su propio stock y precio_extra — reflejarlo en la UI
+  const v = variantesData.find(x => String(x.id) === String(selectedVariant));
+  if (!v) return;
+  const stock  = v.stock;
+  const precio = precioBaseGlobal + parseFloat(v.precio_extra || 0);
+
+  const priceEl = document.getElementById('product-price');
+  if (priceEl) {
+    priceEl.dataset.mxn = precio;
+    priceEl.textContent = Currency.format(precio);
+  }
+  const stockEl = document.getElementById('product-stock');
+  if (stockEl) {
+    stockEl.innerHTML = stock > 0
+      ? `<span class="product-info__stock-in">● En stock ${stock}</span>
+         <span style="color:var(--gray-600);font-size:.85rem">📦 Envío a toda la república</span>`
+      : `<span class="product-info__stock-out">● Sin stock</span>`;
+  }
+  const qtyInput = document.getElementById('qty-input');
+  if (qtyInput) {
+    qtyInput.max = stock;
+    if (qty > stock) qty = stock > 0 ? stock : 0;
+    if (qty < 1 && stock > 0) qty = 1;
+    qtyInput.value = qty;
+  }
+  const addBtn = document.getElementById('btn-add-cart');
+  if (addBtn) addBtn.disabled = stock === 0;
 };
 window.changeQty = (delta) => {
   const inp = document.getElementById('qty-input');
+  const max = parseInt(inp.max) || Infinity;
   let val = parseInt(inp.value) + delta;
   if (val < 1) val = 1;
+  if (val > max) val = max;
+  inp.value = val;
+  qty = val;
+};
+window.syncQty = () => {
+  const inp = document.getElementById('qty-input');
+  const max = parseInt(inp.max) || Infinity;
+  let val = parseInt(inp.value);
+  if (isNaN(val) || val < 1) val = 1;
+  if (val > max) val = max;
   inp.value = val;
   qty = val;
 };
@@ -511,6 +557,7 @@ window.switchTab = (tab, btn) => {
 };
 
 let selectedVariant = null, qty = 1;
+let variantesData = [], precioBaseGlobal = 0;
 
 // Actualizar precio principal cuando cambie la moneda
 window.addEventListener('mbs:currency', () => {

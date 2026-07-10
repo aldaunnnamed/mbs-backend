@@ -90,16 +90,32 @@ const actualizarCantidad = async (req, res) => {
     const uid = toInt(req.usuario?.id);
     const sk  = toStr(req.headers['x-session-key']);
 
-    const result = await query(
-      'UPDATE carrito_items ci SET cantidad = CAST($1 AS INTEGER)' +
-      ' FROM carritos c' +
-      ' WHERE ci.id = CAST($2 AS INTEGER) AND ci.carrito_id = c.id' +
-      ' AND (c.usuario_id = CAST($3 AS INTEGER) OR c.session_key = CAST($4 AS CHARACTER VARYING))',
-      [parseInt(cantidad), parseInt(req.params.item_id), uid, sk]
+    // El stock disponible vive en la variante (si el ítem tiene una) o en el producto
+    const itemResult = await query(
+      'SELECT ci.id, p.nombre, COALESCE(vl.stock, p.stock_actual) AS stock_disponible' +
+      ' FROM carrito_items ci' +
+      ' JOIN carritos c ON c.id = ci.carrito_id' +
+      ' JOIN productos p ON p.id = ci.producto_id' +
+      ' LEFT JOIN variantes_longitud vl ON vl.id = ci.variante_id' +
+      ' WHERE ci.id = CAST($1 AS INTEGER)' +
+      ' AND (c.usuario_id = CAST($2 AS INTEGER) OR c.session_key = CAST($3 AS CHARACTER VARYING))',
+      [parseInt(req.params.item_id), uid, sk]
     );
-    if (result.rowCount === 0) {
+    const item = itemResult.rows[0];
+    if (!item) {
       return res.status(404).json({ ok: false, mensaje: 'Item no encontrado en tu carrito' });
     }
+    if (parseInt(cantidad) > item.stock_disponible) {
+      return res.status(400).json({
+        ok: false,
+        mensaje: `Stock insuficiente de "${item.nombre}". Disponible: ${item.stock_disponible} uds.`
+      });
+    }
+
+    await query(
+      'UPDATE carrito_items SET cantidad = CAST($1 AS INTEGER) WHERE id = CAST($2 AS INTEGER)',
+      [parseInt(cantidad), item.id]
+    );
     res.json({ ok: true, mensaje: 'Cantidad actualizada' });
   } catch (err) {
     console.error('actualizar cantidad:', err.message);
