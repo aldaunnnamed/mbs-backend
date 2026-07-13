@@ -50,6 +50,37 @@ app.use('/api/admin',     require('./routes/admin.routes'));
 app.use('/api/pagos',     require('./routes/pagos.routes'));
 app.use('/api/contacto',  require('./routes/contacto.routes'));
 
+// GET /api/utilidades/cp/:cp — autocompletar estado/colonia a partir del código postal
+// Se consulta desde el backend (no desde el navegador) porque zippopotam.us no
+// envía cabeceras CORS, y así también evitamos exponer el proveedor externo.
+app.get('/api/utilidades/cp/:cp', async (req, res) => {
+  const cp = req.params.cp;
+  if (!/^\d{5}$/.test(cp)) {
+    return res.status(400).json({ ok: false, mensaje: 'Código postal inválido' });
+  }
+  try {
+    const externa = await fetch('https://api.zippopotam.us/mx/' + cp, {
+      signal: AbortSignal.timeout(5000)
+    });
+    if (!externa.ok) {
+      return res.json({ ok: false, mensaje: 'Código postal no encontrado' });
+    }
+    const datos = await externa.json();
+    const lugar = datos.places?.[0];
+    if (!lugar) {
+      return res.json({ ok: false, mensaje: 'Código postal no encontrado' });
+    }
+    res.json({
+      ok: true,
+      estado: lugar.state,
+      colonia: lugar['place name']
+    });
+  } catch (err) {
+    console.error('cp lookup:', err.message);
+    res.status(502).json({ ok: false, mensaje: 'No se pudo consultar el código postal' });
+  }
+});
+
 // GET /api/config/publica — configuración pública (redes sociales, datos de contacto)
 app.get('/api/config/publica', async (req, res) => {
   try {

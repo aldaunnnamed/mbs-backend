@@ -780,7 +780,8 @@ window.abrirModalDireccion = (d) => {
         </div>
         <div>
           <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px" for="dir-cp">Código postal *</label>
-          <input id="dir-cp" class="form-input" style="width:100%;padding:9px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem" maxlength="5" value="${v('cp')}">
+          <input id="dir-cp" class="form-input" style="width:100%;padding:9px 12px;border:1px solid #E0E7EF;border-radius:6px;font-family:inherit;font-size:.9rem" maxlength="5" inputmode="numeric" pattern="[0-9]*"
+            oninput="this.value = this.value.replace(/\D/g, '')" value="${v('cp')}">
         </div>
         <div>
           <label style="display:block;font-size:.82rem;font-weight:600;color:#0B1E3D;margin-bottom:4px" for="dir-telefono">Teléfono</label>
@@ -805,6 +806,19 @@ window.abrirModalDireccion = (d) => {
 
   document.body.appendChild(modal);
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+  // Autocompletar estado/colonia al capturar un C.P. de 5 dígitos
+  document.getElementById('dir-cp')?.addEventListener('input', async (e) => {
+    const cp = e.target.value.trim();
+    if (cp.length !== 5) return;
+    const res = await API.get('/utilidades/cp/' + cp);
+    if (res.ok) {
+      document.getElementById('dir-estado').value  = res.estado  || '';
+      document.getElementById('dir-colonia').value = res.colonia || '';
+    } else {
+      Toast.show(res.mensaje || 'No se encontró el código postal, complétalo manualmente', 'info');
+    }
+  });
 };
 
 window.guardarDireccion = async (id) => {

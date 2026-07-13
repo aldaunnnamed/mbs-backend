@@ -464,6 +464,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  // Autocompletar estado/colonia al capturar un C.P. de 5 dígitos
+  document.getElementById('dir-cp')?.addEventListener('input', async (e) => {
+    const cp = e.target.value.trim();
+    if (cp.length !== 5) return;
+    const res = await API.get('/utilidades/cp/' + cp);
+    if (res.ok) {
+      document.getElementById('dir-estado').value  = res.estado  || '';
+      document.getElementById('dir-colonia').value = res.colonia || '';
+    } else {
+      Toast.show(res.mensaje || 'No se encontró el código postal, complétalo manualmente', 'info');
+    }
+  });
+
   // "+ Agregar nueva dirección" — limpiar formulario para capturar una nueva
   document.getElementById('btn-add-address')?.addEventListener('click', (e) => {
     e.preventDefault();
