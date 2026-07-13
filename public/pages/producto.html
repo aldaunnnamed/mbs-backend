@@ -389,7 +389,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <a href="/pages/catalogo.html?categoria_id=${catId}" class="btn-ghost btn" style="font-size:.85rem">Ver categoría →</a>
         </div>
         <div class="products-grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">${relHtml}</div>`;
-      document.querySelector('.container').appendChild(relSection);
+      document.getElementById('product-content').appendChild(relSection);
     }
   }
 

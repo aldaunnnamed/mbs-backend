@@ -24,6 +24,7 @@
   --white:       #FFFFFF;
   --gray-50:     #F5F7FA;
   --gray-100:    #E0E7EF;
+  --gray-300:    #B0BEC5;
   --gray-400:    #90A4AE;
   --gray-600:    #546E7A;
   --gray-900:    #263238;
@@ -156,6 +157,13 @@ h1,h2,h3,h4,h5,h6 {
 .badge-amber   { background: var(--amber-lite);   color: #7B4F00; }
 
 /* ── Tarjeta de producto ─────────────────────────────────────── */
+/* Base compartida por home.css (home) y páginas sin home.css (producto.html,
+   "Productos relacionados") — sin esto, las tarjetas no quedan en grid y
+   .product-card__img (aspect-ratio:1) crece tanto como el ancho de la página. */
+.products-grid {
+  display: grid;
+  gap: 24px;
+}
 .product-card {
   background: var(--white);
   border-radius: var(--radius-md);
