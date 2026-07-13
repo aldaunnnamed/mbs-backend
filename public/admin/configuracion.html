@@ -261,9 +261,13 @@
               <div class="card__hd"><span class="card__title">💳 Métodos de pago</span></div>
               <div class="tbl-wrap">
                 <table class="tbl">
-                  <thead><tr><th>Método</th><th>Descripción</th><th>Estado</th><th>Acción</th></tr></thead>
+                  <thead><tr><th>Método</th><th>Descripción</th><th>Activo</th></tr></thead>
                   <tbody id="pagos-tbody"></tbody>
                 </table>
+              </div>
+              <div class="card__hd" style="border-top:1px solid var(--border);border-bottom:none;display:flex;align-items:center;justify-content:space-between">
+                <span class="fs11 tx-m" id="pagos-metodos-status"></span>
+                <button class="btn btn-p btn-sm" onclick="guardarPagoMetodos()">Guardar cambios</button>
               </div>
             </div>
           </div>
@@ -540,29 +544,52 @@ async function guardarAdmin() {
   if (r.ok) { document.getElementById('admin-modal').remove(); loadAdmins(); }
 }
 
+let pagoMetodosOriginal = {};
+
 async function loadPagoMetodos() {
   const r = await AdminAPI.get('/admin/pagos-metodos');
   const metodos = (r.metodos || []).filter(m => m.clave !== 'cripto');
+  pagoMetodosOriginal = {};
+  metodos.forEach(m => { pagoMetodosOriginal[m.id] = m.activo; });
   document.getElementById('pagos-tbody').innerHTML = metodos.length
     ? metodos.map(m => `<tr>
         <td class="fw6">${m.nombre}</td>
         <td class="tx-m">${m.descripcion || '—'}</td>
-        <td>${m.activo ? '<span class="bdg bdg--g">Activo</span>' : '<span class="bdg bdg--gr">Inactivo</span>'}</td>
         <td>
-          <button class="btn btn-xs ${m.activo ? '' : 'btn-p'}"
-            style="${m.activo ? 'background:var(--c-red-bg);color:var(--c-red-tx)' : ''}"
-            onclick="togglePagoMetodo(${m.id})">
-            ${m.activo ? 'Desactivar' : 'Activar'}
-          </button>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" class="pago-metodo-chk" data-id="${m.id}" ${m.activo ? 'checked' : ''}
+              onchange="marcarPagoMetodosPendiente()" style="width:16px;height:16px">
+            <span class="bdg ${m.activo ? 'bdg--g' : 'bdg--gr'}" data-estado-id="${m.id}">${m.activo ? 'Activo' : 'Inactivo'}</span>
+          </label>
         </td>
       </tr>`).join('')
-    : '<tr><td colspan="4" style="text-align:center;padding:20px" class="tx-m">Sin métodos de pago</td></tr>';
+    : '<tr><td colspan="3" style="text-align:center;padding:20px" class="tx-m">Sin métodos de pago</td></tr>';
+  document.getElementById('pagos-metodos-status').textContent = '';
 }
 
-async function togglePagoMetodo(id) {
-  const r = await AdminAPI.put('/admin/pagos-metodos/' + id + '/activo', {});
-  if (r.ok) { Toast.show('Estado actualizado', 'success'); loadPagoMetodos(); }
-  else Toast.show(r.mensaje || 'Error', 'error');
+function marcarPagoMetodosPendiente() {
+  let hayCambios = false;
+  document.querySelectorAll('.pago-metodo-chk').forEach(chk => {
+    const badge = document.querySelector(`[data-estado-id="${chk.dataset.id}"]`);
+    badge.textContent = chk.checked ? 'Activo' : 'Inactivo';
+    badge.className = 'bdg ' + (chk.checked ? 'bdg--g' : 'bdg--gr');
+    if (chk.checked !== pagoMetodosOriginal[parseInt(chk.dataset.id)]) hayCambios = true;
+  });
+  document.getElementById('pagos-metodos-status').textContent = hayCambios ? 'Tienes cambios sin guardar' : '';
+}
+
+async function guardarPagoMetodos() {
+  const cambios = Array.from(document.querySelectorAll('.pago-metodo-chk'))
+    .filter(chk => chk.checked !== pagoMetodosOriginal[parseInt(chk.dataset.id)]);
+  if (!cambios.length) { Toast.show('No hay cambios que guardar', 'info'); return; }
+  let errores = 0;
+  for (const chk of cambios) {
+    const r = await AdminAPI.put('/admin/pagos-metodos/' + chk.dataset.id + '/activo', {});
+    if (!r.ok) errores++;
+  }
+  if (errores) Toast.show('Algunos métodos no se pudieron actualizar', 'error');
+  else Toast.show('Métodos de pago actualizados', 'success');
+  loadPagoMetodos();
 }
 
 async function loadSpeiConfig() {
