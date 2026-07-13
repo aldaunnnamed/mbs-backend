@@ -292,7 +292,7 @@ const Currency = (() => {
     const btn = document.getElementById('currency-toggle');
     if (btn) {
       btn.dataset.mode = _mode;
-      btn.textContent = _mode === 'USD' ? '🇺🇸 USD' : '🇲🇽 MXN';
+      btn.textContent = _mode === 'USD' ? '$ USD' : '$ MXN';
     }
     // Disparar evento para que páginas con lógica compleja recalculen
     window.dispatchEvent(new CustomEvent('mbs:currency', { detail: { mode: _mode } }));
@@ -305,7 +305,7 @@ const Currency = (() => {
     const btn = document.getElementById('currency-toggle');
     if (btn) {
       btn.dataset.mode = _mode;
-      btn.textContent = _mode === 'USD' ? '🇺🇸 USD' : '🇲🇽 MXN';
+      btn.textContent = _mode === 'USD' ? '$ USD' : '$ MXN';
     }
   };
 
