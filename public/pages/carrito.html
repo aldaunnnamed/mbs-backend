@@ -295,6 +295,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const img      = item.r_imagen     || item.imagen;
       const id       = item.r_item_id    || item.item_id || item.id;
       const badge    = item.r_badge      || item.badge;
+      const stock    = parseInt(item.r_stock_actual ?? item.stock_actual, 10);
+      const alTope   = !isNaN(stock) && cantidad >= stock;
       const badgeLabel = { nuevo:'NUEVO', oferta:'OFERTA', top_venta:'TOP VENTA', liquidacion:'LIQUIDACIÓN' };
 
       return `
@@ -308,7 +310,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div class="cart-item__name">${nombre}</div>
             <div class="cart-item__sku">SKU: ${sku}</div>
             ${variante ? `<div class="cart-item__variant">Longitud: ${variante}</div>` : ''}
-            <span class="stock-badge in-stock">En stock</span>
+            <span class="stock-badge in-stock">${!isNaN(stock) ? stock + ' disponibles' : 'En stock'}</span>
           </div>
         </div>
         <div>
@@ -316,9 +318,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
         <div class="cart-item__qty">
           <button class="qty-btn" onclick="updateQty(${id}, ${cantidad-1})">−</button>
-          <input type="number" class="qty-input" value="${cantidad}" min="1"
+          <input type="number" class="qty-input" value="${cantidad}" min="1" ${!isNaN(stock) ? `max="${stock}"` : ''}
             onchange="updateQty(${id}, this.value)">
-          <button class="qty-btn" onclick="updateQty(${id}, ${cantidad+1})">+</button>
+          <button class="qty-btn" onclick="updateQty(${id}, ${cantidad+1})" ${alTope ? 'disabled title="Alcanzaste el stock disponible"' : ''}>+</button>
         </div>
         <div class="cart-item__subtotal">${Currency.format(subtotal)}</div>
         <div class="cart-item__actions">
@@ -395,7 +397,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.updateQty = async (id, qty) => {
     qty = parseInt(qty);
     if (qty < 1) { window.removeItem(id); return; }
-    await API.put('/carrito/' + id, { cantidad: qty });
+    const res = await API.put('/carrito/' + id, { cantidad: qty });
+    if (!res.ok) {
+      Toast.show(res.mensaje || 'No se pudo actualizar la cantidad', 'error');
+    }
     await render();
     Cart.updateBadge();
   };
