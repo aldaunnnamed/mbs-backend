@@ -10,11 +10,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const icons = {
       'cables-de-fibra':   '🔌',
-      'conectores':        '⊕',
-      'patch-cords':       '↔',
-      'equipos-activos':   '⊞',
-      'herramientas':      '⚙',
-      'accesorios':        '◈',
+      'conectores':        '🔗',
+      'patch-cords':       '↔️',
+      'equipos-activos':   '📡',
+      'herramientas':      '🛠️',
+      'accesorios':        '📦',
     };
 
     try {
@@ -137,6 +137,75 @@ document.addEventListener('DOMContentLoaded', async () => {
       </div>`;
   };
 
+  // ── Carrusel del hero (imágenes de productos existentes) ────
+  const loadHeroCarousel = async () => {
+    const carousel = document.getElementById('hero-carousel');
+    if (!carousel) return;
+
+    try {
+      const data = await API.get('/productos?orden=relevancia&por_pagina=8&solo_stock=true');
+      if (!data.ok) return;
+
+      const slides = (data.productos || [])
+        .filter(p => p.r_imagen_principal || p.imagen_principal)
+        .slice(0, 6);
+
+      if (!slides.length) return; // deja el placeholder visible
+
+      carousel.innerHTML = slides.map((p, i) => {
+        const nombre = p.r_nombre  || p.nombre;
+        const precio = p.r_precio_venta || p.precio_venta;
+        const cat    = p.r_categoria    || p.categoria;
+        const slug   = p.r_slug         || p.slug;
+        const img    = p.r_imagen_principal || p.imagen_principal;
+        return `
+        <a href="/pages/producto.html?slug=${slug}" class="hero-carousel__slide ${i === 0 ? 'active' : ''}" data-i="${i}">
+          <img src="${img}" alt="${nombre}" loading="${i === 0 ? 'eager' : 'lazy'}">
+          <div class="hero-carousel__caption">
+            ${cat ? `<span class="hero-carousel__caption-cat">${cat}</span>` : ''}
+            <span class="hero-carousel__caption-name">${nombre}</span>
+            <span class="hero-carousel__caption-price">${Currency.format(precio)}</span>
+          </div>
+        </a>`;
+      }).join('') + (slides.length > 1 ? `
+        <div class="hero-carousel__dots">
+          ${slides.map((_, i) => `<button class="hero-carousel__dot ${i === 0 ? 'active' : ''}" data-i="${i}" aria-label="Ver producto ${i + 1}"></button>`).join('')}
+        </div>` : '');
+
+      if (slides.length <= 1) return; // sin controles ni auto-avance si solo hay una imagen
+
+      let current = 0;
+      const slideEls = carousel.querySelectorAll('.hero-carousel__slide');
+      const dotEls   = carousel.querySelectorAll('.hero-carousel__dot');
+
+      const goTo = (i) => {
+        slideEls[current]?.classList.remove('active');
+        dotEls[current]?.classList.remove('active');
+        current = i;
+        slideEls[current]?.classList.add('active');
+        dotEls[current]?.classList.add('active');
+      };
+
+      let timer = setInterval(() => goTo((current + 1) % slides.length), 4500);
+
+      dotEls.forEach(dot => {
+        dot.addEventListener('click', (e) => {
+          e.preventDefault();
+          clearInterval(timer);
+          goTo(parseInt(dot.dataset.i));
+          timer = setInterval(() => goTo((current + 1) % slides.length), 4500);
+        });
+      });
+
+      carousel.addEventListener('mouseenter', () => clearInterval(timer));
+      carousel.addEventListener('mouseleave', () => {
+        timer = setInterval(() => goTo((current + 1) % slides.length), 4500);
+      });
+    } catch (err) {
+      console.error('Error cargando carrusel del hero:', err);
+    }
+  };
+
   // ── Buscador del hero ───────────────────────────────────────
   const searchInput = document.getElementById('hero-search');
   if (searchInput) {
@@ -149,5 +218,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ── Init ────────────────────────────────────────────────────
-  await Promise.all([loadCategories(), loadTopProducts()]);
+  await Promise.all([loadCategories(), loadTopProducts(), loadHeroCarousel()]);
 });
