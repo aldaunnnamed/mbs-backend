@@ -16,7 +16,7 @@ const getStripe = async () => {
   const cfg = {};
   res.rows.forEach(r => { cfg[r.clave] = r.valor; });
 
-  const mode = cfg.stripe_mode || 'sandbox';
+  const mode = cfg.stripe_mode || 'live';
   const secretKey = mode === 'live' ? cfg.stripe_sk_live : cfg.stripe_sk_test;
 
   if (!secretKey) throw new Error('Stripe no configurado: falta la Secret Key en Configuración > Pagos');
@@ -48,7 +48,7 @@ const verificarWebhook = async (rawBody, signature) => {
   const cfg = {};
   res.rows.forEach(r => { cfg[r.clave] = r.valor; });
 
-  const mode   = cfg.stripe_mode || 'sandbox';
+  const mode   = cfg.stripe_mode || 'live';
   const secret = mode === 'live'
     ? cfg.stripe_webhook_secret_live
     : cfg.stripe_webhook_secret_test;
@@ -69,7 +69,7 @@ const getPublicKey = async () => {
   );
   const cfg = {};
   res.rows.forEach(r => { cfg[r.clave] = r.valor; });
-  const mode = cfg.stripe_mode || 'sandbox';
+  const mode = cfg.stripe_mode || 'live';
   return mode === 'live' ? (cfg.stripe_pk_live || '') : (cfg.stripe_pk_test || '');
 };
 

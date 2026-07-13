@@ -19,7 +19,7 @@ const getCfg = async () => {
     const cfg = {};
     res.rows.forEach(r => { cfg[r.clave] = r.valor; });
 
-    const mode = cfg.paypal_mode || process.env.PAYPAL_MODE || 'sandbox';
+    const mode = cfg.paypal_mode || process.env.PAYPAL_MODE || 'live';
     const isLive = mode === 'live';
 
     return {
@@ -37,7 +37,7 @@ const getCfg = async () => {
     };
   } catch (_) {
     // Si la tabla no tiene las claves aún, usar .env
-    const mode = process.env.PAYPAL_MODE || 'sandbox';
+    const mode = process.env.PAYPAL_MODE || 'live';
     return {
       mode,
       base_url: mode === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com',
