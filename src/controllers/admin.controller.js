@@ -857,13 +857,28 @@ const importarProductos = async (req, res) => {
       return vals.map(v => v.trim());
     };
 
+    const ESTADOS_VALIDOS = ['activo', 'inactivo', 'borrador'];
+    const BADGES_VALIDOS  = ['nuevo', 'oferta', 'top_venta', 'liquidacion'];
+
     let creados = 0, actualizados = 0, errores = 0;
+    const detalles = [];
     for (let i = 1; i < lines.length; i++) {
       const vals = parseRow(lines[i]);
       const row = {};
       header.forEach((h, idx) => { row[h] = vals[idx] || null; });
       try {
-        if (!row.sku || !row.nombre) { errores++; continue; }
+        if (!row.sku || !row.nombre) {
+          errores++;
+          if (detalles.length < 10) detalles.push(`Fila ${i + 1}: falta sku o nombre`);
+          continue;
+        }
+        // Excel/Sheets suelen guardar "Activo", "Oferta", etc. — normalizamos en vez
+        // de dejar que el CHECK constraint de la BD tumbe la fila entera en silencio.
+        const estadoNorm = (row.estado || '').toLowerCase().trim();
+        row.estado = ESTADOS_VALIDOS.includes(estadoNorm) ? estadoNorm : 'activo';
+        const badgeNorm = (row.badge || '').toLowerCase().trim();
+        row.badge = BADGES_VALIDOS.includes(badgeNorm) ? badgeNorm : null;
+
         const slug = generarSlug(row.nombre);
         const exists = await query('SELECT id FROM productos WHERE sku = $1', [row.sku]);
         if (exists.rows.length) {
@@ -891,10 +906,15 @@ const importarProductos = async (req, res) => {
           );
           creados++;
         }
-      } catch (rowErr) { errores++; }
+      } catch (rowErr) {
+        errores++;
+        if (detalles.length < 10) detalles.push(`Fila ${i + 1} (sku ${row.sku || '?'}): ${rowErr.message}`);
+      }
     }
-    res.json({ ok: true, creados, actualizados, errores,
-      mensaje: `Importación: ${creados} creados, ${actualizados} actualizados, ${errores} errores` });
+    const huboExito = creados > 0 || actualizados > 0;
+    res.json({ ok: huboExito || errores === 0, creados, actualizados, errores, detalles,
+      mensaje: `Importación: ${creados} creados, ${actualizados} actualizados, ${errores} errores`
+        + (detalles.length ? ` — ${detalles[0]}` : '') });
   } catch (err) {
     console.error('importarProductos:', err.message);
     res.status(500).json({ ok: false, mensaje: 'Error al importar CSV' });
