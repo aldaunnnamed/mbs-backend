@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <div>
             <h3 style="margin-bottom:12px;color:var(--navy)">Descripción del producto</h3>
             <p style="color:var(--gray-600);line-height:1.7;margin-bottom:16px">
-              ${p.r_descripcion_larga || p.descripcion_larga || p.r_descripcion_corta || p.descripcion_corta || 'Sin descripción disponible.'}
+              ${p.r_descripcion_corta || p.descripcion_corta || p.r_descripcion_larga || p.descripcion_larga || 'Sin descripción disponible.'}
             </p>
           </div>
           ${specs.length ? `
@@ -298,11 +298,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       </div>
 
       <div class="tab-panel" id="tab-especificaciones">
-        ${specs.length
-          ? `<table class="specs-table" style="max-width:600px">
-               <tbody>${specsRows}</tbody>
-             </table>`
-          : '<p class="text-muted">Sin especificaciones disponibles.</p>'}
+        ${(() => {
+          const larga = p.r_descripcion_larga || p.descripcion_larga || '';
+          const descBloque = larga
+            ? `<p style="color:var(--gray-600);line-height:1.7;margin-bottom:${specs.length ? '20px' : '0'}">${larga}</p>`
+            : '';
+          const specsBloque = specs.length
+            ? `<table class="specs-table" style="max-width:600px"><tbody>${specsRows}</tbody></table>`
+            : '';
+          return descBloque + specsBloque
+            || '<p class="text-muted">Sin especificaciones disponibles.</p>';
+        })()}
       </div>
 
       <div class="tab-panel" id="tab-resenas">
