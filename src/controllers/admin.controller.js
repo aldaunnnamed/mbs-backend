@@ -860,6 +860,34 @@ const importarProductos = async (req, res) => {
     const ESTADOS_VALIDOS = ['activo', 'inactivo', 'borrador'];
     const BADGES_VALIDOS  = ['nuevo', 'oferta', 'top_venta', 'liquidacion'];
 
+    // categoria_id acepta un ID numerico existente O el nombre de una categoria —
+    // si el nombre no existe todavia se crea sola, para no obligar a darse de alta
+    // la categoria a mano en el panel antes de poder importar sus productos.
+    const catRows = await query('SELECT id, nombre FROM categorias');
+    const categoriaPorNombre = new Map(catRows.rows.map(c => [c.nombre.toLowerCase().trim(), c.id]));
+    const categoriaPorId = new Set(catRows.rows.map(c => c.id));
+    const resolverCategoriaId = async (valor) => {
+      const raw = (valor || '').trim();
+      if (!raw) return 1;
+      if (/^\d+$/.test(raw)) {
+        const idNum = parseInt(raw, 10);
+        if (categoriaPorId.has(idNum)) return idNum;
+        throw new Error(`categoria_id ${idNum} no existe`);
+      }
+      const key = raw.toLowerCase();
+      if (categoriaPorNombre.has(key)) return categoriaPorNombre.get(key);
+      const ins = await query(
+        `INSERT INTO categorias (nombre, slug) VALUES ($1, $2)
+         ON CONFLICT (slug) DO UPDATE SET slug = categorias.slug
+         RETURNING id`,
+        [raw, generarSlug(raw)]
+      );
+      const nuevoId = ins.rows[0].id;
+      categoriaPorNombre.set(key, nuevoId);
+      categoriaPorId.add(nuevoId);
+      return nuevoId;
+    };
+
     let creados = 0, actualizados = 0, errores = 0;
     const detalles = [];
     for (let i = 1; i < lines.length; i++) {
@@ -880,6 +908,7 @@ const importarProductos = async (req, res) => {
         row.badge = BADGES_VALIDOS.includes(badgeNorm) ? badgeNorm : null;
 
         const slug = generarSlug(row.nombre);
+        const categoriaId = await resolverCategoriaId(row.categoria_id);
         const exists = await query('SELECT id FROM productos WHERE sku = $1', [row.sku]);
         if (exists.rows.length) {
           await query(
@@ -887,7 +916,7 @@ const importarProductos = async (req, res) => {
              categoria_id=$5,marca_id=$6,precio_venta=$7,precio_antes=$8,
              stock_actual=$9,stock_minimo=$10,estado=$11,badge=$12 WHERE sku=$13`,
             [row.nombre, slug, row.descripcion_corta||null, row.descripcion_larga||null,
-             parseInt(row.categoria_id)||1, row.marca_id?parseInt(row.marca_id):null,
+             categoriaId, row.marca_id?parseInt(row.marca_id):null,
              parseFloat(row.precio_venta)||0, row.precio_antes?parseFloat(row.precio_antes):null,
              parseInt(row.stock_actual)||0, parseInt(row.stock_minimo)||5,
              row.estado||'activo', row.badge||null, row.sku]
@@ -899,7 +928,7 @@ const importarProductos = async (req, res) => {
              categoria_id,marca_id,precio_venta,precio_antes,stock_actual,stock_minimo,estado,badge)
              VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
             [row.sku, row.nombre, slug, row.descripcion_corta||null, row.descripcion_larga||null,
-             parseInt(row.categoria_id)||1, row.marca_id?parseInt(row.marca_id):null,
+             categoriaId, row.marca_id?parseInt(row.marca_id):null,
              parseFloat(row.precio_venta)||0, row.precio_antes?parseFloat(row.precio_antes):null,
              parseInt(row.stock_actual)||0, parseInt(row.stock_minimo)||5,
              row.estado||'activo', row.badge||null]
